@@ -6,3 +6,25 @@
 [![GitHub downloads](https://img.shields.io/github/downloads/appuio/control-api/total)][releases]
 
 # control-api
+
+
+### Generate Kubernetes code
+
+If you make changes to the CRD structs you'll need to run code generation.
+This can be done with make:
+
+```bash
+make generate
+```
+
+### Building
+
+See `make help` for a list of build targets.
+
+* `make build`: Build binary for linux/amd64
+* `make build -e GOOS=darwin -e GOARCH=arm64`: Build binary for macos/arm64
+* `make build.docker`: Build Docker image for local environment
+
+### Install CRDs
+
+CRDs can be either installed on the cluster by running `kubectl apply -k config/crd/apiextensions.k8s.io/v1`.
