@@ -1,0 +1,27 @@
+builds:
+- binary: control-api
+  env:
+    - CGO_ENABLED=0 # this is needed otherwise the Docker image build is faulty
+  goarch:
+    - amd64
+  goos:
+    - linux
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-snapshot"
+
+dockers:
+  - image_templates:
+      - "ghcr.io/appuio/control-api:v{{ .Version }}"
+
+      # For prereleases, updating `latest` and the floating tags of the major version does not make sense.
+      # Only the image for the exact version should be pushed.
+      - "{{ if not .Prerelease }}ghcr.io/appuio/control-api:latest{{ end }}"
+
+release:
+  prerelease: auto
+  extra_files:
+    - glob: ./crd.yaml
