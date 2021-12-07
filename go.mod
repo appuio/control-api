@@ -12,6 +12,7 @@ require (
 )
 
 replace (
+	// logr v1.x support should be coming with K8s 1.23
 	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
 )
