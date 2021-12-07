@@ -27,7 +27,55 @@ spec:
               internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           data:
-            description: ZoneData holds all the Zone specific properties
+            description: Data holds the cluster specific metadata.
+            properties:
+              cloudProvider:
+                description: CloudProvider identifies the infrastructure provider
+                  which the Zone is running on.
+                properties:
+                  name:
+                    description: Name identifies the cloud provider.
+                    type: string
+                  region:
+                    description: Region is the geographic location of the Zone.
+                    type: string
+                  zones:
+                    description: Zones is cloud-provider-specific zone aliases within
+                      a Region. If multiple entries are present, the cluster may be
+                      spanning multiple zones.
+                    items:
+                      type: string
+                    type: array
+                type: object
+              cname:
+                description: CNAME is the DNS record where custom application DNS
+                  hostnames shall be pointing to when exposing an application.
+                type: string
+              defaultAppDomain:
+                description: DefaultAppDomain is the base DNS record where OpenShift
+                  Routes without specific hostnames are exposed.
+                type: string
+              displayName:
+                description: DisplayName is a human-friendly name for the Zone.
+                type: string
+              features:
+                additionalProperties:
+                  type: string
+                description: Features holds a key-value dict with keys being a feature
+                  name and values being a property of that feature. Some features
+                  may hold a version string as property.
+                type: object
+              gatewayIPs:
+                description: GatewayIPs holds the outgoing IP addresses of the cluster.
+                items:
+                  type: string
+                type: array
+              urls:
+                additionalProperties:
+                  type: string
+                description: URLs holds a key-value dict with keys being a name of
+                  the URL and the values publicly accessible links.
+                type: object
             type: object
           kind:
             description: 'Kind is a string value representing the REST resource this
