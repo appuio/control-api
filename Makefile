@@ -27,13 +27,13 @@ build: generate fmt vet $(BIN_FILENAME) ## Build manager binary
 .PHONY: generate
 generate: ## Generate manifests e.g. CRD, RBAC etc.
 	# Generate code
-	#go run sigs.k8s.io/controller-tools/cmd/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	go run sigs.k8s.io/controller-tools/cmd/controller-gen object paths="./..."
 	# Generate CRDs
-	#go run sigs.k8s.io/controller-tools/cmd/controller-gen rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(CRD_ROOT_DIR)/v1/base crd:crdVersions=v1
+	go run sigs.k8s.io/controller-tools/cmd/controller-gen rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(CRD_ROOT_DIR)/v1/base crd:crdVersions=v1
 
 .PHONY: crd
 crd: generate ## Generate CRD to file
-	#$(KUSTOMIZE) build $(CRD_ROOT_DIR)/v1 > $(CRD_FILE)
+	$(KUSTOMIZE) build $(CRD_ROOT_DIR)/v1 > $(CRD_FILE)
 
 .PHONY: fmt
 fmt: ## Run go fmt against code
@@ -64,4 +64,5 @@ clean: ## Cleans up the generated resources
 .PHONY: $(BIN_FILENAME)
 $(BIN_FILENAME): export CGO_ENABLED = 0
 $(BIN_FILENAME):
+	@echo "GOOS=$$(go env GOOS) GOARCH=$$(go env GOARCH)"
 	go build -o $(BIN_FILENAME)
