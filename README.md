@@ -31,25 +31,10 @@ CRDs can be installed on the cluster by running `kubectl apply -k config/crd/api
 
 ## Local development environment
 
-We provide a script and some templates to setup a local test environment based on [kind](https://kind.sigs.k8s.io/).
-The templates can be found in directory `templates/`.
-
-### Prerequisites
-
-* `bash`
-* `sed`
-* `kind`
-* `kubectl`
-* `kubelogin` as `kubectl-oidc_login`
-
-The setup script will provide links to the install guides for `kind`, `kubectl` and `kubelogin` if no appropriate command is found.
-
-### Installation
-
-The `setup.sh` script will guide you through the setup.
-There are some steps that you have to perform manually on a Keycloak instance, which the script prompts you for.
-The script defaults to VSHN's APPUiO Dev Keycloak instance, but you can provide an URL pointing to a different instance during the install process.
+You can setup a kind-based local environment with
 
 ```bash
-./setup.sh
+make local-env-setup
 ```
+
+See the [local-env/README.md](./local-env/README.md) for more details on the local environment setup.
