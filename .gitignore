@@ -27,6 +27,8 @@ _archive/
 crd*.yaml
 
 /control-api
+/kind.kubeconfig
+/realm.json
 
 # Go releaser
 dist/
