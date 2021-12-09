@@ -34,7 +34,7 @@ CRDs can be installed on the cluster by running `kubectl apply -k config/crd/api
 You can setup a kind-based local environment with
 
 ```bash
-make local-env-setup
+local-env/setup-kind.sh
 ```
 
 See the [local-env/README.md](./local-env/README.md) for more details on the local environment setup.
