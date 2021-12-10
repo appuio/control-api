@@ -69,7 +69,7 @@ subjects:
 EOF
 kubectl oidc-login setup \
     --oidc-issuer-url="${keycloak_url}/auth/realms/${realm_name}" \
-    --oidc-client-id=local-dev
+    --oidc-client-id=local-dev >/dev/null 2>&1
 kubectl config set-credentials oidc-user \
   --exec-api-version=client.authentication.k8s.io/v1beta1 \
   --exec-command=kubectl \
