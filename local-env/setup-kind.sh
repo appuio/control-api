@@ -42,7 +42,7 @@ done
 realm_name="local-dev-${identifier}"
 sed -e "s/REPLACEME/${realm_name}/g" "${script_dir}/templates/realm.json.tpl" > "${script_dir}/realm.json"
 
-step "Navigate to ${keycloak_url} and create a new realm by importing the '${script_dir}/realm.json' file."
+step "Navigate to ${keycloak_url} and create a new realm by importing the '$(realpath "${script_dir}/realm.json")' file."
 
 step "Create a user in the new realm, grant it realm role 'admin', and ensure 'Email Verified' is set to 'On'."
 
@@ -81,4 +81,4 @@ kubectl config set-credentials oidc-user \
 kubectl config set-context --current --user=oidc-user
 kubectl apply -k "${script_dir}/../config/crd/apiextensions.k8s.io/v1"
 
-step "Setup finished. Set environment variable KUBECONFIG to '${kind_kubeconfig}' to interact with the local dev cluster"
+step "Setup finished. Set environment variable KUBECONFIG to '$(realpath "${kind_kubeconfig}")' to interact with the local dev cluster"
