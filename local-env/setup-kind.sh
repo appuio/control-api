@@ -87,4 +87,4 @@ kubectl config set-credentials oidc-user \
 kubectl config set-context --current --user=oidc-user
 kubectl apply -k "${script_dir}/../config/crd/apiextensions.k8s.io/v1"
 
-step "Setup finished. Set environment variable KUBECONFIG to '$(realpath "${kind_kubeconfig}")' to interact with the local dev cluster"
+echo "Setup finished. Set environment variable KUBECONFIG to '$(realpath "${kind_kubeconfig}")' to interact with the local dev cluster"
