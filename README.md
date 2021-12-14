@@ -31,10 +31,14 @@ CRDs can be installed on the cluster by running `kubectl apply -k config/crd/api
 
 ## Local development environment
 
-You can setup a kind-based local environment with
+You can setup a [kind]-based local environment with
 
 ```bash
 make local-env-setup
 ```
 
 See the [local-env/README.md](./local-env/README.md) for more details on the local environment setup.
+
+Please be aware that the productive deployment of the control-api may run on a different Kubernetes distribution than [kind].
+
+[kind]: https://kind.sigs.k8s.io/
