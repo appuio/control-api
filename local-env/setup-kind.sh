@@ -27,7 +27,7 @@ check_command() {
 }
 
 check_command "kubectl" "kubectl" "https://kubernetes.io/docs/tasks/tools/#kubectl"
-check_command "kubectl-oidc_login" "kubectl oidc-login plugin" "Follow the instructions at https://github.com/int128/kubelogin#setup"
+check_command "kubectl-oidc_login" "kubectl oidc-login plugin" "https://github.com/int128/kubelogin#setup"
 
 echo
 read -r -p "Provide the URL of the Keycloak to connect the local environment to (default=${keycloak_url}): " user_url
@@ -87,4 +87,7 @@ kubectl config set-credentials oidc-user \
 kubectl config set-context --current --user=oidc-user
 kubectl apply -k "${script_dir}/../config/crd/apiextensions.k8s.io/v1"
 
-echo "Setup finished. Set environment variable KUBECONFIG to '$(realpath "${kind_kubeconfig}")' to interact with the local dev cluster"
+echo =======
+echo "Setup finished. To interact with the local dev cluster, set the KUBECONFIG environment variable as follows:"
+echo "\"export \$KUBECONFIG=$(realpath "${kind_kubeconfig}")\""
+echo =======
