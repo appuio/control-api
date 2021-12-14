@@ -11,14 +11,16 @@ The templates can be found in directory `templates/`.
 * `kubectl`
 * `kubelogin` as `kubectl-oidc_login`
 
-The setup script will provide links to the install guides for `kind`, `kubectl` and `kubelogin` if no appropriate command is found.
+The setup script will provide links to the install guides for `kubectl` and `kubelogin` if no appropriate command is found.
 
 ## Installation
 
-The `setup.sh` script will guide you through the setup.
+The `setup-kind.sh` script will guide you through the setup.
 There are some steps that you have to perform manually on a Keycloak instance, which the script prompts you for.
 The script defaults to VSHN's APPUiO Dev Keycloak instance, but you can provide an URL pointing to a different instance during the install process.
 
-```bash
-./setup.sh
+Since the setup script requires a few arguments, we provide a make target to run the script:
+
+```
+make setup
 ```
