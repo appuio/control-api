@@ -63,7 +63,7 @@ local-env-setup: ## Setup local kind-based dev environment
 	$(localenv_make) setup
 
 .PHONY: local-env-clean-setup
-local-env-clean-setup: ## Setup local kind-based dev environment
+local-env-clean: ## Clean the local dev environment
 	$(localenv_make) clean-setup
 
 ###
