@@ -15,7 +15,7 @@ keycloak_url=https://id.dev.appuio.cloud
 
 step() {
   echo
-  echo "$1"
+  echo -e "$1"
   read -n 1 -s -r -p "Press any key to continue"
   echo
 }
@@ -46,7 +46,7 @@ sed -e "s/REPLACEME/${realm_name}/g" "${script_dir}/templates/realm.json.tpl" > 
 
 step "Navigate to ${keycloak_url} and create a new realm by importing the '$(realpath "${script_dir}/realm.json")' file."
 
-step "Create a user in the new realm, grant it realm role 'admin', and ensure 'Email Verified' is set to 'On'."
+step "Create a user in the new realm, grant it realm role 'admin'.\nMake sure the user has an email configured and 'Email Verified' is set to 'On'."
 
 step "Note: In the next step, a browser window will open where you have to sign in to Keycloak with the user you've created in the previous step".
 
