@@ -8,7 +8,7 @@
 # control-api
 
 
-### Generate Kubernetes code
+## Generate Kubernetes code
 
 If you make changes to the CRD structs you'll need to run code generation.
 This can be done with make:
@@ -17,7 +17,7 @@ This can be done with make:
 make generate
 ```
 
-### Building
+## Building
 
 See `make help` for a list of build targets.
 
@@ -25,6 +25,20 @@ See `make help` for a list of build targets.
 * `make build -e GOOS=darwin -e GOARCH=arm64`: Build binary for macos/arm64
 * `make build.docker`: Build Docker image for local environment
 
-### Install CRDs
+## Install CRDs
 
-CRDs can be either installed on the cluster by running `kubectl apply -k config/crd/apiextensions.k8s.io/v1`.
+CRDs can be installed on the cluster by running `kubectl apply -k config/crd/apiextensions.k8s.io/v1`.
+
+## Local development environment
+
+You can setup a [kind]-based local environment with
+
+```bash
+make local-env-setup
+```
+
+See the [local-env/README.md](./local-env/README.md) for more details on the local environment setup.
+
+Please be aware that the productive deployment of the control-api may run on a different Kubernetes distribution than [kind].
+
+[kind]: https://kind.sigs.k8s.io/

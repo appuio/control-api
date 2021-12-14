@@ -11,6 +11,8 @@ MAKEFLAGS += --no-builtin-variables
 PROJECT_ROOT_DIR = .
 include Makefile.vars.mk
 
+localenv_make := $(MAKE) -C local-env
+
 .PHONY: help
 help: ## Show this help
 	@grep -E -h '\s##\s' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -55,6 +57,14 @@ build.docker: $(BIN_FILENAME) ## Build the docker image
 
 clean: ## Cleans up the generated resources
 	rm -rf dist/ cover.out $(BIN_FILENAME) || true
+
+.PHONY: local-env
+local-env-setup: ## Setup local kind-based dev environment
+	$(localenv_make) setup
+
+.PHONY: local-env-clean-setup
+local-env-clean: ## Clean the local dev environment
+	$(localenv_make) clean-setup
 
 ###
 ### Assets

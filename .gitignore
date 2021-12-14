@@ -27,6 +27,10 @@ _archive/
 crd*.yaml
 
 /control-api
+/local-env/kind-kubeconfig-*
+/local-env/realm.json
+/local-env/.created
+/local-env/.kind-setup_complete
 
 # Go releaser
 dist/
