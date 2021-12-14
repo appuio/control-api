@@ -48,7 +48,11 @@ step "Navigate to ${keycloak_url} and create a new realm by importing the '$(rea
 
 step "Create a user in the new realm, grant it realm role 'admin'.\nMake sure the user has an email configured and 'Email Verified' is set to 'On'."
 
-step "Note: In the next step, a browser window will open where you have to sign in to Keycloak with the user you've created in the previous step".
+echo ""
+echo -e "\033[1m================================================================================"
+echo "Note: After the cluster is created, a browser window will open where you have to sign in to Keycloak with the user you've created in the previous step."
+echo -e "================================================================================\033[0m"
+echo ""
 
 sed -e "s#ISSUER_KEYCLOAK#${keycloak_url}#; s/REALM/${realm_name}/g" "${script_dir}/templates/kind-oidc.yaml.tpl" > "${script_dir}/.kind-oidc.yaml"
 ${kind_cmd} create cluster \
