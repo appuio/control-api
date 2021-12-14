@@ -1,6 +1,8 @@
 #!/bin/bash
 # vim:sts=2:ts=2:et:sw=2:tw=0
 
+set -euo pipefail
+
 readonly script_dir=$(dirname "$0")
 readonly kind_cmd="${1:-kind}"
 readonly kind_cluster="${2:-control-api-localenv}"
