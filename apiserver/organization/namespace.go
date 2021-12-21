@@ -42,3 +42,17 @@ func (p *loopbackNamespaceProvider) createNamespace(ctx context.Context, ns *cor
 	}
 	return p.client.Create(ctx, ns)
 }
+
+func (p *loopbackNamespaceProvider) listNamespaces(ctx context.Context) (*corev1.NamespaceList, error) {
+	err := p.init()
+	if err != nil {
+		return nil, err
+	}
+
+	nl := corev1.NamespaceList{}
+	err = p.client.List(ctx, &nl, client.MatchingLabels{typeKey: "organization"})
+	if err != nil {
+		return nil, err
+	}
+	return &nl, nil
+}

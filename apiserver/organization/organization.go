@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -37,6 +38,7 @@ type organizationStorage struct {
 type namespaceProvider interface {
 	getNamespace(ctx context.Context, name string) (*corev1.Namespace, error)
 	createNamespace(ctx context.Context, ns *corev1.Namespace) error
+	listNamespaces(ctx context.Context) (*corev1.NamespaceList, error)
 }
 
 func (s organizationStorage) New() runtime.Object {
@@ -106,25 +108,53 @@ func (s *organizationStorage) Create(ctx context.Context, obj runtime.Object, cr
 	return org, nil
 }
 
+var _ rest.Lister = &organizationStorage{}
+
+func (s organizationStorage) NewList() runtime.Object {
+	return &orgv1.OrganizationList{}
+}
+
+func (s *organizationStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
+	//TODO(glrf) Don't ignore list options
+
+	namespaces, err := s.namepaces.listNamespaces(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res := orgv1.OrganizationList{
+		ListMeta: namespaces.ListMeta,
+		Items:    []orgv1.Organization{},
+	}
+
+	for _, n := range namespaces.Items {
+		res.Items = append(res.Items, *namespaceToOrg(&n))
+	}
+
+	return &res, nil
+}
+
 func (s *organizationStorage) ConvertToTable(ctx context.Context, obj runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
 	var table metav1.Table
+
+	orgs := []orgv1.Organization{}
 	if meta.IsListType(obj) {
-		return nil, fmt.Errorf("Not Implemented")
-	}
-	org, ok := obj.(*orgv1.Organization)
-	if !ok {
-		return nil, fmt.Errorf("not an organization: %#v", obj)
+		orgList, ok := obj.(*orgv1.OrganizationList)
+		if !ok {
+			return nil, fmt.Errorf("not an organization: %#v", obj)
+		}
+		orgs = orgList.Items
+	} else {
+		org, ok := obj.(*orgv1.Organization)
+		if !ok {
+			return nil, fmt.Errorf("not an organization: %#v", obj)
+		}
+		orgs = append(orgs, *org)
 	}
 
-	nsName := ""
-	if org.Annotations != nil {
-		nsName = org.Annotations[namespaceKey]
+	for _, org := range orgs {
+		table.Rows = append(table.Rows, orgToTableRow(&org))
 	}
-
-	table.Rows = append(table.Rows, metav1.TableRow{
-		Cells:  []interface{}{org.GetName(), org.Spec.DisplayName, nsName, duration.HumanDuration(time.Since(org.GetCreationTimestamp().Time))},
-		Object: runtime.RawExtension{Object: obj},
-	})
 
 	if opt, ok := tableOptions.(*metav1.TableOptions); !ok || !opt.NoHeaders {
 		desc := metav1.ObjectMeta{}.SwaggerDoc()
@@ -136,4 +166,17 @@ func (s *organizationStorage) ConvertToTable(ctx context.Context, obj runtime.Ob
 		}
 	}
 	return &table, nil
+}
+
+func orgToTableRow(org *orgv1.Organization) metav1.TableRow {
+	nsName := ""
+	if org.Annotations != nil {
+		nsName = org.Annotations[namespaceKey]
+	}
+
+	return metav1.TableRow{
+		Cells:  []interface{}{org.GetName(), org.Spec.DisplayName, nsName, duration.HumanDuration(time.Since(org.GetCreationTimestamp().Time))},
+		Object: runtime.RawExtension{Object: org},
+	}
+
 }
