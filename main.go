@@ -1,11 +1,15 @@
 package main
 
 import (
+	"log"
 	"os"
 	"runtime"
 
+	orgv1 "github.com/appuio/control-api/apis/organization/v1"
+
 	"github.com/go-logr/logr"
 	"go.uber.org/zap/zapcore"
+	"sigs.k8s.io/apiserver-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -29,7 +33,14 @@ func main() {
 		"uid", os.Getuid(),
 		"gid", os.Getgid(),
 	).Info("Starting control-api…")
-
+	err := builder.APIServer.
+		WithResource(&orgv1.Organization{}).
+		WithLocalDebugExtension().
+		WithoutEtcd().
+		Execute()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func newLogger(name string, debug bool) logr.Logger {
