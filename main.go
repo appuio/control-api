@@ -38,6 +38,9 @@ func main() {
 		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New()).
 		WithLocalDebugExtension().
 		WithoutEtcd().
+		ExposeLoopbackAuthorizer().
+		ExposeLoopbackClientConfig().
+		ExposeLoopbackMasterClientConfig().
 		Execute()
 	if err != nil {
 		log.Fatal(err)
