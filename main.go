@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
+	orgStore "github.com/appuio/control-api/apiserver/organization"
 
 	"github.com/go-logr/logr"
 	"go.uber.org/zap/zapcore"
@@ -34,7 +35,7 @@ func main() {
 		"gid", os.Getgid(),
 	).Info("Starting control-api…")
 	err := builder.APIServer.
-		WithResource(&orgv1.Organization{}).
+		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New()).
 		WithLocalDebugExtension().
 		WithoutEtcd().
 		Execute()

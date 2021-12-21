@@ -34,3 +34,6 @@ crd*.yaml
 
 # Go releaser
 dist/
+
+# apiserver-runtime
+apiserver.local.config/
