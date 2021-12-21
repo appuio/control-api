@@ -3,13 +3,16 @@ package organization
 import (
 	"context"
 	"fmt"
+	"time"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/filters"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
@@ -101,4 +104,36 @@ func (s *organizationStorage) Create(ctx context.Context, obj runtime.Object, cr
 		return nil, err
 	}
 	return org, nil
+}
+
+func (s *organizationStorage) ConvertToTable(ctx context.Context, obj runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
+	var table metav1.Table
+	if meta.IsListType(obj) {
+		return nil, fmt.Errorf("Not Implemented")
+	}
+	org, ok := obj.(*orgv1.Organization)
+	if !ok {
+		return nil, fmt.Errorf("not an organization: %#v", obj)
+	}
+
+	nsName := ""
+	if org.Annotations != nil {
+		nsName = org.Annotations[namespaceKey]
+	}
+
+	table.Rows = append(table.Rows, metav1.TableRow{
+		Cells:  []interface{}{org.GetName(), org.Spec.DisplayName, nsName, duration.HumanDuration(time.Since(org.GetCreationTimestamp().Time))},
+		Object: runtime.RawExtension{Object: obj},
+	})
+
+	if opt, ok := tableOptions.(*metav1.TableOptions); !ok || !opt.NoHeaders {
+		desc := metav1.ObjectMeta{}.SwaggerDoc()
+		table.ColumnDefinitions = []metav1.TableColumnDefinition{
+			{Name: "Name", Type: "string", Format: "name", Description: desc["name"]},
+			{Name: "Display Name", Type: "string", Description: "Name of the organization"},
+			{Name: "Namespace", Type: "string", Description: "Name of the underlying namespace"},
+			{Name: "Age", Type: "date", Description: desc["creationTimestamp"]},
+		}
+	}
+	return &table, nil
 }
