@@ -5,6 +5,8 @@ import (
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
+	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,7 +27,7 @@ func (p *loopbackNamespaceProvider) init() error {
 	return err
 }
 
-func (p *loopbackNamespaceProvider) getNamespace(ctx context.Context, name string) (*corev1.Namespace, error) {
+func (p *loopbackNamespaceProvider) getNamespace(ctx context.Context, name string, options *metav1.GetOptions) (*corev1.Namespace, error) {
 	err := p.init()
 	if err != nil {
 		return nil, err
@@ -35,41 +37,51 @@ func (p *loopbackNamespaceProvider) getNamespace(ctx context.Context, name strin
 	return &ns, err
 }
 
-func (p *loopbackNamespaceProvider) deleteNamespace(ctx context.Context, name string) (*corev1.Namespace, error) {
+func (p *loopbackNamespaceProvider) deleteNamespace(ctx context.Context, name string, options *metav1.DeleteOptions) (*corev1.Namespace, error) {
 	err := p.init()
 	if err != nil {
 		return nil, err
 	}
 	ns := corev1.Namespace{}
 	ns.Name = name
-	err = p.client.Delete(ctx, &ns)
+	err = p.client.Delete(ctx, &ns, &client.DeleteOptions{
+		Raw: options,
+	})
 	return &ns, err
 }
 
-func (p *loopbackNamespaceProvider) createNamespace(ctx context.Context, ns *corev1.Namespace) error {
+func (p *loopbackNamespaceProvider) createNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) error {
 	err := p.init()
 	if err != nil {
 		return err
 	}
-	return p.client.Create(ctx, ns)
+	return p.client.Create(ctx, ns, &client.CreateOptions{
+		Raw: options,
+	})
 }
 
-func (p *loopbackNamespaceProvider) updateNamespace(ctx context.Context, ns *corev1.Namespace) error {
+func (p *loopbackNamespaceProvider) updateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.UpdateOptions) error {
 	err := p.init()
 	if err != nil {
 		return err
 	}
-	return p.client.Update(ctx, ns)
+	return p.client.Update(ctx, ns, &client.UpdateOptions{
+		Raw: options,
+	})
 }
 
-func (p *loopbackNamespaceProvider) listNamespaces(ctx context.Context) (*corev1.NamespaceList, error) {
+func (p *loopbackNamespaceProvider) listNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (*corev1.NamespaceList, error) {
 	err := p.init()
 	if err != nil {
 		return nil, err
 	}
-
 	nl := corev1.NamespaceList{}
-	err = p.client.List(ctx, &nl, client.MatchingLabels{typeKey: "organization"})
+	err = p.client.List(ctx, &nl, &client.ListOptions{
+		LabelSelector: options.LabelSelector,
+		FieldSelector: options.FieldSelector,
+		Limit:         options.Limit,
+		Continue:      options.Continue,
+	})
 	if err != nil {
 		return nil, err
 	}

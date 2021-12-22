@@ -3,7 +3,6 @@ package organization
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
@@ -13,7 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/filters"
@@ -37,11 +38,11 @@ type organizationStorage struct {
 	namespaceAuthorizer authorizer.Authorizer
 }
 type namespaceProvider interface {
-	getNamespace(ctx context.Context, name string) (*corev1.Namespace, error)
-	deleteNamespace(ctx context.Context, name string) (*corev1.Namespace, error)
-	createNamespace(ctx context.Context, ns *corev1.Namespace) error
-	updateNamespace(ctx context.Context, ns *corev1.Namespace) error
-	listNamespaces(ctx context.Context) (*corev1.NamespaceList, error)
+	getNamespace(ctx context.Context, name string, options *metav1.GetOptions) (*corev1.Namespace, error)
+	deleteNamespace(ctx context.Context, name string, options *metav1.DeleteOptions) (*corev1.Namespace, error)
+	createNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) error
+	updateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.UpdateOptions) error
+	listNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (*corev1.NamespaceList, error)
 }
 
 func (s organizationStorage) New() runtime.Object {
@@ -70,7 +71,7 @@ func (s *organizationStorage) Get(ctx context.Context, name string, options *met
 	}
 
 	nsName := orgNameToNamespaceName(name)
-	ns, err := s.namepaces.getNamespace(ctx, nsName)
+	ns, err := s.namepaces.getNamespace(ctx, nsName, options)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func (s *organizationStorage) Create(ctx context.Context, obj runtime.Object, cr
 	}
 
 	ns := orgToNamespace(org)
-	if err := s.namepaces.createNamespace(ctx, ns); err != nil {
+	if err := s.namepaces.createNamespace(ctx, ns, options); err != nil {
 		return nil, err
 	}
 	return org, nil
@@ -118,9 +119,12 @@ func (s organizationStorage) NewList() runtime.Object {
 }
 
 func (s *organizationStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
-	//TODO(glrf) Don't ignore list options
-
-	namespaces, err := s.namepaces.listNamespaces(ctx)
+	orgNamspace, err := labels.NewRequirement(typeKey, selection.Equals, []string{"organization"})
+	if err != nil {
+		return nil, err
+	}
+	options.LabelSelector = options.LabelSelector.Add(*orgNamspace)
+	namespaces, err := s.namepaces.listNamespaces(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -144,9 +148,6 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 	createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc,
 	forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
 
-	//TODO(glrf) Don't ignore update options
-	log.Println("Update")
-
 	newOrg := &orgv1.Organization{}
 
 	a, err := filters.GetAuthorizerAttributes(ctx)
@@ -161,17 +162,14 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 		return nil, false, kerrors.NewNotFound(newOrg.GetGroupVersionResource().GroupResource(), name)
 	}
 
-	log.Println("Update authorized")
 	oldOrg, err := s.Get(ctx, name, nil)
 	if err != nil {
 
-		log.Printf("unable to get organization: %s\n", err)
 		return nil, false, fmt.Errorf("unable to get organization: %w", err)
 	}
 
 	newObj, err := objInfo.UpdatedObject(ctx, oldOrg)
 	if err != nil {
-		log.Printf("unable to update org: %s\n", err)
 		return nil, false, err
 	}
 
@@ -186,9 +184,8 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 			return nil, false, err
 		}
 	}
-	log.Printf("Validated and updating")
 
-	return newOrg, false, s.namepaces.updateNamespace(ctx, orgToNamespace(newOrg))
+	return newOrg, false, s.namepaces.updateNamespace(ctx, orgToNamespace(newOrg), options)
 }
 
 var _ rest.GracefulDeleter = &organizationStorage{}
@@ -206,8 +203,8 @@ func (s *organizationStorage) Delete(ctx context.Context, name string, deleteVal
 		}
 	}
 
-	ns, err := s.namepaces.deleteNamespace(ctx, orgNameToNamespaceName(name))
-	return namespaceToOrg(ns), true, err
+	ns, err := s.namepaces.deleteNamespace(ctx, orgNameToNamespaceName(name), options)
+	return namespaceToOrg(ns), false, err
 }
 
 func (s *organizationStorage) ConvertToTable(ctx context.Context, obj runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
