@@ -35,6 +35,17 @@ func (p *loopbackNamespaceProvider) getNamespace(ctx context.Context, name strin
 	return &ns, err
 }
 
+func (p *loopbackNamespaceProvider) deleteNamespace(ctx context.Context, name string) (*corev1.Namespace, error) {
+	err := p.init()
+	if err != nil {
+		return nil, err
+	}
+	ns := corev1.Namespace{}
+	ns.Name = name
+	err = p.client.Delete(ctx, &ns)
+	return &ns, err
+}
+
 func (p *loopbackNamespaceProvider) createNamespace(ctx context.Context, ns *corev1.Namespace) error {
 	err := p.init()
 	if err != nil {

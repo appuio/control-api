@@ -38,6 +38,7 @@ type organizationStorage struct {
 }
 type namespaceProvider interface {
 	getNamespace(ctx context.Context, name string) (*corev1.Namespace, error)
+	deleteNamespace(ctx context.Context, name string) (*corev1.Namespace, error)
 	createNamespace(ctx context.Context, ns *corev1.Namespace) error
 	updateNamespace(ctx context.Context, ns *corev1.Namespace) error
 	listNamespaces(ctx context.Context) (*corev1.NamespaceList, error)
@@ -189,6 +190,26 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 
 	return newOrg, false, s.namepaces.updateNamespace(ctx, orgToNamespace(newOrg))
 }
+
+var _ rest.GracefulDeleter = &organizationStorage{}
+
+func (s *organizationStorage) Delete(ctx context.Context, name string, deleteValidation rest.ValidateObjectFunc, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+	org, err := s.Get(ctx, name, nil)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if deleteValidation != nil {
+		err := deleteValidation(ctx, org)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	ns, err := s.namepaces.deleteNamespace(ctx, orgNameToNamespaceName(name))
+	return namespaceToOrg(ns), true, err
+}
+
 func (s *organizationStorage) ConvertToTable(ctx context.Context, obj runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
 	var table metav1.Table
 
