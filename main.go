@@ -34,6 +34,7 @@ func main() {
 		"uid", os.Getuid(),
 		"gid", os.Getgid(),
 	).Info("Starting control-api…")
+
 	err := builder.APIServer.
 		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New()).
 		WithLocalDebugExtension().

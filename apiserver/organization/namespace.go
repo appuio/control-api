@@ -43,6 +43,14 @@ func (p *loopbackNamespaceProvider) createNamespace(ctx context.Context, ns *cor
 	return p.client.Create(ctx, ns)
 }
 
+func (p *loopbackNamespaceProvider) updateNamespace(ctx context.Context, ns *corev1.Namespace) error {
+	err := p.init()
+	if err != nil {
+		return err
+	}
+	return p.client.Update(ctx, ns)
+}
+
 func (p *loopbackNamespaceProvider) listNamespaces(ctx context.Context) (*corev1.NamespaceList, error) {
 	err := p.init()
 	if err != nil {

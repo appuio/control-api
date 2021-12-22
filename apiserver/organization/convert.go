@@ -7,7 +7,6 @@ import (
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -22,18 +21,21 @@ func namespaceToOrg(ns *corev1.Namespace) *orgv1.Organization {
 	if ns.Annotations != nil {
 		displayName = ns.Annotations[displayNameKey]
 	}
-	return &orgv1.Organization{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              namespaceNameToOrgName(ns.Name),
-			CreationTimestamp: ns.CreationTimestamp,
-			Annotations: map[string]string{
-				namespaceKey: ns.Name,
-			},
-		},
+	org := &orgv1.Organization{
+		ObjectMeta: *ns.ObjectMeta.DeepCopy(),
 		Spec: orgv1.OrganizationSpec{
 			DisplayName: displayName,
 		},
 	}
+	org.Name = namespaceNameToOrgName(ns.Name)
+	if org.Annotations == nil {
+		org.Annotations = map[string]string{}
+	}
+	org.Annotations[namespaceKey] = ns.Name
+	delete(org.Annotations, displayNameKey)
+	delete(org.Labels, typeKey)
+	delete(org.Labels, nameKey)
+	return org
 }
 
 func namespaceNameToOrgName(ns string) string {
@@ -41,18 +43,21 @@ func namespaceNameToOrgName(ns string) string {
 }
 
 func orgToNamespace(org *orgv1.Organization) *corev1.Namespace {
-	return &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: orgNameToNamespaceName(org.Name),
-			Labels: map[string]string{
-				typeKey: "organization",
-				nameKey: org.Name,
-			},
-			Annotations: map[string]string{
-				displayNameKey: org.Spec.DisplayName,
-			},
-		},
+	ns := &corev1.Namespace{
+		ObjectMeta: *org.ObjectMeta.DeepCopy(),
 	}
+	ns.Name = orgNameToNamespaceName(org.Name)
+	if ns.Labels == nil {
+		ns.Labels = map[string]string{}
+	}
+
+	if ns.Annotations == nil {
+		ns.Annotations = map[string]string{}
+	}
+	ns.Labels[typeKey] = "organization"
+	ns.Labels[nameKey] = org.Name
+	ns.Annotations[displayNameKey] = org.Spec.DisplayName
+	return ns
 }
 func orgNameToNamespaceName(org string) string {
 	return fmt.Sprintf("org-%s", org)

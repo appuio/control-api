@@ -3,6 +3,7 @@ package organization
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
@@ -38,6 +39,7 @@ type organizationStorage struct {
 type namespaceProvider interface {
 	getNamespace(ctx context.Context, name string) (*corev1.Namespace, error)
 	createNamespace(ctx context.Context, ns *corev1.Namespace) error
+	updateNamespace(ctx context.Context, ns *corev1.Namespace) error
 	listNamespaces(ctx context.Context) (*corev1.NamespaceList, error)
 }
 
@@ -134,6 +136,59 @@ func (s *organizationStorage) List(ctx context.Context, options *metainternalver
 	return &res, nil
 }
 
+var _ rest.Updater = &organizationStorage{}
+var _ rest.CreaterUpdater = &organizationStorage{}
+
+func (s *organizationStorage) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo,
+	createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc,
+	forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+
+	//TODO(glrf) Don't ignore update options
+	log.Println("Update")
+
+	newOrg := &orgv1.Organization{}
+
+	a, err := filters.GetAuthorizerAttributes(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+
+	decision, _, err := s.namespaceAuthorizer.Authorize(ctx, a)
+	if err != nil {
+		return nil, false, err
+	} else if decision != authorizer.DecisionAllow {
+		return nil, false, kerrors.NewNotFound(newOrg.GetGroupVersionResource().GroupResource(), name)
+	}
+
+	log.Println("Update authorized")
+	oldOrg, err := s.Get(ctx, name, nil)
+	if err != nil {
+
+		log.Printf("unable to get organization: %s\n", err)
+		return nil, false, fmt.Errorf("unable to get organization: %w", err)
+	}
+
+	newObj, err := objInfo.UpdatedObject(ctx, oldOrg)
+	if err != nil {
+		log.Printf("unable to update org: %s\n", err)
+		return nil, false, err
+	}
+
+	newOrg, ok := newObj.(*orgv1.Organization)
+	if !ok {
+		return nil, false, fmt.Errorf("new object is not an organization")
+	}
+
+	if updateValidation != nil {
+		err = updateValidation(ctx, newOrg, oldOrg)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	log.Printf("Validated and updating")
+
+	return newOrg, false, s.namepaces.updateNamespace(ctx, orgToNamespace(newOrg))
+}
 func (s *organizationStorage) ConvertToTable(ctx context.Context, obj runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
 	var table metav1.Table
 
