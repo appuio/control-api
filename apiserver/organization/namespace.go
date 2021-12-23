@@ -8,20 +8,21 @@ import (
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type loopbackNamespaceProvider struct {
 	initOnce sync.Once
-	client   client.Client
+	client   client.WithWatch
 }
 
 func (p *loopbackNamespaceProvider) init() error {
 	var err error
 	p.initOnce.Do(func() {
 		if p.client == nil {
-			p.client, err = client.New(loopback.GetLoopbackMasterClientConfig(), client.Options{})
+			p.client, err = client.NewWithWatch(loopback.GetLoopbackMasterClientConfig(), client.Options{})
 		}
 	})
 	return err
@@ -86,4 +87,18 @@ func (p *loopbackNamespaceProvider) listNamespaces(ctx context.Context, options 
 		return nil, err
 	}
 	return &nl, nil
+}
+
+func (p *loopbackNamespaceProvider) watchNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
+	err := p.init()
+	if err != nil {
+		return nil, err
+	}
+	nl := corev1.NamespaceList{}
+	return p.client.Watch(ctx, &nl, &client.ListOptions{
+		LabelSelector: options.LabelSelector,
+		FieldSelector: options.FieldSelector,
+		Limit:         options.Limit,
+		Continue:      options.Continue,
+	})
 }

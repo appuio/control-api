@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/watch"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	restbuilder "sigs.k8s.io/apiserver-runtime/pkg/builder/rest"
@@ -35,6 +36,7 @@ type namespaceProvider interface {
 	createNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) error
 	updateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.UpdateOptions) error
 	listNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (*corev1.NamespaceList, error)
+	watchNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error)
 }
 
 func (s organizationStorage) New() runtime.Object {
@@ -161,4 +163,36 @@ func (s *organizationStorage) Delete(ctx context.Context, name string, deleteVal
 
 	ns, err := s.namepaces.deleteNamespace(ctx, orgNameToNamespaceName(name), options)
 	return namespaceToOrg(ns), false, err
+}
+
+var _ rest.Watcher = &organizationStorage{}
+
+func (s *organizationStorage) Watch(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
+	orgNamspace, err := labels.NewRequirement(typeKey, selection.Equals, []string{"organization"})
+	if err != nil {
+		return nil, err
+	}
+	options.LabelSelector = options.LabelSelector.Add(*orgNamspace)
+
+	nsWatcher, err := s.namepaces.watchNamespaces(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return watch.Filter(nsWatcher, func(in watch.Event) (out watch.Event, keep bool) {
+		if in.Object == nil {
+			// This should never happen, let downstream deal with it
+			return in, true
+		}
+		ns, ok := in.Object.(*corev1.Namespace)
+		if !ok {
+			// We received a non Namespace object
+			// This is most likely an error so we pass it on
+			return in, true
+		}
+
+		in.Object = namespaceToOrg(ns)
+
+		return in, true
+	}), nil
 }
