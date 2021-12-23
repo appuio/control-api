@@ -40,7 +40,6 @@ func (s *organizationStorage) ConvertToTable(ctx context.Context, obj runtime.Ob
 		table.ColumnDefinitions = []metav1.TableColumnDefinition{
 			{Name: "Name", Type: "string", Format: "name", Description: desc["name"]},
 			{Name: "Display Name", Type: "string", Description: "Name of the organization"},
-			{Name: "Namespace", Type: "string", Description: "Name of the underlying namespace"},
 			{Name: "Age", Type: "date", Description: desc["creationTimestamp"]},
 		}
 	}
@@ -48,13 +47,8 @@ func (s *organizationStorage) ConvertToTable(ctx context.Context, obj runtime.Ob
 }
 
 func orgToTableRow(org *orgv1.Organization) metav1.TableRow {
-	nsName := ""
-	if org.Annotations != nil {
-		nsName = org.Annotations[namespaceKey]
-	}
-
 	return metav1.TableRow{
-		Cells:  []interface{}{org.GetName(), org.Spec.DisplayName, nsName, duration.HumanDuration(time.Since(org.GetCreationTimestamp().Time))},
+		Cells:  []interface{}{org.GetName(), org.Spec.DisplayName, duration.HumanDuration(time.Since(org.GetCreationTimestamp().Time))},
 		Object: runtime.RawExtension{Object: org},
 	}
 

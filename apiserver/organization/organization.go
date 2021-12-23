@@ -52,8 +52,7 @@ func (s *organizationStorage) NamespaceScoped() bool {
 var _ rest.Getter = &organizationStorage{}
 
 func (s *organizationStorage) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	nsName := orgNameToNamespaceName(name)
-	ns, err := s.namepaces.getNamespace(ctx, nsName, options)
+	ns, err := s.namepaces.getNamespace(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +160,7 @@ func (s *organizationStorage) Delete(ctx context.Context, name string, deleteVal
 		}
 	}
 
-	ns, err := s.namepaces.deleteNamespace(ctx, orgNameToNamespaceName(name), options)
+	ns, err := s.namepaces.deleteNamespace(ctx, name, options)
 	return namespaceToOrg(ns), false, err
 }
 
