@@ -159,7 +159,7 @@ func (s *organizationStorage) Delete(ctx context.Context, name string, deleteVal
 	}
 
 	ns, err := s.namepaces.DeleteNamespace(ctx, name, options)
-	return orgv1.NewOrganizationFromNS(ns), false, err
+	return orgv1.NewOrganizationFromNS(ns), false, convertNamespaceError(err)
 }
 
 var _ rest.Watcher = &organizationStorage{}

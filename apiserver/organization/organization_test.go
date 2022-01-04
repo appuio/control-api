@@ -133,6 +133,82 @@ func TestOrganizationStorage_Create(t *testing.T) {
 	}
 }
 
+func TestOrganizationStorage_Delete(t *testing.T) {
+	tests := map[string]struct {
+		name string
+
+		namespace          *corev1.Namespace
+		namespaceGetErr    error
+		skipNsDelete       bool
+		namespaceDeleteErr error
+
+		organization *orgv1.Organization
+		err          error
+	}{
+		"GivenDeleteOrg_ThenSuccess": {
+			name:         "foo",
+			organization: fooOrg,
+			namespace:    fooNs,
+		},
+		"GivenDeleteNonOrg_ThenFail": {
+			name:         "default",
+			namespace:    defaultNs,
+			skipNsDelete: true,
+			err: apierrors.NewNotFound(schema.GroupResource{
+				Group:    orgv1.GroupVersion.Group,
+				Resource: "organizations",
+			}, "default"),
+		},
+		"GivenDeleteFails_ThenFail": {
+			name:      "foo",
+			namespace: fooNs,
+			namespaceDeleteErr: apierrors.NewNotFound(schema.GroupResource{
+				Resource: "namepaces",
+			}, "foo"),
+			err: apierrors.NewNotFound(schema.GroupResource{
+				Group:    orgv1.GroupVersion.Group,
+				Resource: "organizations",
+			}, "foo"),
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mnp := mock.NewMocknamespaceProvider(ctrl)
+	os := organizationStorage{
+		namepaces: mnp,
+	}
+
+	for n, tc := range tests {
+		t.Run(n, func(t *testing.T) {
+			mnp.EXPECT().
+				GetNamespace(gomock.Any(), tc.name, gomock.Any()).
+				Return(tc.namespace, tc.namespaceGetErr).
+				Times(1)
+
+			if !tc.skipNsDelete {
+				mnp.EXPECT().
+					DeleteNamespace(gomock.Any(), tc.name, gomock.Any()).
+					Return(tc.namespace, tc.namespaceDeleteErr).
+					Times(1)
+			}
+
+			nopValidate := func(ctx context.Context, obj runtime.Object) error {
+				return nil
+			}
+			org, _, err := os.Delete(context.TODO(), tc.name, nopValidate, nil)
+
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.organization, org)
+		})
+	}
+}
+
 // Some common test organizations
 var (
 	fooOrg = &orgv1.Organization{
