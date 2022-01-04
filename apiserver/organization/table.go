@@ -11,8 +11,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/duration"
+	"k8s.io/apiserver/pkg/registry/rest"
 )
 
+var _ rest.TableConvertor = &organizationStorage{}
+
+// ConvertToTable translates the given object to a table for kubectl printing
 func (s *organizationStorage) ConvertToTable(ctx context.Context, obj runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
 	var table metav1.Table
 
