@@ -58,7 +58,7 @@ func (s *organizationStorage) Get(ctx context.Context, name string, options *met
 	}
 
 	// TODO(glrf) Check that this is actually an organization and not a random namespace
-	return namespaceToOrg(ns), nil
+	return orgv1.NewOrganizationFromNS(ns), nil
 }
 
 var _ rest.Creater = &organizationStorage{}
@@ -74,8 +74,7 @@ func (s *organizationStorage) Create(ctx context.Context, obj runtime.Object, cr
 		return nil, err
 	}
 
-	ns := orgToNamespace(org)
-	if err := s.namepaces.createNamespace(ctx, ns, options); err != nil {
+	if err := s.namepaces.createNamespace(ctx, org.ToNamespace(), options); err != nil {
 		return nil, err
 	}
 	return org, nil
@@ -88,7 +87,7 @@ func (s organizationStorage) NewList() runtime.Object {
 }
 
 func (s *organizationStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
-	orgNamspace, err := labels.NewRequirement(typeKey, selection.Equals, []string{"organization"})
+	orgNamspace, err := labels.NewRequirement(orgv1.TypeKey, selection.Equals, []string{orgv1.OrgType})
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +103,7 @@ func (s *organizationStorage) List(ctx context.Context, options *metainternalver
 	}
 
 	for _, n := range namespaces.Items {
-		res.Items = append(res.Items, *namespaceToOrg(&n))
+		res.Items = append(res.Items, *orgv1.NewOrganizationFromNS(&n))
 	}
 
 	return &res, nil
@@ -142,7 +141,7 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 		}
 	}
 
-	return newOrg, false, s.namepaces.updateNamespace(ctx, orgToNamespace(newOrg), options)
+	return newOrg, false, s.namepaces.updateNamespace(ctx, newOrg.ToNamespace(), options)
 }
 
 var _ rest.GracefulDeleter = &organizationStorage{}
@@ -161,13 +160,13 @@ func (s *organizationStorage) Delete(ctx context.Context, name string, deleteVal
 	}
 
 	ns, err := s.namepaces.deleteNamespace(ctx, name, options)
-	return namespaceToOrg(ns), false, err
+	return orgv1.NewOrganizationFromNS(ns), false, err
 }
 
 var _ rest.Watcher = &organizationStorage{}
 
 func (s *organizationStorage) Watch(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
-	orgNamspace, err := labels.NewRequirement(typeKey, selection.Equals, []string{"organization"})
+	orgNamspace, err := labels.NewRequirement(orgv1.TypeKey, selection.Equals, []string{orgv1.OrgType})
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +189,7 @@ func (s *organizationStorage) Watch(ctx context.Context, options *metainternalve
 			return in, true
 		}
 
-		in.Object = namespaceToOrg(ns)
+		in.Object = orgv1.NewOrganizationFromNS(ns)
 
 		return in, true
 	}), nil
