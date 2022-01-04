@@ -13,12 +13,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// namespaceProvider is an abstraction for interacting with the Kubernetes API
+//go:generate mockgen -source=$GOFILE -destination=./mock/$GOFILE
+type namespaceProvider interface {
+	GetNamespace(ctx context.Context, name string, options *metav1.GetOptions) (*corev1.Namespace, error)
+	DeleteNamespace(ctx context.Context, name string, options *metav1.DeleteOptions) (*corev1.Namespace, error)
+	CreateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) error
+	UpdateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.UpdateOptions) error
+	ListNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (*corev1.NamespaceList, error)
+	WatchNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error)
+}
+
 type loopbackNamespaceProvider struct {
 	initOnce sync.Once
 	client   client.WithWatch
 }
 
 func (p *loopbackNamespaceProvider) init() error {
+	// The LoopbackMasterClientConfig is initialized lazily by the runtime
+	// We initialize the client once from which ever method is called first
 	var err error
 	p.initOnce.Do(func() {
 		if p.client == nil {
@@ -28,7 +41,7 @@ func (p *loopbackNamespaceProvider) init() error {
 	return err
 }
 
-func (p *loopbackNamespaceProvider) getNamespace(ctx context.Context, name string, options *metav1.GetOptions) (*corev1.Namespace, error) {
+func (p *loopbackNamespaceProvider) GetNamespace(ctx context.Context, name string, options *metav1.GetOptions) (*corev1.Namespace, error) {
 	err := p.init()
 	if err != nil {
 		return nil, err
@@ -38,7 +51,7 @@ func (p *loopbackNamespaceProvider) getNamespace(ctx context.Context, name strin
 	return &ns, err
 }
 
-func (p *loopbackNamespaceProvider) deleteNamespace(ctx context.Context, name string, options *metav1.DeleteOptions) (*corev1.Namespace, error) {
+func (p *loopbackNamespaceProvider) DeleteNamespace(ctx context.Context, name string, options *metav1.DeleteOptions) (*corev1.Namespace, error) {
 	err := p.init()
 	if err != nil {
 		return nil, err
@@ -51,7 +64,7 @@ func (p *loopbackNamespaceProvider) deleteNamespace(ctx context.Context, name st
 	return &ns, err
 }
 
-func (p *loopbackNamespaceProvider) createNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) error {
+func (p *loopbackNamespaceProvider) CreateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) error {
 	err := p.init()
 	if err != nil {
 		return err
@@ -61,7 +74,7 @@ func (p *loopbackNamespaceProvider) createNamespace(ctx context.Context, ns *cor
 	})
 }
 
-func (p *loopbackNamespaceProvider) updateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.UpdateOptions) error {
+func (p *loopbackNamespaceProvider) UpdateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.UpdateOptions) error {
 	err := p.init()
 	if err != nil {
 		return err
@@ -71,7 +84,7 @@ func (p *loopbackNamespaceProvider) updateNamespace(ctx context.Context, ns *cor
 	})
 }
 
-func (p *loopbackNamespaceProvider) listNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (*corev1.NamespaceList, error) {
+func (p *loopbackNamespaceProvider) ListNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (*corev1.NamespaceList, error) {
 	err := p.init()
 	if err != nil {
 		return nil, err
@@ -89,7 +102,7 @@ func (p *loopbackNamespaceProvider) listNamespaces(ctx context.Context, options 
 	return &nl, nil
 }
 
-func (p *loopbackNamespaceProvider) watchNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
+func (p *loopbackNamespaceProvider) WatchNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
 	err := p.init()
 	if err != nil {
 		return nil, err

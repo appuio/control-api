@@ -4,9 +4,12 @@ go 1.17
 
 require (
 	github.com/go-logr/logr v1.2.2
+	github.com/golang/mock v1.6.0
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.19.1
+	k8s.io/api v0.23.0
 	k8s.io/apimachinery v0.23.1
+	k8s.io/apiserver v0.23.0
 	sigs.k8s.io/apiserver-runtime v1.0.3-0.20210913073608-0663f60bfee2
 	sigs.k8s.io/controller-runtime v0.11.0
 	sigs.k8s.io/controller-tools v0.7.0
@@ -105,9 +108,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/api v0.23.0 // indirect
 	k8s.io/apiextensions-apiserver v0.23.0 // indirect
-	k8s.io/apiserver v0.23.0 // indirect
 	k8s.io/client-go v0.23.0 // indirect
 	k8s.io/component-base v0.23.0 // indirect
 	k8s.io/klog v1.0.0 // indirect

@@ -2,15 +2,18 @@ package organization
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/watch"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
@@ -30,14 +33,6 @@ func New() restbuilder.ResourceHandlerProvider {
 type organizationStorage struct {
 	namepaces namespaceProvider
 }
-type namespaceProvider interface {
-	getNamespace(ctx context.Context, name string, options *metav1.GetOptions) (*corev1.Namespace, error)
-	deleteNamespace(ctx context.Context, name string, options *metav1.DeleteOptions) (*corev1.Namespace, error)
-	createNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) error
-	updateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.UpdateOptions) error
-	listNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (*corev1.NamespaceList, error)
-	watchNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error)
-}
 
 func (s organizationStorage) New() runtime.Object {
 	return &orgv1.Organization{}
@@ -52,13 +47,17 @@ func (s *organizationStorage) NamespaceScoped() bool {
 var _ rest.Getter = &organizationStorage{}
 
 func (s *organizationStorage) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	ns, err := s.namepaces.getNamespace(ctx, name, options)
+	org := &orgv1.Organization{}
+	ns, err := s.namepaces.GetNamespace(ctx, name, options)
 	if err != nil {
-		return nil, err
+		return nil, convertNamespaceError(err)
 	}
-
-	// TODO(glrf) Check that this is actually an organization and not a random namespace
-	return orgv1.NewOrganizationFromNS(ns), nil
+	org = orgv1.NewOrganizationFromNS(ns)
+	if org == nil {
+		// This namespace is not an organization
+		return nil, apierrors.NewNotFound(org.GetGroupVersionResource().GroupResource(), name)
+	}
+	return org, nil
 }
 
 var _ rest.Creater = &organizationStorage{}
@@ -74,8 +73,8 @@ func (s *organizationStorage) Create(ctx context.Context, obj runtime.Object, cr
 		return nil, err
 	}
 
-	if err := s.namepaces.createNamespace(ctx, org.ToNamespace(), options); err != nil {
-		return nil, err
+	if err := s.namepaces.CreateNamespace(ctx, org.ToNamespace(), options); err != nil {
+		return nil, convertNamespaceError(err)
 	}
 	return org, nil
 }
@@ -92,7 +91,7 @@ func (s *organizationStorage) List(ctx context.Context, options *metainternalver
 		return nil, err
 	}
 	options.LabelSelector = options.LabelSelector.Add(*orgNamspace)
-	namespaces, err := s.namepaces.listNamespaces(ctx, options)
+	namespaces, err := s.namepaces.ListNamespaces(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +140,7 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 		}
 	}
 
-	return newOrg, false, s.namepaces.updateNamespace(ctx, newOrg.ToNamespace(), options)
+	return newOrg, false, s.namepaces.UpdateNamespace(ctx, newOrg.ToNamespace(), options)
 }
 
 var _ rest.GracefulDeleter = &organizationStorage{}
@@ -159,7 +158,7 @@ func (s *organizationStorage) Delete(ctx context.Context, name string, deleteVal
 		}
 	}
 
-	ns, err := s.namepaces.deleteNamespace(ctx, name, options)
+	ns, err := s.namepaces.DeleteNamespace(ctx, name, options)
 	return orgv1.NewOrganizationFromNS(ns), false, err
 }
 
@@ -172,7 +171,7 @@ func (s *organizationStorage) Watch(ctx context.Context, options *metainternalve
 	}
 	options.LabelSelector = options.LabelSelector.Add(*orgNamspace)
 
-	nsWatcher, err := s.namepaces.watchNamespaces(ctx, options)
+	nsWatcher, err := s.namepaces.WatchNamespaces(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -193,4 +192,22 @@ func (s *organizationStorage) Watch(ctx context.Context, options *metainternalve
 
 		return in, true
 	}), nil
+}
+
+func convertNamespaceError(err error) error {
+	groupResource := schema.GroupResource{
+		Group:    orgv1.GroupVersion.Group,
+		Resource: "organizations",
+	}
+	statusErr := &apierrors.StatusError{}
+
+	if errors.As(err, &statusErr) {
+		switch {
+		case apierrors.IsNotFound(err):
+			return apierrors.NewNotFound(groupResource, statusErr.ErrStatus.Details.Name)
+		case apierrors.IsAlreadyExists(err):
+			return apierrors.NewAlreadyExists(groupResource, statusErr.ErrStatus.Details.Name)
+		}
+	}
+	return err
 }
