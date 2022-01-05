@@ -209,6 +209,115 @@ func TestOrganizationStorage_Delete(t *testing.T) {
 	}
 }
 
+type testUpdateInfo func(obj runtime.Object) runtime.Object
+
+func (_ testUpdateInfo) Preconditions() *metav1.Preconditions {
+	return nil
+}
+func (ui testUpdateInfo) UpdatedObject(ctx context.Context, oldObj runtime.Object) (newObj runtime.Object, err error) {
+	return ui(oldObj), nil
+}
+
+func TestOrganizationStorage_Update(t *testing.T) {
+	tests := map[string]struct {
+		name       string
+		updateFunc func(obj runtime.Object) runtime.Object
+
+		namespace          *corev1.Namespace
+		namespaceGetErr    error
+		skipNsUpdate       bool
+		namespaceUpdateErr error
+
+		organization *orgv1.Organization
+		err          error
+	}{
+		"GivenUpdateOrg_ThenSuccess": {
+			name: "foo",
+			updateFunc: func(obj runtime.Object) runtime.Object {
+				org, ok := obj.(*orgv1.Organization)
+				if !ok {
+					return nil
+				}
+				org.Spec.DisplayName = "New Foo Inc."
+				return org
+			},
+
+			namespace: fooNs,
+			organization: &orgv1.Organization{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "foo",
+					Labels:      map[string]string{},
+					Annotations: map[string]string{},
+				},
+				Spec: orgv1.OrganizationSpec{
+					DisplayName: "New Foo Inc.",
+				},
+			},
+		},
+		"GivenUpdateNonOrg_ThenFail": {
+			name:         "default",
+			namespace:    defaultNs,
+			skipNsUpdate: true,
+			err: apierrors.NewNotFound(schema.GroupResource{
+				Group:    orgv1.GroupVersion.Group,
+				Resource: "organizations",
+			}, "default"),
+		},
+		"GivenUpdateFails_ThenFail": {
+			name:      "foo",
+			namespace: fooNs,
+			updateFunc: func(obj runtime.Object) runtime.Object {
+				org, ok := obj.(*orgv1.Organization)
+				if !ok {
+					return nil
+				}
+				org.Spec.DisplayName = "New Foo Inc."
+				return org
+			},
+			namespaceUpdateErr: apierrors.NewNotFound(schema.GroupResource{
+				Resource: "namepaces",
+			}, "foo"),
+			err: apierrors.NewNotFound(schema.GroupResource{
+				Group:    orgv1.GroupVersion.Group,
+				Resource: "organizations",
+			}, "foo"),
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mnp := mock.NewMocknamespaceProvider(ctrl)
+	os := organizationStorage{
+		namepaces: mnp,
+	}
+
+	for n, tc := range tests {
+		t.Run(n, func(t *testing.T) {
+			mnp.EXPECT().
+				GetNamespace(gomock.Any(), tc.name, gomock.Any()).
+				Return(tc.namespace, tc.namespaceGetErr).
+				Times(1)
+
+			if !tc.skipNsUpdate {
+				mnp.EXPECT().
+					UpdateNamespace(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(tc.namespaceUpdateErr).
+					Times(1)
+			}
+
+			org, _, err := os.Update(context.TODO(), tc.name, testUpdateInfo(tc.updateFunc), nil, nil, false, nil)
+
+			if tc.err != nil {
+				assert.EqualError(t, err, tc.err.Error())
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.organization, org)
+		})
+	}
+}
+
 // Some common test organizations
 var (
 	fooOrg = &orgv1.Organization{

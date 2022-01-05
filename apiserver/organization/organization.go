@@ -86,7 +86,7 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 	oldOrg, err := s.Get(ctx, name, nil)
 	if err != nil {
 
-		return nil, false, fmt.Errorf("unable to get organization: %w", err)
+		return nil, false, err
 	}
 
 	newObj, err := objInfo.UpdatedObject(ctx, oldOrg)
@@ -106,7 +106,7 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 		}
 	}
 
-	return newOrg, false, s.namepaces.UpdateNamespace(ctx, newOrg.ToNamespace(), options)
+	return newOrg, false, convertNamespaceError(s.namepaces.UpdateNamespace(ctx, newOrg.ToNamespace(), options))
 }
 
 var _ rest.GracefulDeleter = &organizationStorage{}
