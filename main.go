@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"runtime"
 
@@ -37,14 +36,12 @@ func main() {
 
 	err := builder.APIServer.
 		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New()).
-		WithLocalDebugExtension().
 		WithoutEtcd().
 		ExposeLoopbackAuthorizer().
-		ExposeLoopbackClientConfig().
 		ExposeLoopbackMasterClientConfig().
 		Execute()
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err, "API server stopped unexpectedly")
 	}
 }
 
