@@ -232,6 +232,27 @@ var (
 			},
 		},
 	}
+	barOrg = &orgv1.Organization{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "bar",
+			Labels:      map[string]string{},
+			Annotations: map[string]string{},
+		},
+		Spec: orgv1.OrganizationSpec{
+			DisplayName: "Bar Gmbh.",
+		},
+	}
+	barNs = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "bar",
+			Labels: map[string]string{
+				orgv1.TypeKey: orgv1.OrgType,
+			},
+			Annotations: map[string]string{
+				orgv1.DisplayNameKey: "Bar Gmbh.",
+			},
+		},
+	}
 	defaultNs = &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
