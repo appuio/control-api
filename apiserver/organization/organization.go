@@ -14,13 +14,21 @@ import (
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	restbuilder "sigs.k8s.io/apiserver-runtime/pkg/builder/rest"
+	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // New returns a new storage provider for Organizations
 func New() restbuilder.ResourceHandlerProvider {
 	return func(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
+		c, err := client.NewWithWatch(loopback.GetLoopbackMasterClientConfig(), client.Options{})
+		if err != nil {
+			return nil, err
+		}
 		return &organizationStorage{
-			namepaces: &loopbackNamespaceProvider{},
+			namepaces: &kubeNamespaceProvider{
+				Client: c,
+			},
 		}, nil
 	}
 }
