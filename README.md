@@ -42,3 +42,60 @@ See the [local-env/README.md](./local-env/README.md) for more details on the loc
 Please be aware that the productive deployment of the control-api may run on a different Kubernetes distribution than [kind].
 
 [kind]: https://kind.sigs.k8s.io/
+
+
+### Running the control-api locally
+
+You can run the control-api locally against the currently configured Kubernetes cluster with
+
+```bash
+make run
+```
+
+To access the locally running API server you need to register it with the [kind]-based local environment.
+You can do this by applying the following.
+
+```yaml
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1.organization.appuio.io
+spec:
+  insecureSkipTLSVerify: true
+  group: organization.appuio.io
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  service:
+    name: apiserver
+    namespace: default
+    port: 9443
+  version: v1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apiserver
+  namespace: default
+spec:
+  ports:
+  - port: 9443
+    protocol: TCP
+    targetPort: 9443
+  type: ExternalName
+  externalName: 172.21.0.1 # Change to host IP
+```
+
+The `externalName` needs to be changed to your specific host IP.
+When running kind on Linux you can find it with
+
+```bash
+docker inspect <kind-container> | jq '.[0].NetworkSettings.Networks.kind.Gateway'
+```
+
+After that you should be able to access your (with `make run` running) API server with
+
+```bash
+kubectl get organizations
+```
+
