@@ -21,18 +21,18 @@ func (s organizationStorage) NewList() runtime.Object {
 }
 
 func (s *organizationStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
-	namespaces, err := s.namepaces.ListNamespaces(ctx, extendNamespaceListOption(options))
+	namespaces, err := s.namepaces.ListNamespaces(ctx, addOrganizationLabelSelector(options))
 	if err != nil {
 		return nil, convertNamespaceError(err)
 	}
 
 	res := orgv1.OrganizationList{
 		ListMeta: namespaces.ListMeta,
-		Items:    []orgv1.Organization{},
+		Items:    make([]orgv1.Organization, len(namespaces.Items)),
 	}
 
-	for _, n := range namespaces.Items {
-		res.Items = append(res.Items, *orgv1.NewOrganizationFromNS(&n))
+	for i := range namespaces.Items {
+		res.Items[i] = *orgv1.NewOrganizationFromNS(&namespaces.Items[i])
 	}
 
 	return &res, nil
@@ -42,7 +42,7 @@ var _ rest.Watcher = &organizationStorage{}
 
 func (s *organizationStorage) Watch(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
 
-	nsWatcher, err := s.namepaces.WatchNamespaces(ctx, extendNamespaceListOption(options))
+	nsWatcher, err := s.namepaces.WatchNamespaces(ctx, addOrganizationLabelSelector(options))
 	if err != nil {
 		return nil, convertNamespaceError(err)
 	}
@@ -65,7 +65,7 @@ func (s *organizationStorage) Watch(ctx context.Context, options *metainternalve
 	}), nil
 }
 
-func extendNamespaceListOption(options *metainternalversion.ListOptions) *metainternalversion.ListOptions {
+func addOrganizationLabelSelector(options *metainternalversion.ListOptions) *metainternalversion.ListOptions {
 	orgNamspace, err := labels.NewRequirement(orgv1.TypeKey, selection.Equals, []string{orgv1.OrgType})
 	if err != nil {
 		// The input is static. This call will only fail during development.

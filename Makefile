@@ -28,6 +28,7 @@ build: generate fmt vet $(BIN_FILENAME) ## Build manager binary
 
 .PHONY: generate
 generate: ## Generate manifests e.g. CRD, RBAC etc.
+	go generate ./...
 	# Generate code
 	go run sigs.k8s.io/controller-tools/cmd/controller-gen object paths="./..."
 	# Generate CRDs
