@@ -4,8 +4,12 @@ import (
 	"os"
 	"runtime"
 
+	orgv1 "github.com/appuio/control-api/apis/organization/v1"
+	orgStore "github.com/appuio/control-api/apiserver/organization"
+
 	"github.com/go-logr/logr"
 	"go.uber.org/zap/zapcore"
+	"sigs.k8s.io/apiserver-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -30,6 +34,15 @@ func main() {
 		"gid", os.Getgid(),
 	).Info("Starting control-api…")
 
+	err := builder.APIServer.
+		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New()).
+		WithoutEtcd().
+		ExposeLoopbackAuthorizer().
+		ExposeLoopbackMasterClientConfig().
+		Execute()
+	if err != nil {
+		logger.Error(err, "API server stopped unexpectedly")
+	}
 }
 
 func newLogger(name string, debug bool) logr.Logger {

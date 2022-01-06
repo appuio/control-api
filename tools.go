@@ -10,4 +10,6 @@ import (
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 	// To have Kustomize updated via Renovate.
 	_ "sigs.k8s.io/kustomize/kustomize/v4"
+	// To generate mocks
+	_ "github.com/golang/mock/mockgen"
 )

@@ -28,6 +28,7 @@ build: generate fmt vet $(BIN_FILENAME) ## Build manager binary
 
 .PHONY: generate
 generate: ## Generate manifests e.g. CRD, RBAC etc.
+	go generate ./...
 	# Generate code
 	go run sigs.k8s.io/controller-tools/cmd/controller-gen object paths="./..."
 	# Generate CRDs
@@ -57,6 +58,11 @@ build.docker: $(BIN_FILENAME) ## Build the docker image
 
 clean: ## Cleans up the generated resources
 	rm -rf dist/ cover.out $(BIN_FILENAME) || true
+
+.PHONY: run
+KUBECONFIG ?= ~/.kube/config
+run: build ## Starts control api against the configured kuberentes cluster
+	$(BIN_FILENAME) --secure-port 9443 --kubeconfig $(KUBECONFIG) --authentication-kubeconfig $(KUBECONFIG) --authorization-kubeconfig $(KUBECONFIG)
 
 .PHONY: local-env
 local-env-setup: ## Setup local kind-based dev environment
