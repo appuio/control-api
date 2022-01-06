@@ -32,7 +32,7 @@ generate: ## Generate manifests e.g. CRD, RBAC etc.
 	# Generate code
 	go run sigs.k8s.io/controller-tools/cmd/controller-gen object paths="./..."
 	# Generate CRDs
-	go run sigs.k8s.io/controller-tools/cmd/controller-gen rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(CRD_ROOT_DIR)/v1/base crd:crdVersions=v1
+	go run sigs.k8s.io/controller-tools/cmd/controller-gen rbac:roleName=control-api webhook paths="./..." output:crd:artifacts:config=$(CRD_ROOT_DIR)/v1/base crd:crdVersions=v1
 
 .PHONY: crd
 crd: generate ## Generate CRD to file
