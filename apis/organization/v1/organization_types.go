@@ -47,7 +47,7 @@ type Organization struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Data holds the cluster specific metadata.
+	// Spec holds the cluster specific metadata.
 	Spec OrganizationSpec `json:"spec,omitempty"`
 }
 
