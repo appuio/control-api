@@ -25,6 +25,7 @@ spec:
         args:
         - "--cert-dir=/apiserver.local.config/certificates"
         - "--secure-port=9443"
+        - "--feature-gates=APIPriorityAndFairness=false"
         volumeMounts:
         - name: apiserver-certs
           mountPath: /apiserver.local.config/certificates
