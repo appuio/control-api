@@ -1,11 +1,8 @@
 namespace: control-api
 
-bases:
+resources:
 - ../namespace
 - ../rbac
-
-resources:
 - deployment.yaml
 - service.yaml
 - apiservice.yaml
-
