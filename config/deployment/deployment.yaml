@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: control-api
+  namespace: control-api
+  labels:
+    app: control-api
+spec:
+  selector:
+    matchLabels:
+      app: control-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: control-api
+    spec:
+      serviceAccountName: control-api
+      containers:
+      - name: apiserver
+        image: ghcr.io/appuio/control-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9443
+        args:
+        - "--cert-dir=/apiserver.local.config/certificates"
+        - "--secure-port=9443"
+        - "--feature-gates=APIPriorityAndFairness=false"
+        volumeMounts:
+        - name: apiserver-certs
+          mountPath: /apiserver.local.config/certificates
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+      volumes:
+      - name: apiserver-certs
+        emptyDir: {}

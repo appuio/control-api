@@ -8,6 +8,8 @@ import (
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
 )
 
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;delete;update
+
 var (
 	// TypeKey is the label key to identify organization namespaces
 	TypeKey = "appuio.io/resource.type"

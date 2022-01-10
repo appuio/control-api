@@ -15,4 +15,4 @@ COPY control-api /usr/local/bin/
 
 RUN chmod a+x /usr/local/bin/control-api
 
-USER 65532
+USER 65532:0
