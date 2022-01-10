@@ -33,12 +33,16 @@ func New() restbuilder.ResourceHandlerProvider {
 			namepaces: &kubeNamespaceProvider{
 				Client: c,
 			},
+			authorizer: &rbacAuthorizer{
+				Authorizer: loopback.GetAuthorizer(),
+			},
 		}, nil
 	}
 }
 
 type organizationStorage struct {
-	namepaces namespaceProvider
+	namepaces  namespaceProvider
+	authorizer ContextAuthorizer
 }
 
 func (s organizationStorage) New() runtime.Object {
