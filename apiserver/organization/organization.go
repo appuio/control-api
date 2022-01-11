@@ -33,7 +33,7 @@ func New() restbuilder.ResourceHandlerProvider {
 			namepaces: &kubeNamespaceProvider{
 				Client: c,
 			},
-			authorizer: &rbacAuthorizer{
+			authorizer: rbacAuthorizer{
 				Authorizer: loopback.GetAuthorizer(),
 			},
 		}, nil
@@ -42,7 +42,7 @@ func New() restbuilder.ResourceHandlerProvider {
 
 type organizationStorage struct {
 	namepaces  namespaceProvider
-	authorizer ContextAuthorizer
+	authorizer rbacAuthorizer
 }
 
 func (s organizationStorage) New() runtime.Object {
@@ -58,6 +58,11 @@ func (s *organizationStorage) NamespaceScoped() bool {
 var _ rest.Getter = &organizationStorage{}
 
 func (s *organizationStorage) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	err := s.authorizer.AuthorizeVerb(ctx, "get")
+	if err != nil {
+		return nil, err
+	}
+
 	org := &orgv1.Organization{}
 	ns, err := s.namepaces.GetNamespace(ctx, name, options)
 	if err != nil {
@@ -78,6 +83,10 @@ func (s *organizationStorage) Create(ctx context.Context, obj runtime.Object, cr
 	if !ok {
 		return nil, fmt.Errorf("not an organization: %#v", obj)
 	}
+	err := s.authorizer.AuthorizeContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	// Validate Org
 	if err := createValidation(ctx, obj); err != nil {
@@ -96,6 +105,11 @@ var _ rest.CreaterUpdater = &organizationStorage{}
 func (s *organizationStorage) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo,
 	createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc,
 	forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+
+	err := s.authorizer.AuthorizeContext(ctx)
+	if err != nil {
+		return nil, false, err
+	}
 
 	newOrg := &orgv1.Organization{}
 
@@ -128,6 +142,11 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 var _ rest.GracefulDeleter = &organizationStorage{}
 
 func (s *organizationStorage) Delete(ctx context.Context, name string, deleteValidation rest.ValidateObjectFunc, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+	err := s.authorizer.AuthorizeContext(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+
 	org, err := s.Get(ctx, name, nil)
 	if err != nil {
 		return nil, false, err

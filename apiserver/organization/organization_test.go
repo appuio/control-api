@@ -2,6 +2,8 @@ package organization
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 
 	mock "github.com/appuio/control-api/apiserver/organization/mock"
@@ -16,7 +18,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/endpoints/request"
 )
+
+func newMockedOrganizationStorage(ctrl *gomock.Controller) (organizationStorage, *mock.MocknamespaceProvider, *mock.MockAuthorizer) {
+	mnp := mock.NewMocknamespaceProvider(ctrl)
+	mauth := mock.NewMockAuthorizer(ctrl)
+	os := organizationStorage{
+		namepaces:  mnp,
+		authorizer: rbacAuthorizer{Authorizer: mauth},
+	}
+	return os, mnp, mauth
+}
 
 func TestOrganizationStorage_Get(t *testing.T) {
 	tests := map[string]struct {
@@ -25,6 +39,8 @@ func TestOrganizationStorage_Get(t *testing.T) {
 		namespace    *corev1.Namespace
 		namespaceErr error
 
+		authDecision authResponse
+
 		organization *orgv1.Organization
 		err          error
 	}{
@@ -32,12 +48,18 @@ func TestOrganizationStorage_Get(t *testing.T) {
 			name:         "foo",
 			namespace:    fooNs,
 			organization: fooOrg,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 		},
 		"GivenErrNotFound_ThenErrNotFound": {
 			name: "not-found",
 			namespaceErr: apierrors.NewNotFound(schema.GroupResource{
 				Resource: "namepaces",
 			}, "not-found"),
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 			err: apierrors.NewNotFound(schema.GroupResource{
 				Group:    orgv1.GroupVersion.Group,
 				Resource: "organizations",
@@ -46,28 +68,58 @@ func TestOrganizationStorage_Get(t *testing.T) {
 		"GivenNonOrgNs_ThenErrNotFound": {
 			name:      "default",
 			namespace: defaultNs,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 			err: apierrors.NewNotFound(schema.GroupResource{
 				Group:    orgv1.GroupVersion.Group,
 				Resource: "organizations",
 			}, "default"),
 		},
-	}
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mnp := mock.NewMocknamespaceProvider(ctrl)
-	os := organizationStorage{
-		namepaces: mnp,
+		"GivenAuthFails_ThenFail": {
+			name: "auth-offline",
+			authDecision: authResponse{
+				err: errors.New("failed"),
+			},
+			err: errors.New("failed"),
+		},
+		"GivenForbidden_ThenForbidden": {
+			name: "secret-org",
+			authDecision: authResponse{
+				decision: authorizer.DecisionDeny,
+				reason:   "confidential",
+			},
+			err: apierrors.NewForbidden(schema.GroupResource{
+				Group:    orgv1.GroupVersion.Group,
+				Resource: "organizations",
+			}, "secret-org", errors.New("confidential")),
+		},
 	}
 
 	for n, tc := range tests {
+
 		t.Run(n, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+
+			mauth.EXPECT().
+				Authorize(gomock.Any(), isAuthRequest("get")).
+				Return(tc.authDecision.decision, tc.authDecision.reason, tc.authDecision.err).
+				Times(1)
 			mnp.EXPECT().
 				GetNamespace(gomock.Any(), tc.name, gomock.Any()).
 				Return(tc.namespace, tc.namespaceErr).
-				Times(1)
-			org, err := os.Get(context.TODO(), tc.name, nil)
+				AnyTimes()
+
+			org, err := os.Get(request.WithRequestInfo(request.NewContext(),
+				&request.RequestInfo{
+					Verb:     "get",
+					APIGroup: orgv1.GroupVersion.Group,
+					Resource: "organizations",
+					Name:     tc.name,
+				}),
+				tc.name, nil)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 				return
@@ -84,15 +136,23 @@ func TestOrganizationStorage_Create(t *testing.T) {
 
 		namespaceErr error
 
+		authDecision authResponse
+
 		organizationOut *orgv1.Organization
 		err             error
 	}{
 		"GivenCreateOrg_ThenSuccess": {
-			organizationIn:  fooOrg,
+			organizationIn: fooOrg,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 			organizationOut: fooOrg,
 		},
 		"GivenNsExists_ThenFail": {
 			organizationIn: fooOrg,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 			namespaceErr: apierrors.NewAlreadyExists(schema.GroupResource{
 				Resource: "namepaces",
 			}, "foo"),
@@ -101,27 +161,51 @@ func TestOrganizationStorage_Create(t *testing.T) {
 				Resource: "organizations",
 			}, "foo"),
 		},
-	}
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mnp := mock.NewMocknamespaceProvider(ctrl)
-	os := organizationStorage{
-		namepaces: mnp,
+		"GivenAuthFails_ThenFail": {
+			organizationIn: fooOrg,
+			authDecision: authResponse{
+				err: errors.New("failed"),
+			},
+			err: errors.New("failed"),
+		},
+		"GivenForbidden_ThenForbidden": {
+			organizationIn: fooOrg,
+			authDecision: authResponse{
+				decision: authorizer.DecisionDeny,
+				reason:   "confidential",
+			},
+			err: apierrors.NewForbidden(schema.GroupResource{
+				Group:    orgv1.GroupVersion.Group,
+				Resource: "organizations",
+			}, fooOrg.Name, errors.New("confidential")),
+		},
 	}
 
 	for n, tc := range tests {
 		t.Run(n, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+			mauth.EXPECT().
+				Authorize(gomock.Any(), isAuthRequest("create")).
+				Return(tc.authDecision.decision, tc.authDecision.reason, tc.authDecision.err).
+				Times(1)
 			mnp.EXPECT().
 				CreateNamespace(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(tc.namespaceErr).
-				Times(1)
+				AnyTimes()
 
 			nopValidate := func(ctx context.Context, obj runtime.Object) error {
 				return nil
 			}
-			org, err := os.Create(context.TODO(), tc.organizationIn, nopValidate, nil)
+			org, err := os.Create(request.WithRequestInfo(request.NewContext(),
+				&request.RequestInfo{
+					Verb:     "create",
+					APIGroup: orgv1.GroupVersion.Group,
+					Resource: "organizations",
+					Name:     tc.organizationIn.Name,
+				}),
+				tc.organizationIn, nopValidate, nil)
 
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
@@ -139,21 +223,27 @@ func TestOrganizationStorage_Delete(t *testing.T) {
 
 		namespace          *corev1.Namespace
 		namespaceGetErr    error
-		skipNsDelete       bool
 		namespaceDeleteErr error
+
+		authDecision authResponse
 
 		organization *orgv1.Organization
 		err          error
 	}{
 		"GivenDeleteOrg_ThenSuccess": {
-			name:         "foo",
+			name: "foo",
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 			organization: fooOrg,
 			namespace:    fooNs,
 		},
 		"GivenDeleteNonOrg_ThenFail": {
-			name:         "default",
-			namespace:    defaultNs,
-			skipNsDelete: true,
+			name:      "default",
+			namespace: defaultNs,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 			err: apierrors.NewNotFound(schema.GroupResource{
 				Group:    orgv1.GroupVersion.Group,
 				Resource: "organizations",
@@ -162,6 +252,9 @@ func TestOrganizationStorage_Delete(t *testing.T) {
 		"GivenDeleteFails_ThenFail": {
 			name:      "foo",
 			namespace: fooNs,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 			namespaceDeleteErr: apierrors.NewNotFound(schema.GroupResource{
 				Resource: "namepaces",
 			}, "foo"),
@@ -170,34 +263,60 @@ func TestOrganizationStorage_Delete(t *testing.T) {
 				Resource: "organizations",
 			}, "foo"),
 		},
-	}
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mnp := mock.NewMocknamespaceProvider(ctrl)
-	os := organizationStorage{
-		namepaces: mnp,
+		"GivenAuthFails_ThenFail": {
+			name: "foo",
+			authDecision: authResponse{
+				err: errors.New("failed"),
+			},
+			err: errors.New("failed"),
+		},
+		"GivenForbidden_ThenForbidden": {
+			name: "foo",
+			authDecision: authResponse{
+				decision: authorizer.DecisionDeny,
+				reason:   "confidential",
+			},
+			err: apierrors.NewForbidden(schema.GroupResource{
+				Group:    orgv1.GroupVersion.Group,
+				Resource: "organizations",
+			}, "foo", errors.New("confidential")),
+		},
 	}
 
 	for n, tc := range tests {
 		t.Run(n, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+
+			mauth.EXPECT().
+				Authorize(gomock.Any(), isAuthRequest("get")).
+				Return(authorizer.DecisionAllow, "", nil).
+				AnyTimes()
+			mauth.EXPECT().
+				Authorize(gomock.Any(), isAuthRequest("delete")).
+				Return(tc.authDecision.decision, tc.authDecision.reason, tc.authDecision.err).
+				Times(1)
 			mnp.EXPECT().
 				GetNamespace(gomock.Any(), tc.name, gomock.Any()).
 				Return(tc.namespace, tc.namespaceGetErr).
-				Times(1)
-
-			if !tc.skipNsDelete {
-				mnp.EXPECT().
-					DeleteNamespace(gomock.Any(), tc.name, gomock.Any()).
-					Return(tc.namespace, tc.namespaceDeleteErr).
-					Times(1)
-			}
+				AnyTimes()
+			mnp.EXPECT().
+				DeleteNamespace(gomock.Any(), tc.name, gomock.Any()).
+				Return(tc.namespace, tc.namespaceDeleteErr).
+				AnyTimes()
 
 			nopValidate := func(ctx context.Context, obj runtime.Object) error {
 				return nil
 			}
-			org, _, err := os.Delete(context.TODO(), tc.name, nopValidate, nil)
+			org, _, err := os.Delete(request.WithRequestInfo(request.NewContext(),
+				&request.RequestInfo{
+					Verb:     "delete",
+					APIGroup: orgv1.GroupVersion.Group,
+					Resource: "organizations",
+					Name:     tc.name,
+				}),
+				tc.name, nopValidate, nil)
 
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
@@ -225,8 +344,9 @@ func TestOrganizationStorage_Update(t *testing.T) {
 
 		namespace          *corev1.Namespace
 		namespaceGetErr    error
-		skipNsUpdate       bool
 		namespaceUpdateErr error
+
+		authDecision authResponse
 
 		organization *orgv1.Organization
 		err          error
@@ -243,6 +363,10 @@ func TestOrganizationStorage_Update(t *testing.T) {
 			},
 
 			namespace: fooNs,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+
 			organization: &orgv1.Organization{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "foo",
@@ -255,9 +379,12 @@ func TestOrganizationStorage_Update(t *testing.T) {
 			},
 		},
 		"GivenUpdateNonOrg_ThenFail": {
-			name:         "default",
-			namespace:    defaultNs,
-			skipNsUpdate: true,
+			name:      "default",
+			namespace: defaultNs,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+
 			err: apierrors.NewNotFound(schema.GroupResource{
 				Group:    orgv1.GroupVersion.Group,
 				Resource: "organizations",
@@ -277,36 +404,67 @@ func TestOrganizationStorage_Update(t *testing.T) {
 			namespaceUpdateErr: apierrors.NewNotFound(schema.GroupResource{
 				Resource: "namepaces",
 			}, "foo"),
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 			err: apierrors.NewNotFound(schema.GroupResource{
 				Group:    orgv1.GroupVersion.Group,
 				Resource: "organizations",
 			}, "foo"),
 		},
-	}
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mnp := mock.NewMocknamespaceProvider(ctrl)
-	os := organizationStorage{
-		namepaces: mnp,
+		"GivenAuthFails_ThenFail": {
+			name: "foo",
+			authDecision: authResponse{
+				err: errors.New("failed"),
+			},
+			err: errors.New("failed"),
+		},
+		"GivenForbidden_ThenForbidden": {
+			name: "foo",
+			authDecision: authResponse{
+				decision: authorizer.DecisionDeny,
+				reason:   "confidential",
+			},
+			err: apierrors.NewForbidden(schema.GroupResource{
+				Group:    orgv1.GroupVersion.Group,
+				Resource: "organizations",
+			}, "foo", errors.New("confidential")),
+		},
 	}
 
 	for n, tc := range tests {
 		t.Run(n, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+
+			mauth.EXPECT().
+				Authorize(gomock.Any(), isAuthRequest("get")).
+				Return(authorizer.DecisionAllow, "", nil).
+				AnyTimes()
+			mauth.EXPECT().
+				Authorize(gomock.Any(), isAuthRequest("update")).
+				Return(tc.authDecision.decision, tc.authDecision.reason, tc.authDecision.err).
+				Times(1)
+
 			mnp.EXPECT().
 				GetNamespace(gomock.Any(), tc.name, gomock.Any()).
 				Return(tc.namespace, tc.namespaceGetErr).
-				Times(1)
+				AnyTimes()
 
-			if !tc.skipNsUpdate {
-				mnp.EXPECT().
-					UpdateNamespace(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(tc.namespaceUpdateErr).
-					Times(1)
-			}
+			mnp.EXPECT().
+				UpdateNamespace(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(tc.namespaceUpdateErr).
+				AnyTimes()
 
-			org, _, err := os.Update(context.TODO(), tc.name, testUpdateInfo(tc.updateFunc), nil, nil, false, nil)
+			org, _, err := os.Update(request.WithRequestInfo(request.NewContext(),
+				&request.RequestInfo{
+					Verb:     "update",
+					APIGroup: orgv1.GroupVersion.Group,
+					Resource: "organizations",
+					Name:     tc.name,
+				}),
+				tc.name, testUpdateInfo(tc.updateFunc), nil, nil, false, nil)
 
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
@@ -368,3 +526,29 @@ var (
 		},
 	}
 )
+
+type authResponse struct {
+	decision authorizer.Decision
+	reason   string
+	err      error
+}
+
+type authRequestMatcher struct {
+	verb string
+}
+
+func (m authRequestMatcher) Matches(x interface{}) bool {
+	attr, ok := x.(authorizer.Attributes)
+	if !ok {
+		return ok
+	}
+	return attr.GetVerb() == m.verb
+}
+
+func (m authRequestMatcher) String() string {
+	return fmt.Sprintf("authenticates %s", m.verb)
+}
+
+func isAuthRequest(verb string) authRequestMatcher {
+	return authRequestMatcher{verb: verb}
+}
