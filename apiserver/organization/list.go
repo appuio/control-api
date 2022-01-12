@@ -21,6 +21,10 @@ func (s organizationStorage) NewList() runtime.Object {
 }
 
 func (s *organizationStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
+	err := s.authorizer.AuthorizeContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	namespaces, err := s.namepaces.ListNamespaces(ctx, addOrganizationLabelSelector(options))
 	if err != nil {
 		return nil, convertNamespaceError(err)
@@ -28,11 +32,14 @@ func (s *organizationStorage) List(ctx context.Context, options *metainternalver
 
 	res := orgv1.OrganizationList{
 		ListMeta: namespaces.ListMeta,
-		Items:    make([]orgv1.Organization, len(namespaces.Items)),
 	}
 
-	for i := range namespaces.Items {
-		res.Items[i] = *orgv1.NewOrganizationFromNS(&namespaces.Items[i])
+	for _, ns := range namespaces.Items {
+		err := s.authorizer.AuthorizeGet(ctx, ns.Name)
+		if err != nil {
+			continue
+		}
+		res.Items = append(res.Items, *orgv1.NewOrganizationFromNS(&ns))
 	}
 
 	return &res, nil
@@ -41,6 +48,10 @@ func (s *organizationStorage) List(ctx context.Context, options *metainternalver
 var _ rest.Watcher = &organizationStorage{}
 
 func (s *organizationStorage) Watch(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
+	err := s.authorizer.AuthorizeContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	nsWatcher, err := s.namepaces.WatchNamespaces(ctx, addOrganizationLabelSelector(options))
 	if err != nil {
@@ -57,6 +68,10 @@ func (s *organizationStorage) Watch(ctx context.Context, options *metainternalve
 			// We received a non Namespace object
 			// This is most likely an error so we pass it on
 			return in, true
+		}
+		err := s.authorizer.AuthorizeGet(ctx, ns.Name)
+		if err != nil {
+			return in, false
 		}
 
 		in.Object = orgv1.NewOrganizationFromNS(ns)
