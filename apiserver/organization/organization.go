@@ -58,7 +58,7 @@ func (s *organizationStorage) NamespaceScoped() bool {
 var _ rest.Getter = &organizationStorage{}
 
 func (s *organizationStorage) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	err := s.authorizer.AuthorizeVerb(ctx, "get")
+	err := s.authorizer.AuthorizeGet(ctx, name)
 	if err != nil {
 		return nil, err
 	}

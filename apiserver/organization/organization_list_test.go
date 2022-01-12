@@ -1,10 +1,9 @@
 package organization
 
 import (
-	"context"
+	"errors"
 	"testing"
 
-	mock "github.com/appuio/control-api/apiserver/organization/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,12 +14,17 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/apiserver/pkg/endpoints/request"
 )
 
 func TestOrganizationStorage_List(t *testing.T) {
 	tests := map[string]struct {
 		namespaces   *corev1.NamespaceList
 		namespaceErr error
+
+		authList authResponse
+		authGet  []authResponse
 
 		organizations *orgv1.OrganizationList
 		err           error
@@ -32,7 +36,13 @@ func TestOrganizationStorage_List(t *testing.T) {
 					*barNs,
 				},
 			},
-
+			authList: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+			authGet: []authResponse{
+				{decision: authorizer.DecisionAllow},
+				{decision: authorizer.DecisionAllow},
+			},
 			organizations: &orgv1.OrganizationList{
 				Items: []orgv1.Organization{
 					*fooOrg,
@@ -41,6 +51,9 @@ func TestOrganizationStorage_List(t *testing.T) {
 			},
 		},
 		"GivenErrNotFound_ThenErrNotFound": {
+			authList: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 			namespaceErr: apierrors.NewNotFound(schema.GroupResource{
 				Resource: "namepaces",
 			}, "not-found"),
@@ -49,23 +62,65 @@ func TestOrganizationStorage_List(t *testing.T) {
 				Resource: "organizations",
 			}, "not-found"),
 		},
+		"GivenForbidden_ThenForbidden": {
+			authList: authResponse{
+				decision: authorizer.DecisionDeny,
+				reason:   "confidential",
+			},
+			err: apierrors.NewForbidden(schema.GroupResource{
+				Group:    orgv1.GroupVersion.Group,
+				Resource: "organizations",
+			}, "", errors.New("confidential")),
+		},
+		"GivenList_ThenFilter": {
+			namespaces: &corev1.NamespaceList{
+				Items: []corev1.Namespace{
+					*fooNs,
+					*barNs,
+				},
+			},
+			authList: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+			authGet: []authResponse{
+				{decision: authorizer.DecisionAllow},
+				{decision: authorizer.DecisionDeny},
+			},
+			organizations: &orgv1.OrganizationList{
+				Items: []orgv1.Organization{
+					*fooOrg,
+				},
+			},
+		},
 	}
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mnp := mock.NewMocknamespaceProvider(ctrl)
-	os := organizationStorage{
-		namepaces: mnp,
-	}
-
 	for n, tc := range tests {
 		t.Run(n, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+
+			mauth.EXPECT().
+				Authorize(gomock.Any(), isAuthRequest("list")).
+				Return(tc.authList.decision, tc.authList.reason, tc.authList.err).
+				Times(1)
 			mnp.EXPECT().
 				ListNamespaces(gomock.Any(), gomock.Any()).
 				Return(tc.namespaces, tc.namespaceErr).
-				Times(1)
-			org, err := os.List(context.TODO(), nil)
+				AnyTimes()
+
+			for _, getAuth := range tc.authGet {
+				mauth.EXPECT().
+					Authorize(gomock.Any(), isAuthRequest("get")).
+					Return(getAuth.decision, getAuth.reason, getAuth.err).
+					Times(1)
+			}
+
+			org, err := os.List(request.WithRequestInfo(request.NewContext(),
+				&request.RequestInfo{
+					Verb:     "list",
+					APIGroup: orgv1.GroupVersion.Group,
+					Resource: "organizations",
+				}), nil)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 				return
@@ -91,6 +146,9 @@ func TestOrganizationStorage_Watch(t *testing.T) {
 		namespacesEvents []watch.Event
 		namespaceErr     error
 
+		authWatch authResponse
+		authGet   []authResponse
+
 		organizationEvents []watch.Event
 		err                error
 	}{
@@ -104,6 +162,13 @@ func TestOrganizationStorage_Watch(t *testing.T) {
 					Type:   watch.Modified,
 					Object: barNs,
 				},
+			},
+			authWatch: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+			authGet: []authResponse{
+				{decision: authorizer.DecisionAllow},
+				{decision: authorizer.DecisionAllow},
 			},
 			organizationEvents: []watch.Event{
 				{
@@ -120,23 +185,71 @@ func TestOrganizationStorage_Watch(t *testing.T) {
 			namespaceErr: apierrors.NewNotFound(schema.GroupResource{
 				Resource: "namepaces",
 			}, "not-found"),
+			authWatch: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
 			err: apierrors.NewNotFound(schema.GroupResource{
 				Group:    orgv1.GroupVersion.Group,
 				Resource: "organizations",
 			}, "not-found"),
 		},
-	}
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mnp := mock.NewMocknamespaceProvider(ctrl)
-	os := organizationStorage{
-		namepaces: mnp,
+		"GivenForbidden_ThenForbidden": {
+			authWatch: authResponse{
+				decision: authorizer.DecisionDeny,
+				reason:   "confidential",
+			},
+			err: apierrors.NewForbidden(schema.GroupResource{
+				Group:    orgv1.GroupVersion.Group,
+				Resource: "organizations",
+			}, "", errors.New("confidential")),
+		},
+		"GivenNsEvents_ThenFilter": {
+			namespacesEvents: []watch.Event{
+				{
+					Type:   watch.Added,
+					Object: fooNs,
+				},
+				{
+					Type:   watch.Modified,
+					Object: barNs,
+				},
+				{
+					Type:   watch.Modified,
+					Object: fooNs,
+				},
+				{
+					Type:   watch.Modified,
+					Object: barNs,
+				},
+			},
+			authWatch: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+			authGet: []authResponse{
+				{decision: authorizer.DecisionAllow},
+				{decision: authorizer.DecisionDeny},
+				{decision: authorizer.DecisionAllow},
+				{decision: authorizer.DecisionDeny},
+			},
+			organizationEvents: []watch.Event{
+				{
+					Type:   watch.Added,
+					Object: fooOrg,
+				},
+				{
+					Type:   watch.Modified,
+					Object: fooOrg,
+				},
+			},
+		},
 	}
 
 	for n, tc := range tests {
 		t.Run(n, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+
 			nsWatcher := testWatcher{
 				events: make(chan watch.Event, len(tc.namespacesEvents)),
 			}
@@ -144,11 +257,29 @@ func TestOrganizationStorage_Watch(t *testing.T) {
 				nsWatcher.events <- e
 			}
 			close(nsWatcher.events)
+
+			mauth.EXPECT().
+				Authorize(gomock.Any(), isAuthRequest("watch")).
+				Return(tc.authWatch.decision, tc.authWatch.reason, tc.authWatch.err).
+				Times(1)
+
 			mnp.EXPECT().
 				WatchNamespaces(gomock.Any(), gomock.Any()).
 				Return(nsWatcher, tc.namespaceErr).
-				Times(1)
-			orgWatch, err := os.Watch(context.TODO(), nil)
+				AnyTimes()
+
+			for _, getAuth := range tc.authGet {
+				mauth.EXPECT().
+					Authorize(gomock.Any(), isAuthRequest("get")).
+					Return(getAuth.decision, getAuth.reason, getAuth.err).
+					Times(1)
+			}
+			orgWatch, err := os.Watch(request.WithRequestInfo(request.NewContext(),
+				&request.RequestInfo{
+					Verb:     "watch",
+					APIGroup: orgv1.GroupVersion.Group,
+					Resource: "organizations",
+				}), nil)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 				return
