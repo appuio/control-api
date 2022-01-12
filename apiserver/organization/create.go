@@ -28,8 +28,22 @@ func (s *organizationStorage) Create(ctx context.Context, obj runtime.Object, cr
 		return nil, err
 	}
 
+	return s.create(ctx, org, options)
+}
+
+func (s *organizationStorage) create(ctx context.Context, org *orgv1.Organization, options *metav1.CreateOptions) (*orgv1.Organization, error) {
 	if err := s.namepaces.CreateNamespace(ctx, org.ToNamespace(), options); err != nil {
 		return nil, convertNamespaceError(err)
 	}
+
+	if err := s.rbac.CreateRoleBindings(ctx, org.Name); err != nil {
+		// rollback
+		_, deleteErr := s.namepaces.DeleteNamespace(ctx, org.Name, nil)
+		if deleteErr != nil {
+			err = fmt.Errorf("%w and failed to clean up namespace: %s", err, deleteErr.Error())
+		}
+		return nil, fmt.Errorf("failed to create organization: %w", err)
+	}
+
 	return org, nil
 }

@@ -34,12 +34,19 @@ func main() {
 		"gid", os.Getgid(),
 	).Info("Starting control-api…")
 
-	err := builder.APIServer.
-		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New()).
+	roles := []string{}
+	cmd, err := builder.APIServer.
+		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New(&roles)).
 		WithoutEtcd().
 		ExposeLoopbackAuthorizer().
 		ExposeLoopbackMasterClientConfig().
-		Execute()
+		Build()
+	if err != nil {
+		logger.Error(err, "Failed to setup API server")
+	}
+
+	cmd.Flags().StringSliceVar(&roles, "cluster-roles", []string{}, "Cluster Roles to bind when creating an organization")
+	err = cmd.Execute()
 	if err != nil {
 		logger.Error(err, "API server stopped unexpectedly")
 	}

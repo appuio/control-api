@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
+	mock "github.com/appuio/control-api/apiserver/organization/mock"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,6 +75,8 @@ func TestOrganizationStorage_Create(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+			mrb := mock.NewMockroleBindingCreator(ctrl)
+			os.rbac = mrb
 			mauth.EXPECT().
 				Authorize(gomock.Any(), isAuthRequest("create")).
 				Return(tc.authDecision.decision, tc.authDecision.reason, tc.authDecision.err).
@@ -81,6 +84,10 @@ func TestOrganizationStorage_Create(t *testing.T) {
 			mnp.EXPECT().
 				CreateNamespace(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(tc.namespaceErr).
+				AnyTimes()
+			mrb.EXPECT().
+				CreateRoleBindings(gomock.Any(), gomock.Any()).
+				Return(nil).
 				AnyTimes()
 
 			nopValidate := func(ctx context.Context, obj runtime.Object) error {

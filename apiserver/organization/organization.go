@@ -20,7 +20,7 @@ import (
 // +kubebuilder:rbac:groups="flowcontrol.apiserver.k8s.io",resources=prioritylevelconfigurations;flowschemas,verbs=get;list;watch
 
 // New returns a new storage provider for Organizations
-func New() restbuilder.ResourceHandlerProvider {
+func New(clusterRoles *[]string) restbuilder.ResourceHandlerProvider {
 	return func(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
 		c, err := client.NewWithWatch(loopback.GetLoopbackMasterClientConfig(), client.Options{})
 		if err != nil {
@@ -33,6 +33,10 @@ func New() restbuilder.ResourceHandlerProvider {
 			authorizer: rbacAuthorizer{
 				Authorizer: loopback.GetAuthorizer(),
 			},
+			rbac: kubeRoleBindingCreator{
+				Client:       c,
+				ClusterRoles: *clusterRoles,
+			},
 		}, nil
 	}
 }
@@ -40,6 +44,9 @@ func New() restbuilder.ResourceHandlerProvider {
 type organizationStorage struct {
 	namepaces  namespaceProvider
 	authorizer rbacAuthorizer
+
+	rbac         roleBindingCreator
+	clusterRoles []string
 }
 
 func (s organizationStorage) New() runtime.Object {
