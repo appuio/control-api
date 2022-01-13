@@ -111,3 +111,41 @@ func TestOrganizationStorage_Create(t *testing.T) {
 		})
 	}
 }
+
+func TestOrganizationStorage_Create_Abort(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+	mrb := mock.NewMockroleBindingCreator(ctrl)
+	os.rbac = mrb
+	mauth.EXPECT().
+		Authorize(gomock.Any(), isAuthRequest("create")).
+		Return(authorizer.DecisionAllow, "", nil).
+		Times(1)
+	mnp.EXPECT().
+		CreateNamespace(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).
+		Times(1)
+	mrb.EXPECT().
+		CreateRoleBindings(gomock.Any(), gomock.Any()).
+		Return(errors.New("")).
+		Times(1)
+	mnp.EXPECT().
+		DeleteNamespace(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(fooNs, nil).
+		Times(1)
+
+	nopValidate := func(ctx context.Context, obj runtime.Object) error {
+		return nil
+	}
+	_, err := os.Create(request.WithRequestInfo(request.NewContext(),
+		&request.RequestInfo{
+			Verb:     "create",
+			APIGroup: orgv1.GroupVersion.Group,
+			Resource: "organizations",
+			Name:     "foo",
+		}),
+		fooOrg, nopValidate, nil)
+
+	require.Error(t, err)
+}
