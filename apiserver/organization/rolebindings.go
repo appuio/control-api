@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,7 +29,7 @@ func (g kubeRoleBindingCreator) CreateRoleBindings(ctx context.Context, namespac
 			return err
 		}
 		err = g.Client.Create(ctx, rb)
-		if err != nil {
+		if err != nil && !apierrors.IsAlreadyExists(err) {
 			return err
 		}
 	}
