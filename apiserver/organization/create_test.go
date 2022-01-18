@@ -77,6 +77,8 @@ func TestOrganizationStorage_Create(t *testing.T) {
 			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
 			mrb := mock.NewMockroleBindingCreator(ctrl)
 			os.rbac = mrb
+			mmemb := mock.NewMockmemberProvider(ctrl)
+			os.members = mmemb
 			mauth.EXPECT().
 				Authorize(gomock.Any(), isAuthRequest("create")).
 				Return(tc.authDecision.decision, tc.authDecision.reason, tc.authDecision.err).
@@ -87,6 +89,10 @@ func TestOrganizationStorage_Create(t *testing.T) {
 				AnyTimes()
 			mrb.EXPECT().
 				CreateRoleBindings(gomock.Any(), gomock.Any()).
+				Return(nil).
+				AnyTimes()
+			mmemb.EXPECT().
+				CreateMembers(gomock.Any(), gomock.Any()).
 				Return(nil).
 				AnyTimes()
 

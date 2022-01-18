@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
+	controlv1 "github.com/appuio/control-api/apis/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,6 +27,10 @@ func New(clusterRoles *[]string) restbuilder.ResourceHandlerProvider {
 		if err != nil {
 			return nil, err
 		}
+		err = controlv1.AddToScheme(c.Scheme())
+		if err != nil {
+			return nil, err
+		}
 		return &organizationStorage{
 			namepaces: &kubeNamespaceProvider{
 				Client: c,
@@ -37,12 +42,16 @@ func New(clusterRoles *[]string) restbuilder.ResourceHandlerProvider {
 				Client:       c,
 				ClusterRoles: *clusterRoles,
 			},
+			members: kubeMemberProvider{
+				Client: c,
+			},
 		}, nil
 	}
 }
 
 type organizationStorage struct {
 	namepaces  namespaceProvider
+	members    memberProvider
 	authorizer rbacAuthorizer
 
 	rbac         roleBindingCreator
