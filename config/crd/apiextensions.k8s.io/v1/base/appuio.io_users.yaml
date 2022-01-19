@@ -34,14 +34,17 @@ spec:
           metadata:
             type: object
           spec:
+            description: UserSpec contains the desired state of the user
             properties:
               Preferences:
+                description: UserPreferences contains the Preferences of the user
                 properties:
                   defaultOrganizationRef:
                     type: string
                 type: object
             type: object
           status:
+            description: UserStatus contains the acutal state of the user
             properties:
               defaultOrganization:
                 type: string

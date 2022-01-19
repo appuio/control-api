@@ -34,9 +34,12 @@ spec:
           metadata:
             type: object
           spec:
+            description: OrganizationMembersSpec contains the desired members of the
+              organization
             properties:
               userRefs:
                 items:
+                  description: UserRef points to a user
                   properties:
                     id:
                       type: string
@@ -46,9 +49,12 @@ spec:
                 type: array
             type: object
           status:
+            description: OrganizationMembersStatus contains the actual members of
+              the organization
             properties:
               resolvedUserRefs:
                 items:
+                  description: UserRef points to a user
                   properties:
                     id:
                       type: string

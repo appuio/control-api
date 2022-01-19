@@ -16,12 +16,18 @@ type User struct {
 	Spec   UserSpec   `json:"spec,omitempty"`
 	Status UserStatus `json:"status,omitempty"`
 }
+
+// UserSpec contains the desired state of the user
 type UserSpec struct {
 	Preferences UserPreferences `json:"Preferences,omitempty"`
 }
+
+// UserPreferences contains the Preferences of the user
 type UserPreferences struct {
 	DefaultOrganizationRef string `json:"defaultOrganizationRef,omitempty"`
 }
+
+// UserStatus contains the acutal state of the user
 type UserStatus struct {
 	DefaultOrganizationRef string `json:"defaultOrganization,omitempty"`
 	DisplayName            string `json:"displayName,omitempty"`

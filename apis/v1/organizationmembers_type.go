@@ -16,13 +16,17 @@ type OrganizationMembers struct {
 	Status OrganizationMembersStatus `json:"status,omitempty"`
 }
 
+// OrganizationMembersSpec contains the desired members of the organization
 type OrganizationMembersSpec struct {
 	UserRefs []UserRef `json:"userRefs,omitempty"`
 }
+
+// OrganizationMembersStatus contains the actual members of the organization
 type OrganizationMembersStatus struct {
 	UserRefs []UserRef `json:"resolvedUserRefs,omitempty"`
 }
 
+// UserRef points to a user
 type UserRef struct {
 	ID       string `json:"id,omitempty"`
 	Username string `json:"username,omitempty"`
