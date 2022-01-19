@@ -3,6 +3,7 @@ package organization
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -10,31 +11,38 @@ import (
 	"github.com/stretchr/testify/require"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
+	controlv1 "github.com/appuio/control-api/apis/v1"
 	mock "github.com/appuio/control-api/apiserver/organization/mock"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/request"
 )
 
 func TestOrganizationStorage_Create(t *testing.T) {
 	tests := map[string]struct {
+		userID         string
 		organizationIn *orgv1.Organization
 
 		namespaceErr error
 
 		authDecision authResponse
 
+		memberName string
+
 		organizationOut *orgv1.Organization
 		err             error
 	}{
 		"GivenCreateOrg_ThenSuccess": {
+			userID:         "appuio#smith",
 			organizationIn: fooOrg,
 			authDecision: authResponse{
 				decision: authorizer.DecisionAllow,
 			},
+			memberName:      "smith",
 			organizationOut: fooOrg,
 		},
 		"GivenNsExists_ThenFail": {
@@ -79,6 +87,7 @@ func TestOrganizationStorage_Create(t *testing.T) {
 			os.rbac = mrb
 			mmemb := mock.NewMockmemberProvider(ctrl)
 			os.members = mmemb
+			os.usernamePrefix = "appuio#"
 			mauth.EXPECT().
 				Authorize(gomock.Any(), isAuthRequest("create")).
 				Return(tc.authDecision.decision, tc.authDecision.reason, tc.authDecision.err).
@@ -92,20 +101,22 @@ func TestOrganizationStorage_Create(t *testing.T) {
 				Return(nil).
 				AnyTimes()
 			mmemb.EXPECT().
-				CreateMembers(gomock.Any(), gomock.Any()).
+				CreateMembers(gomock.Any(), containsMember(tc.memberName)).
 				Return(nil).
 				AnyTimes()
 
 			nopValidate := func(ctx context.Context, obj runtime.Object) error {
 				return nil
 			}
-			org, err := os.Create(request.WithRequestInfo(request.NewContext(),
+			org, err := os.Create(request.WithUser(request.WithRequestInfo(request.NewContext(),
 				&request.RequestInfo{
 					Verb:     "create",
 					APIGroup: orgv1.GroupVersion.Group,
 					Resource: "organizations",
 					Name:     tc.organizationIn.Name,
-				}),
+				}), &user.DefaultInfo{
+				Name: tc.userID,
+			}),
 				tc.organizationIn, nopValidate, nil)
 
 			if tc.err != nil {
@@ -188,4 +199,24 @@ func TestOrganizationStorage_Create_Abort(t *testing.T) {
 			require.Error(t, err)
 		})
 	}
+}
+
+type memberMatcher struct {
+	user string
+}
+
+func (m memberMatcher) Matches(x interface{}) bool {
+	mem, ok := x.(*controlv1.OrganizationMembers)
+	if !ok {
+		return ok
+	}
+	return len(mem.Spec.UserRefs) > 0 && mem.Spec.UserRefs[0].ID == m.user
+}
+
+func (m memberMatcher) String() string {
+	return fmt.Sprintf("contains %s", m.user)
+}
+
+func containsMember(user string) memberMatcher {
+	return memberMatcher{user: user}
 }

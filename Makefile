@@ -62,7 +62,7 @@ clean: ## Cleans up the generated resources
 .PHONY: run
 KUBECONFIG ?= ~/.kube/config
 run: build ## Starts control api against the configured kuberentes cluster
-	$(BIN_FILENAME) --secure-port 9443 --kubeconfig $(KUBECONFIG) --authentication-kubeconfig $(KUBECONFIG) --authorization-kubeconfig $(KUBECONFIG) --cluster-roles appuio-organization-viewer,appuio-organization-admin
+	$(BIN_FILENAME) --secure-port 9443 --kubeconfig $(KUBECONFIG) --authentication-kubeconfig $(KUBECONFIG) --authorization-kubeconfig $(KUBECONFIG) --cluster-roles appuio-organization-viewer,appuio-organization-admin --username-prefix "appuio#"
 
 .PHONY: local-env
 local-env-setup: ## Setup local kind-based dev environment

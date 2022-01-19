@@ -48,7 +48,7 @@ func (s *organizationStorage) create(ctx context.Context, org *orgv1.Organizatio
 		return nil, fmt.Errorf("failed to create organization: %w", err)
 	}
 
-	orgMembers := newOrganizationMembers(ctx, org.Name, "")
+	orgMembers := newOrganizationMembers(ctx, org.Name, s.usernamePrefix)
 
 	if err := s.members.CreateMembers(ctx, orgMembers); err != nil {
 		// rollback
