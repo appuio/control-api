@@ -19,7 +19,7 @@ type User struct {
 
 // UserSpec contains the desired state of the user
 type UserSpec struct {
-	Preferences UserPreferences `json:"Preferences,omitempty"`
+	Preferences UserPreferences `json:"preferences,omitempty"`
 }
 
 // UserPreferences contains the Preferences of the user

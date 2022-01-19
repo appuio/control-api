@@ -23,7 +23,7 @@ type OrganizationMembersSpec struct {
 
 // OrganizationMembersStatus contains the actual members of the organization
 type OrganizationMembersStatus struct {
-	UserRefs []UserRef `json:"resolvedUserRefs,omitempty"`
+	ResolvedUserRefs []UserRef `json:"resolvedUserRefs,omitempty"`
 }
 
 // UserRef points to a user

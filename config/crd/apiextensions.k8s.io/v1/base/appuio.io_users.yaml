@@ -36,7 +36,7 @@ spec:
           spec:
             description: UserSpec contains the desired state of the user
             properties:
-              Preferences:
+              preferences:
                 description: UserPreferences contains the Preferences of the user
                 properties:
                   defaultOrganizationRef:
