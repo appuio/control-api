@@ -30,6 +30,10 @@ func (s *organizationStorage) Delete(ctx context.Context, name string, deleteVal
 		}
 	}
 
-	ns, err := s.namepaces.DeleteNamespace(ctx, name, options)
-	return orgv1.NewOrganizationFromNS(ns), false, convertNamespaceError(err)
+	_, err = s.namepaces.DeleteNamespace(ctx, name, options)
+	return &orgv1.Organization{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}, false, convertNamespaceError(err)
 }
