@@ -35,8 +35,9 @@ func main() {
 	).Info("Starting control-api…")
 
 	roles := []string{}
+	usernamePrefix := ""
 	cmd, err := builder.APIServer.
-		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New(&roles)).
+		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New(&roles, &usernamePrefix)).
 		WithoutEtcd().
 		ExposeLoopbackAuthorizer().
 		ExposeLoopbackMasterClientConfig().
@@ -46,6 +47,7 @@ func main() {
 	}
 
 	cmd.Flags().StringSliceVar(&roles, "cluster-roles", []string{}, "Cluster Roles to bind when creating an organization")
+	cmd.Flags().StringVar(&usernamePrefix, "username-prefix", "", "Prefix prepended to username claims. Usually the same as \"--oidc-username-prefix\" of the Kubernetes API server")
 	err = cmd.Execute()
 	if err != nil {
 		logger.Error(err, "API server stopped unexpectedly")
