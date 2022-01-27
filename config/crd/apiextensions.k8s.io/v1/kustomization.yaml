@@ -3,6 +3,8 @@
 # It should be run by config/default
 resources:
 - base/appuio.io_zones.yaml
+- base/appuio.io_organizationmembers.yaml
+- base/appuio.io_users.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.
