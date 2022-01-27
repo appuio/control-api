@@ -37,6 +37,19 @@ rules:
   - list
   - watch
 - apiGroups:
+  - appuio.io
+  resources:
+  - organizationmembers
+  verbs:
+  - create
+  - delete
+  - edit
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - coordination.k8s.io
   resources:
   - leases
@@ -53,4 +66,43 @@ rules:
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - organization.appuio.io
+  resources:
+  - organizations
+  verbs:
+  - create
+  - delete
+  - edit
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.appuio.io
+  resources:
+  - organizations
+  verbs:
+  - create
+  - delete
+  - edit
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  verbs:
+  - create
+  - delete
+  - edit
+  - get
+  - list
+  - patch
+  - update
   - watch
