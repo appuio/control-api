@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: control-api:organization-viewer
+rules:
+- apiGroups: ["rbac.appuio.io"] 
+  resources: ["organizations"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["appuio.io"] 
+  resources: ["organizationmembers"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["rolebindings"]
+  verbs: ["get", "watch", "list"]

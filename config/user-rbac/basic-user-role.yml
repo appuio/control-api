@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: control-api:basic-user
+rules:
+- apiGroups: ["organization.appuio.io"] 
+  resources: ["organizations"]
+  verbs: ["get", "watch", "list", "patch", "edit", "create"]
+- apiGroups: ["rbac.appuio.io"] 
+  resources: ["organizations"]
+  verbs: ["watch", "list", "create"]
+- apiGroups: ["appuio.io"] 
+  resources: ["zones"]
+  verbs: ["get", "watch", "list"]
