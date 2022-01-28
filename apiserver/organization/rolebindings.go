@@ -11,6 +11,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;delete;patch;update;edit
+
+// Needed so that we are allowed to delegate the default clusterroles
+// +kubebuilder:rbac:groups="rbac.appuio.io",resources=organizations,verbs=get;list;watch;create;delete;patch;update;edit
+// +kubebuilder:rbac:groups="organization.appuio.io",resources=organizations,verbs=get;list;watch;create;delete;patch;update;edit
+
 //go:generate go run github.com/golang/mock/mockgen -source=$GOFILE -destination=./mock/$GOFILE
 type roleBindingCreator interface {
 	CreateRoleBindings(ctx context.Context, namespace string) error
