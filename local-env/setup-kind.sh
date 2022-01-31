@@ -87,6 +87,7 @@ kubectl config set-credentials oidc-user \
 kubectl config set-context --current --user=oidc-user
 kubectl apply -k "${script_dir}/../config/crd/apiextensions.k8s.io/v1"
 kubectl apply -k "${script_dir}/../config/deployment"
+kubectl apply -k "${script_dir}/../config/user-rbac"
 
 echo =======
 echo "Setup finished. To interact with the local dev cluster, set the KUBECONFIG environment variable as follows:"

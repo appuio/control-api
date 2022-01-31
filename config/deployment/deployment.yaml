@@ -26,6 +26,8 @@ spec:
         - "--cert-dir=/apiserver.local.config/certificates"
         - "--secure-port=9443"
         - "--feature-gates=APIPriorityAndFairness=false"
+        - "--cluster-roles=control-api:organization-viewer,control-api:organization-admin"
+        - "--username-prefix=appuio#"
         volumeMounts:
         - name: apiserver-certs
           mountPath: /apiserver.local.config/certificates

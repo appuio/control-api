@@ -9,5 +9,6 @@ nodes:
         extraArgs:
           oidc-issuer-url: ISSUER_KEYCLOAK/auth/realms/REALM
           oidc-client-id: local-dev
-          oidc-username-claim: email
+          oidc-username-claim: preferred_username
+          oidc-username-prefix: "appuio#"
           oidc-groups-claim: groups
