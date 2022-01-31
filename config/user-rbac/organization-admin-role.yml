@@ -9,3 +9,6 @@ rules:
 - apiGroups: ["appuio.io"] 
   resources: ["organizationmembers"]
   verbs: ["get", "watch", "list", "patch", "edit", "create"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["rolebindings"]
+  verbs: ["get", "watch", "list", "patch", "edit", "create"]
