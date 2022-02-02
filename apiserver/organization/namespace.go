@@ -16,7 +16,7 @@ import (
 type namespaceProvider interface {
 	GetNamespace(ctx context.Context, name string, options *metav1.GetOptions) (*corev1.Namespace, error)
 	DeleteNamespace(ctx context.Context, name string, options *metav1.DeleteOptions) (*corev1.Namespace, error)
-	CreateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) error
+	CreateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) (*corev1.Namespace, error)
 	UpdateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.UpdateOptions) error
 	ListNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (*corev1.NamespaceList, error)
 	WatchNamespaces(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error)
@@ -41,10 +41,11 @@ func (p *kubeNamespaceProvider) DeleteNamespace(ctx context.Context, name string
 	return &ns, err
 }
 
-func (p *kubeNamespaceProvider) CreateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) error {
-	return p.Client.Create(ctx, ns, &client.CreateOptions{
+func (p *kubeNamespaceProvider) CreateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.CreateOptions) (*corev1.Namespace, error) {
+	err := p.Client.Create(ctx, ns, &client.CreateOptions{
 		Raw: options,
 	})
+	return ns, err
 }
 
 func (p *kubeNamespaceProvider) UpdateNamespace(ctx context.Context, ns *corev1.Namespace, options *metav1.UpdateOptions) error {

@@ -14,6 +14,7 @@ import (
 	controlv1 "github.com/appuio/control-api/apis/v1"
 	mock "github.com/appuio/control-api/apiserver/organization/mock"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -88,20 +89,24 @@ func TestOrganizationStorage_Create(t *testing.T) {
 			mmemb := mock.NewMockmemberProvider(ctrl)
 			os.members = mmemb
 			os.usernamePrefix = "appuio#"
+			nsOut := &corev1.Namespace{}
+			if tc.organizationOut != nil {
+				nsOut = tc.organizationOut.ToNamespace()
+			}
 			mauth.EXPECT().
 				Authorize(gomock.Any(), isAuthRequest("create")).
 				Return(tc.authDecision.decision, tc.authDecision.reason, tc.authDecision.err).
 				Times(1)
 			mnp.EXPECT().
 				CreateNamespace(gomock.Any(), gomock.Any(), gomock.Any()).
-				Return(tc.namespaceErr).
+				Return(nsOut, tc.namespaceErr).
 				AnyTimes()
 			mrb.EXPECT().
 				CreateRoleBindings(gomock.Any(), gomock.Any()).
 				Return(nil).
 				AnyTimes()
 			mmemb.EXPECT().
-				CreateMembers(gomock.Any(), containsMember(tc.memberName)).
+				CreateMembers(gomock.Any(), containsMemberAndOwner(tc.organizationIn.Name, tc.memberName)).
 				Return(nil).
 				AnyTimes()
 
@@ -158,7 +163,7 @@ func TestOrganizationStorage_Create_Abort(t *testing.T) {
 				Times(1)
 			mnp.EXPECT().
 				CreateNamespace(gomock.Any(), gomock.Any(), gomock.Any()).
-				Return(nil).
+				Return(fooNs, nil).
 				Times(1)
 
 			if tc.failRoleBinding {
@@ -202,7 +207,8 @@ func TestOrganizationStorage_Create_Abort(t *testing.T) {
 }
 
 type memberMatcher struct {
-	user string
+	owner string
+	user  string
 }
 
 func (m memberMatcher) Matches(x interface{}) bool {
@@ -210,13 +216,14 @@ func (m memberMatcher) Matches(x interface{}) bool {
 	if !ok {
 		return ok
 	}
-	return len(mem.Spec.UserRefs) > 0 && mem.Spec.UserRefs[0].ID == m.user
+	return len(mem.Spec.UserRefs) > 0 && mem.Spec.UserRefs[0].ID == m.user &&
+		len(mem.OwnerReferences) > 0 && mem.OwnerReferences[0].Name == m.owner
 }
 
 func (m memberMatcher) String() string {
-	return fmt.Sprintf("contains %s", m.user)
+	return fmt.Sprintf("contains %s and owned by %s", m.user, m.owner)
 }
 
-func containsMember(user string) memberMatcher {
-	return memberMatcher{user: user}
+func containsMemberAndOwner(owner, user string) memberMatcher {
+	return memberMatcher{user: user, owner: owner}
 }
