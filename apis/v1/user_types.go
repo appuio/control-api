@@ -30,6 +30,7 @@ type UserPreferences struct {
 // UserStatus contains the acutal state of the user
 type UserStatus struct {
 	DefaultOrganizationRef string `json:"defaultOrganization,omitempty"`
+	ID                     string `json:"id,omitempty"`
 	DisplayName            string `json:"displayName,omitempty"`
 	Username               string `json:"username,omitempty"`
 	Email                  string `json:"email,omitempty"`

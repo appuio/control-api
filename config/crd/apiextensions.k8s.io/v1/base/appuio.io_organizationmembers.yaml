@@ -41,9 +41,7 @@ spec:
                 items:
                   description: UserRef points to a user
                   properties:
-                    id:
-                      type: string
-                    username:
+                    name:
                       type: string
                   type: object
                 type: array
@@ -56,9 +54,7 @@ spec:
                 items:
                   description: UserRef points to a user
                   properties:
-                    id:
-                      type: string
-                    username:
+                    name:
                       type: string
                   type: object
                 type: array

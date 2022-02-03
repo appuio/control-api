@@ -70,7 +70,7 @@ func newOrganizationMembers(ctx context.Context, organization *orgv1.Organizatio
 	user, ok := request.UserFrom(ctx)
 	if ok {
 		userRefs = append(userRefs, controlv1.UserRef{
-			ID: strings.TrimPrefix(user.GetName(), usernamePrefix),
+			Name: strings.TrimPrefix(user.GetName(), usernamePrefix),
 		})
 	}
 
