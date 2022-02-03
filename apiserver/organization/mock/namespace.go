@@ -39,11 +39,12 @@ func (m *MocknamespaceProvider) EXPECT() *MocknamespaceProviderMockRecorder {
 }
 
 // CreateNamespace mocks base method.
-func (m *MocknamespaceProvider) CreateNamespace(ctx context.Context, ns *v1.Namespace, options *v10.CreateOptions) error {
+func (m *MocknamespaceProvider) CreateNamespace(ctx context.Context, ns *v1.Namespace, options *v10.CreateOptions) (*v1.Namespace, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateNamespace", ctx, ns, options)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*v1.Namespace)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // CreateNamespace indicates an expected call of CreateNamespace.

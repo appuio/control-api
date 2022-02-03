@@ -35,9 +35,11 @@ func (s *organizationStorage) Create(ctx context.Context, obj runtime.Object, cr
 }
 
 func (s *organizationStorage) create(ctx context.Context, org *orgv1.Organization, options *metav1.CreateOptions) (*orgv1.Organization, error) {
-	if err := s.namepaces.CreateNamespace(ctx, org.ToNamespace(), options); err != nil {
+	ns, err := s.namepaces.CreateNamespace(ctx, org.ToNamespace(), options)
+	if err != nil {
 		return nil, convertNamespaceError(err)
 	}
+	org = orgv1.NewOrganizationFromNS(ns)
 
 	if err := s.rbac.CreateRoleBindings(ctx, org.Name); err != nil {
 		// rollback
@@ -48,7 +50,7 @@ func (s *organizationStorage) create(ctx context.Context, org *orgv1.Organizatio
 		return nil, fmt.Errorf("failed to create organization: %w", err)
 	}
 
-	orgMembers := newOrganizationMembers(ctx, org.Name, s.usernamePrefix)
+	orgMembers := newOrganizationMembers(ctx, org, s.usernamePrefix)
 
 	if err := s.members.CreateMembers(ctx, orgMembers); err != nil {
 		// rollback
@@ -63,7 +65,7 @@ func (s *organizationStorage) create(ctx context.Context, org *orgv1.Organizatio
 	return org, nil
 }
 
-func newOrganizationMembers(ctx context.Context, organization, usernamePrefix string) *controlv1.OrganizationMembers {
+func newOrganizationMembers(ctx context.Context, organization *orgv1.Organization, usernamePrefix string) *controlv1.OrganizationMembers {
 	userRefs := []controlv1.UserRef{}
 	user, ok := request.UserFrom(ctx)
 	if ok {
@@ -72,10 +74,18 @@ func newOrganizationMembers(ctx context.Context, organization, usernamePrefix st
 		})
 	}
 
+	isController := true
 	return &controlv1.OrganizationMembers{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "members",
-			Namespace: organization,
+			Namespace: organization.Name,
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: orgv1.GroupVersion.String(),
+				Kind:       "Organization",
+				UID:        organization.UID,
+				Name:       organization.Name,
+				Controller: &isController,
+			}},
 		},
 		Spec: controlv1.OrganizationMembersSpec{
 			UserRefs: userRefs,
