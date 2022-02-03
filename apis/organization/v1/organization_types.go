@@ -131,3 +131,7 @@ func (o *Organization) ToNamespace() *corev1.Namespace {
 	ns.Annotations[DisplayNameKey] = o.Spec.DisplayName
 	return ns
 }
+
+func init() {
+	SchemeBuilder.Register(&Organization{}, &OrganizationList{})
+}
