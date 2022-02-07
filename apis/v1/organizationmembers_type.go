@@ -28,8 +28,7 @@ type OrganizationMembersStatus struct {
 
 // UserRef points to a user
 type UserRef struct {
-	ID       string `json:"id,omitempty"`
-	Username string `json:"username,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 // +kubebuilder:object:root=true

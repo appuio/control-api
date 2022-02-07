@@ -216,7 +216,7 @@ func (m memberMatcher) Matches(x interface{}) bool {
 	if !ok {
 		return ok
 	}
-	return len(mem.Spec.UserRefs) > 0 && mem.Spec.UserRefs[0].ID == m.user &&
+	return len(mem.Spec.UserRefs) > 0 && mem.Spec.UserRefs[0].Name == m.user &&
 		len(mem.OwnerReferences) > 0 && mem.OwnerReferences[0].Name == m.owner
 }
 
