@@ -5,10 +5,10 @@ metadata:
 rules:
 - apiGroups: ["rbac.appuio.io"] 
   resources: ["organizations"]
-  verbs: ["get", "watch", "list", "patch", "edit", "create"]
+  verbs: ["get", "watch", "list", "patch", "update", "create"]
 - apiGroups: ["appuio.io"] 
   resources: ["organizationmembers"]
-  verbs: ["get", "watch", "list", "patch", "edit", "create"]
+  verbs: ["get", "watch", "list", "patch", "update", "create"]
 - apiGroups: ["rbac.authorization.k8s.io"]
   resources: ["rolebindings"]
-  verbs: ["get", "watch", "list", "patch", "edit", "create"]
+  verbs: ["get", "watch", "list", "patch", "update", "create"]

@@ -5,7 +5,7 @@ metadata:
 rules:
 - apiGroups: ["organization.appuio.io"] 
   resources: ["organizations"]
-  verbs: ["get", "watch", "list", "patch", "edit", "create"]
+  verbs: ["get", "watch", "list", "patch", "update", "create"]
 - apiGroups: ["rbac.appuio.io"] 
   resources: ["organizations"]
   verbs: ["watch", "list", "create"]
