@@ -40,13 +40,16 @@ func (s *organizationStorage) create(ctx context.Context, org *orgv1.Organizatio
 	}
 	org = orgv1.NewOrganizationFromNS(ns)
 
-	if err := s.rbac.CreateRoleBindings(ctx, org.Name); err != nil {
-		// rollback
-		_, deleteErr := s.namepaces.DeleteNamespace(ctx, org.Name, nil)
-		if deleteErr != nil {
-			err = fmt.Errorf("%w and failed to clean up namespace: %s", err, deleteErr.Error())
+	user, ok := userFrom(ctx, s.usernamePrefix)
+	if ok {
+		if err := s.rbac.CreateRoleBindings(ctx, org.Name, user.GetName()); err != nil {
+			// rollback
+			_, deleteErr := s.namepaces.DeleteNamespace(ctx, org.Name, nil)
+			if deleteErr != nil {
+				err = fmt.Errorf("%w and failed to clean up namespace: %s", err, deleteErr.Error())
+			}
+			return nil, fmt.Errorf("failed to create organization: %w", err)
 		}
-		return nil, fmt.Errorf("failed to create organization: %w", err)
 	}
 
 	orgMembers := newOrganizationMembers(ctx, org, s.usernamePrefix)

@@ -2,12 +2,10 @@ package organization
 
 import (
 	"context"
-	"errors"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apiserver/pkg/endpoints/request"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,7 +17,7 @@ import (
 
 //go:generate go run github.com/golang/mock/mockgen -source=$GOFILE -destination=./mock/$GOFILE
 type roleBindingCreator interface {
-	CreateRoleBindings(ctx context.Context, namespace string) error
+	CreateRoleBindings(ctx context.Context, namespace, username string) error
 }
 
 type kubeRoleBindingCreator struct {
@@ -28,9 +26,9 @@ type kubeRoleBindingCreator struct {
 	ClusterRoles []string
 }
 
-func (g kubeRoleBindingCreator) CreateRoleBindings(ctx context.Context, namespace string) error {
+func (g kubeRoleBindingCreator) CreateRoleBindings(ctx context.Context, namespace, username string) error {
 	for _, cr := range g.ClusterRoles {
-		rb, err := generateRoleBinding(ctx, namespace, cr)
+		rb, err := generateRoleBinding(ctx, namespace, username, cr)
 		if err != nil {
 			return err
 		}
@@ -42,11 +40,7 @@ func (g kubeRoleBindingCreator) CreateRoleBindings(ctx context.Context, namespac
 	return nil
 }
 
-func generateRoleBinding(ctx context.Context, namespace, clusterRole string) (*rbacv1.RoleBinding, error) {
-	user, ok := request.UserFrom(ctx)
-	if !ok {
-		return nil, errors.New("unkown user")
-	}
+func generateRoleBinding(ctx context.Context, namespace, username, clusterRole string) (*rbacv1.RoleBinding, error) {
 
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -57,7 +51,7 @@ func generateRoleBinding(ctx context.Context, namespace, clusterRole string) (*r
 			{
 				Kind:     rbacv1.UserKind,
 				APIGroup: rbacv1.GroupName,
-				Name:     user.GetName(),
+				Name:     username,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{

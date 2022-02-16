@@ -1,19 +1,16 @@
 package organization
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/apiserver/pkg/endpoints/request"
 )
 
 func TestGenerateRoleBinding(t *testing.T) {
-	rb, err := generateRoleBinding(request.WithUser(request.NewContext(), &user.DefaultInfo{
-		Name: "fooUser",
-	}), "foobar", "fooRole")
+	rb, err := generateRoleBinding(context.TODO(), "foobar", "fooUser", "fooRole")
 	require.NoError(t, err)
 	require.Len(t, rb.Subjects, 1)
 	assert.Equal(t, rbacv1.Subject{

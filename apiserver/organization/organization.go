@@ -103,5 +103,11 @@ func userFrom(ctx context.Context, usernamePrefix string) (user.Info, bool) {
 		return nil, false
 	}
 
+	for _, u := range user.GetGroups() {
+		if u == "system:serviceaccounts" {
+			return nil, false
+		}
+	}
+
 	return user, true
 }
