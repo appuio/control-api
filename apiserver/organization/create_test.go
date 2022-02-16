@@ -46,6 +46,15 @@ func TestOrganizationStorage_Create(t *testing.T) {
 			memberName:      "smith",
 			organizationOut: fooOrg,
 		},
+		"GivenCreateOrgFromNonAPPUiOUser_ThenSuccess": {
+			userID:         "cluster-admin",
+			organizationIn: fooOrg,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+			memberName:      "",
+			organizationOut: fooOrg,
+		},
 		"GivenNsExists_ThenFail": {
 			organizationIn: fooOrg,
 			authDecision: authResponse{
@@ -216,7 +225,8 @@ func (m memberMatcher) Matches(x interface{}) bool {
 	if !ok {
 		return ok
 	}
-	return len(mem.Spec.UserRefs) > 0 && mem.Spec.UserRefs[0].Name == m.user &&
+	correctMembers := (len(mem.Spec.UserRefs) > 0 && mem.Spec.UserRefs[0].Name == m.user) || (m.user == "" && len(mem.Spec.UserRefs) == 0)
+	return correctMembers &&
 		len(mem.OwnerReferences) > 0 && mem.OwnerReferences[0].Name == m.owner
 }
 
