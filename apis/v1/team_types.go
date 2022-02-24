@@ -22,8 +22,15 @@ type TeamSpec struct {
 	UserRefs    []UserRef `json:"userRefs"`
 }
 
-// TeamStatus contains the actual members of a team.
+// GroupRef references the underlying group
+type GroupRef struct {
+	ID string `json:"id,omitempty"`
+}
+
+// TeamStatus contains the actual members of a team and a reference to the underlying group.
 type TeamStatus struct {
+	GroupRef GroupRef `json:"groupRef,omitempty"`
+
 	ResolvedUserRefs []UserRef `json:"resolvedUserRefs,omitempty"`
 }
 

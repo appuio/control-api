@@ -50,8 +50,15 @@ spec:
             - userRefs
             type: object
           status:
-            description: TeamStatus contains the actual members of a team.
+            description: TeamStatus contains the actual members of a team and a reference
+              to the underlying group.
             properties:
+              groupRef:
+                description: GroupRef references the underlying group
+                properties:
+                  id:
+                    type: string
+                type: object
               resolvedUserRefs:
                 items:
                   description: UserRef points to a user
