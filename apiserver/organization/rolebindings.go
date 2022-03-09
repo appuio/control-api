@@ -16,6 +16,7 @@ import (
 // Needed so that we are allowed to delegate the default clusterroles
 // +kubebuilder:rbac:groups="rbac.appuio.io",resources=organizations,verbs=get;list;watch;create;delete;patch;update;edit
 // +kubebuilder:rbac:groups="organization.appuio.io",resources=organizations,verbs=get;list;watch;create;delete;patch;update;edit
+// +kubebuilder:rbac:groups="appuio.io",resources=teams,verbs=get;list;watch;create;delete;patch;update
 
 //go:generate go run github.com/golang/mock/mockgen -source=$GOFILE -destination=./mock/$GOFILE
 type roleBindingCreator interface {
