@@ -23,6 +23,7 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
+// ControllerCommand creates a new command allowing to start the controller
 func ControllerCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "controller",

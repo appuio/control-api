@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// APICommand creates a new command allowing to start the API server
 func APICommand() *cobra.Command {
 	roles := []string{}
 	usernamePrefix := ""
