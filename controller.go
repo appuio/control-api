@@ -38,6 +38,7 @@ func ControllerCommand() *cobra.Command {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	probeAddr := cmd.Flags().String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	usernamePrefix := cmd.Flags().String("username-prefix", "", "Prefix prepended to username claims. Usually the same as \"--oidc-username-prefix\" of the Kubernetes API server")
 
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
@@ -52,6 +53,7 @@ func ControllerCommand() *cobra.Command {
 		ctx := ctrl.SetupSignalHandler()
 
 		mgr, err := setupManager(
+			*usernamePrefix,
 			ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     *metricsAddr,
@@ -75,7 +77,7 @@ func ControllerCommand() *cobra.Command {
 	return cmd
 }
 
-func setupManager(opt ctrl.Options) (ctrl.Manager, error) {
+func setupManager(usernamePrefix string, opt ctrl.Options) (ctrl.Manager, error) {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opt)
 	if err != nil {
 		return nil, err
@@ -85,6 +87,8 @@ func setupManager(opt ctrl.Options) (ctrl.Manager, error) {
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("user-controller"),
+
+		UserPrefix: usernamePrefix,
 	}
 	if err = ur.SetupWithManager(mgr); err != nil {
 		return nil, err

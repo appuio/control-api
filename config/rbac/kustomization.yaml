@@ -1,5 +1,3 @@
 resources:
-- role.yaml
-- role_binding.yaml
-- role_binding_auth_delegator.yaml
-- service_account.yaml
+- apiserver
+- controller
