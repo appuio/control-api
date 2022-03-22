@@ -9,13 +9,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	controlv1 "github.com/appuio/control-api/apis/v1"
 )
-
-var finalizer = "control-api.appuio.io/finalizer"
 
 // UserReconciler reconciles a User object
 type UserReconciler struct {
@@ -43,16 +40,7 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	if !user.ObjectMeta.DeletionTimestamp.IsZero() {
-		log.V(4).Info("Deleting RBAC...")
-		if err := r.removeRBAC(ctx, user); err != nil {
-			r.Recorder.Event(&user, "Warning", "DeletionFailed", "Failed to delete RBAC")
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, r.removeFinalizer(ctx, &user)
-	}
-	if err := r.addFinalizer(ctx, &user); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
 	log.V(4).Info("Updating RBAC..")
@@ -70,10 +58,6 @@ func (r *UserReconciler) setRBAC(ctx context.Context, user controlv1.User) error
 	}
 
 	return r.updateClusterRoleBinding(ctx, user)
-}
-
-func (r *UserReconciler) removeRBAC(ctx context.Context, user controlv1.User) error {
-	return nil
 }
 
 func (r *UserReconciler) updateClusterRole(ctx context.Context, user controlv1.User) error {
@@ -120,22 +104,6 @@ func (r *UserReconciler) updateClusterRoleBinding(ctx context.Context, user cont
 	})
 	log.FromContext(ctx).V(4).Info("reconcile ClusterRoleBinding", "operation", op)
 	return err
-}
-
-func (r *UserReconciler) addFinalizer(ctx context.Context, user client.Object) error {
-	if controllerutil.ContainsFinalizer(user, finalizer) {
-		return nil
-	}
-	controllerutil.AddFinalizer(user, finalizer)
-	return r.Update(ctx, user)
-}
-
-func (r *UserReconciler) removeFinalizer(ctx context.Context, user client.Object) error {
-	if !controllerutil.ContainsFinalizer(user, finalizer) {
-		return nil
-	}
-	controllerutil.RemoveFinalizer(user, finalizer)
-	return r.Update(ctx, user)
 }
 
 // SetupWithManager sets up the controller with the Manager.
