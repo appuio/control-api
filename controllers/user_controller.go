@@ -2,14 +2,10 @@ package controllers
 
 import (
 	"context"
-	"fmt"
-	"reflect"
 
 	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -85,28 +81,20 @@ func (r *UserReconciler) updateClusterRole(ctx context.Context, user controlv1.U
 		ObjectMeta: metav1.ObjectMeta{
 			Name: roleName(user),
 		},
-		Rules: []rbacv1.PolicyRule{
+	}
+	op, err := ctrl.CreateOrUpdate(ctx, r.Client, &cr, func() error {
+		cr.Rules = []rbacv1.PolicyRule{
 			{
 				APIGroups:     []string{"appuio.io"},
 				Resources:     []string{"users"},
 				ResourceNames: []string{user.Name},
 				Verbs:         []string{"get", "update", "patch"},
 			},
-		},
-	}
-	stored := rbacv1.ClusterRole{}
-	err := r.Get(ctx, types.NamespacedName{Name: cr.Name}, &stored)
-	if err != nil && apierrors.IsNotFound(err) {
-		return r.Client.Create(ctx, &cr)
-	} else if err != nil {
-		return fmt.Errorf("failed querying for ClusterRole: %w", err)
-	}
-
-	if reflect.DeepEqual(cr.Rules, stored.Rules) {
-		return nil
-	}
-	stored.Rules = cr.Rules
-	return r.Update(ctx, &stored)
+		}
+		return ctrl.SetControllerReference(&user, &cr, r.Scheme)
+	})
+	log.FromContext(ctx).V(4).Info("reconcile ClusterRole", "operation", op)
+	return err
 }
 
 func (r *UserReconciler) updateClusterRoleBinding(ctx context.Context, user controlv1.User) error {
@@ -114,34 +102,24 @@ func (r *UserReconciler) updateClusterRoleBinding(ctx context.Context, user cont
 		ObjectMeta: metav1.ObjectMeta{
 			Name: roleName(user),
 		},
-		Subjects: []rbacv1.Subject{
+	}
+	op, err := ctrl.CreateOrUpdate(ctx, r.Client, &crb, func() error {
+		crb.Subjects = []rbacv1.Subject{
 			{
+				APIGroup: rbacv1.GroupName,
 				Kind:     "User",
-				APIGroup: "rbac.authorization.k8s.io",
 				Name:     r.UserPrefix + user.Name,
 			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
+		}
+		crb.RoleRef = rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
 			Kind:     "ClusterRole",
 			Name:     roleName(user),
-		},
-	}
-
-	stored := rbacv1.ClusterRoleBinding{}
-	err := r.Get(ctx, types.NamespacedName{Name: crb.Name}, &stored)
-	if err != nil && apierrors.IsNotFound(err) {
-		return r.Client.Create(ctx, &crb)
-	} else if err != nil {
-		return fmt.Errorf("failed querying for ClusterRoleBinding: %w", err)
-	}
-
-	if crb.RoleRef == stored.RoleRef && reflect.DeepEqual(crb.Subjects, stored.Subjects) {
-		return nil
-	}
-	stored.RoleRef = crb.RoleRef
-	stored.Subjects = crb.Subjects
-	return r.Update(ctx, &stored)
+		}
+		return ctrl.SetControllerReference(&user, &crb, r.Scheme)
+	})
+	log.FromContext(ctx).V(4).Info("reconcile ClusterRoleBinding", "operation", op)
+	return err
 }
 
 func (r *UserReconciler) addFinalizer(ctx context.Context, user client.Object) error {
