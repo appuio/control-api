@@ -22,6 +22,7 @@ spec:
         ports:
         - containerPort: 9443
         args:
+        - "api"
         - "--cert-dir=/apiserver.local.config/certificates"
         - "--secure-port=9443"
         - "--feature-gates=APIPriorityAndFairness=false"

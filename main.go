@@ -1,11 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/go-logr/logr"
-	"go.uber.org/zap/zapcore"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"github.com/spf13/cobra"
 )
 
 // Strings are populated by Goreleaser
@@ -13,22 +12,18 @@ var (
 	version = "snapshot"
 	commit  = "unknown"
 	date    = "unknown"
+
+	rootCommand = &cobra.Command{
+		Use:   "control-api {server|controller}",
+		Short: "An aggregated API and controller for APPUiO.",
+	}
 )
 
 func main() {
-	// TODO nicer CLI
-	if os.Getenv("ROLE") == "controller" {
-		SetupAndStartController()
-		return
-	}
-	SetupAndStartAPI()
-}
+	rootCommand.AddCommand(ControllerCommand(), APICommand())
 
-func newLogger(name string, debug bool) logr.Logger {
-	level := zapcore.InfoLevel
-	if debug {
-		level = zapcore.DebugLevel
+	if err := rootCommand.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-	logger := zap.New(zap.UseDevMode(true), zap.Level(level))
-	return logger.WithName(name)
 }

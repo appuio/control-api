@@ -4,26 +4,15 @@ import (
 	"os"
 	"runtime"
 
+	"sigs.k8s.io/apiserver-runtime/pkg/builder"
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	orgStore "github.com/appuio/control-api/apiserver/organization"
-
-	"sigs.k8s.io/apiserver-runtime/pkg/builder"
+	"github.com/spf13/cobra"
 )
 
-func SetupAndStartAPI() {
-	logger := newLogger("control-api", true)
-
-	logger.WithValues(
-		"version", version,
-		"date", date,
-		"commit", commit,
-		"go_os", runtime.GOOS,
-		"go_arch", runtime.GOARCH,
-		"go_version", runtime.Version(),
-		"uid", os.Getuid(),
-		"gid", os.Getgid(),
-	).Info("Starting control-api…")
-
+func APICommand() *cobra.Command {
 	roles := []string{}
 	usernamePrefix := ""
 	cmd, err := builder.APIServer.
@@ -33,13 +22,26 @@ func SetupAndStartAPI() {
 		ExposeLoopbackMasterClientConfig().
 		Build()
 	if err != nil {
-		logger.Error(err, "Failed to setup API server")
+		ctrl.Log.WithName("setup").Error(err, "Failed to setup API server")
 	}
-
+	cmd.Use = "api"
 	cmd.Flags().StringSliceVar(&roles, "cluster-roles", []string{}, "Cluster Roles to bind when creating an organization")
 	cmd.Flags().StringVar(&usernamePrefix, "username-prefix", "", "Prefix prepended to username claims. Usually the same as \"--oidc-username-prefix\" of the Kubernetes API server")
-	err = cmd.Execute()
-	if err != nil {
-		logger.Error(err, "API server stopped unexpectedly")
+
+	rf := cmd.Run
+	cmd.Run = func(cmd *cobra.Command, args []string) {
+		ctrl.Log.WithName("setup").WithValues(
+			"version", version,
+			"date", date,
+			"commit", commit,
+			"go_os", runtime.GOOS,
+			"go_arch", runtime.GOARCH,
+			"go_version", runtime.Version(),
+			"uid", os.Getuid(),
+			"gid", os.Getgid(),
+		).Info("Starting control-api…")
+		rf(cmd, args)
 	}
+
+	return cmd
 }
