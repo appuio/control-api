@@ -7,9 +7,10 @@ import (
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/spf13/cobra"
+
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	orgStore "github.com/appuio/control-api/apiserver/organization"
-	"github.com/spf13/cobra"
 )
 
 // APICommand creates a new command allowing to start the API server

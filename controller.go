@@ -15,9 +15,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"github.com/spf13/cobra"
+
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
-	"github.com/spf13/cobra"
 
 	"github.com/appuio/control-api/controllers"
 	//+kubebuilder:scaffold:imports
