@@ -10,7 +10,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 )
 
@@ -41,13 +40,16 @@ func (s *organizationStorage) create(ctx context.Context, org *orgv1.Organizatio
 	}
 	org = orgv1.NewOrganizationFromNS(ns)
 
-	if err := s.rbac.CreateRoleBindings(ctx, org.Name); err != nil {
-		// rollback
-		_, deleteErr := s.namepaces.DeleteNamespace(ctx, org.Name, nil)
-		if deleteErr != nil {
-			err = fmt.Errorf("%w and failed to clean up namespace: %s", err, deleteErr.Error())
+	user, ok := userFrom(ctx, s.usernamePrefix)
+	if ok {
+		if err := s.rbac.CreateRoleBindings(ctx, org.Name, user.GetName()); err != nil {
+			// rollback
+			_, deleteErr := s.namepaces.DeleteNamespace(ctx, org.Name, nil)
+			if deleteErr != nil {
+				err = fmt.Errorf("%w and failed to clean up namespace: %s", err, deleteErr.Error())
+			}
+			return nil, fmt.Errorf("failed to create organization: %w", err)
 		}
-		return nil, fmt.Errorf("failed to create organization: %w", err)
 	}
 
 	orgMembers := newOrganizationMembers(ctx, org, s.usernamePrefix)
@@ -67,7 +69,7 @@ func (s *organizationStorage) create(ctx context.Context, org *orgv1.Organizatio
 
 func newOrganizationMembers(ctx context.Context, organization *orgv1.Organization, usernamePrefix string) *controlv1.OrganizationMembers {
 	userRefs := []controlv1.UserRef{}
-	user, ok := request.UserFrom(ctx)
+	user, ok := userFrom(ctx, usernamePrefix)
 	if ok {
 		userRefs = append(userRefs, controlv1.UserRef{
 			Name: strings.TrimPrefix(user.GetName(), usernamePrefix),

@@ -35,15 +35,15 @@ func (m *MockroleBindingCreator) EXPECT() *MockroleBindingCreatorMockRecorder {
 }
 
 // CreateRoleBindings mocks base method.
-func (m *MockroleBindingCreator) CreateRoleBindings(ctx context.Context, namespace string) error {
+func (m *MockroleBindingCreator) CreateRoleBindings(ctx context.Context, namespace, username string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateRoleBindings", ctx, namespace)
+	ret := m.ctrl.Call(m, "CreateRoleBindings", ctx, namespace, username)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateRoleBindings indicates an expected call of CreateRoleBindings.
-func (mr *MockroleBindingCreatorMockRecorder) CreateRoleBindings(ctx, namespace interface{}) *gomock.Call {
+func (mr *MockroleBindingCreatorMockRecorder) CreateRoleBindings(ctx, namespace, username interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRoleBindings", reflect.TypeOf((*MockroleBindingCreator)(nil).CreateRoleBindings), ctx, namespace)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRoleBindings", reflect.TypeOf((*MockroleBindingCreator)(nil).CreateRoleBindings), ctx, namespace, username)
 }

@@ -26,6 +26,7 @@ import (
 func TestOrganizationStorage_Create(t *testing.T) {
 	tests := map[string]struct {
 		userID         string
+		userGroups     []string
 		organizationIn *orgv1.Organization
 
 		namespaceErr error
@@ -34,8 +35,9 @@ func TestOrganizationStorage_Create(t *testing.T) {
 
 		memberName string
 
-		organizationOut *orgv1.Organization
-		err             error
+		skipRoleBindings bool
+		organizationOut  *orgv1.Organization
+		err              error
 	}{
 		"GivenCreateOrg_ThenSuccess": {
 			userID:         "appuio#smith",
@@ -45,6 +47,27 @@ func TestOrganizationStorage_Create(t *testing.T) {
 			},
 			memberName:      "smith",
 			organizationOut: fooOrg,
+		},
+		"GivenCreateOrgFromNonAPPUiOUser_ThenSuccessButNoSA": {
+			userID:         "cluster-admin",
+			organizationIn: fooOrg,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+			memberName:       "",
+			organizationOut:  fooOrg,
+			skipRoleBindings: true,
+		},
+		"GivenCreateOrgFromSA_ThenSuccessButNoSA": {
+			userID:         "appuio#serviceacount",
+			userGroups:     []string{"system:serviceaccounts"},
+			organizationIn: fooOrg,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+			memberName:       "",
+			organizationOut:  fooOrg,
+			skipRoleBindings: true,
 		},
 		"GivenNsExists_ThenFail": {
 			organizationIn: fooOrg,
@@ -58,13 +81,15 @@ func TestOrganizationStorage_Create(t *testing.T) {
 				Group:    orgv1.GroupVersion.Group,
 				Resource: "organizations",
 			}, "foo"),
+			skipRoleBindings: true,
 		},
 		"GivenAuthFails_ThenFail": {
 			organizationIn: fooOrg,
 			authDecision: authResponse{
 				err: errors.New("failed"),
 			},
-			err: errors.New("failed"),
+			err:              errors.New("failed"),
+			skipRoleBindings: true,
 		},
 		"GivenForbidden_ThenForbidden": {
 			organizationIn: fooOrg,
@@ -76,6 +101,7 @@ func TestOrganizationStorage_Create(t *testing.T) {
 				Group:    orgv1.GroupVersion.Group,
 				Resource: "organizations",
 			}, fooOrg.Name, errors.New("confidential")),
+			skipRoleBindings: true,
 		},
 	}
 
@@ -101,10 +127,12 @@ func TestOrganizationStorage_Create(t *testing.T) {
 				CreateNamespace(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(nsOut, tc.namespaceErr).
 				AnyTimes()
-			mrb.EXPECT().
-				CreateRoleBindings(gomock.Any(), gomock.Any()).
-				Return(nil).
-				AnyTimes()
+			if !tc.skipRoleBindings {
+				mrb.EXPECT().
+					CreateRoleBindings(gomock.Any(), tc.organizationIn.Name, "appuio#"+tc.memberName).
+					Return(nil).
+					Times(1)
+			}
 			mmemb.EXPECT().
 				CreateMembers(gomock.Any(), containsMemberAndOwner(tc.organizationIn.Name, tc.memberName)).
 				Return(nil).
@@ -120,7 +148,8 @@ func TestOrganizationStorage_Create(t *testing.T) {
 					Resource: "organizations",
 					Name:     tc.organizationIn.Name,
 				}), &user.DefaultInfo{
-				Name: tc.userID,
+				Name:   tc.userID,
+				Groups: tc.userGroups,
 			}),
 				tc.organizationIn, nopValidate, nil)
 
@@ -156,6 +185,7 @@ func TestOrganizationStorage_Create_Abort(t *testing.T) {
 			os.rbac = mrb
 			mmemb := mock.NewMockmemberProvider(ctrl)
 			os.members = mmemb
+			os.usernamePrefix = "appuio#"
 
 			mauth.EXPECT().
 				Authorize(gomock.Any(), isAuthRequest("create")).
@@ -168,12 +198,12 @@ func TestOrganizationStorage_Create_Abort(t *testing.T) {
 
 			if tc.failRoleBinding {
 				mrb.EXPECT().
-					CreateRoleBindings(gomock.Any(), gomock.Any()).
+					CreateRoleBindings(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(errors.New("")).
 					Times(1)
 			} else {
 				mrb.EXPECT().
-					CreateRoleBindings(gomock.Any(), gomock.Any()).
+					CreateRoleBindings(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil).
 					Times(1)
 				if tc.failMembers {
@@ -192,13 +222,18 @@ func TestOrganizationStorage_Create_Abort(t *testing.T) {
 			nopValidate := func(ctx context.Context, obj runtime.Object) error {
 				return nil
 			}
-			_, err := os.Create(request.WithRequestInfo(request.NewContext(),
-				&request.RequestInfo{
-					Verb:     "create",
-					APIGroup: orgv1.GroupVersion.Group,
-					Resource: "organizations",
-					Name:     "foo",
-				}),
+			_, err := os.Create(
+				request.WithUser(
+					request.WithRequestInfo(request.NewContext(),
+						&request.RequestInfo{
+							Verb:     "create",
+							APIGroup: orgv1.GroupVersion.Group,
+							Resource: "organizations",
+							Name:     "foo",
+						}),
+					&user.DefaultInfo{
+						Name: "appuio#foo",
+					}),
 				fooOrg, nopValidate, nil)
 
 			require.Error(t, err)
@@ -216,7 +251,8 @@ func (m memberMatcher) Matches(x interface{}) bool {
 	if !ok {
 		return ok
 	}
-	return len(mem.Spec.UserRefs) > 0 && mem.Spec.UserRefs[0].Name == m.user &&
+	correctMembers := (len(mem.Spec.UserRefs) > 0 && mem.Spec.UserRefs[0].Name == m.user) || (m.user == "" && len(mem.Spec.UserRefs) == 0)
+	return correctMembers &&
 		len(mem.OwnerReferences) > 0 && mem.OwnerReferences[0].Name == m.owner
 }
 

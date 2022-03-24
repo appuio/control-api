@@ -1,7 +1,9 @@
 package organization
 
 import (
+	"context"
 	"errors"
+	"strings"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
@@ -9,6 +11,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/endpoints/request"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	restbuilder "sigs.k8s.io/apiserver-runtime/pkg/builder/rest"
@@ -88,4 +92,22 @@ func convertNamespaceError(err error) error {
 		}
 	}
 	return err
+}
+
+func userFrom(ctx context.Context, usernamePrefix string) (user.Info, bool) {
+	user, ok := request.UserFrom(ctx)
+	if !ok {
+		return nil, false
+	}
+	if !strings.HasPrefix(user.GetName(), usernamePrefix) {
+		return nil, false
+	}
+
+	for _, u := range user.GetGroups() {
+		if u == "system:serviceaccounts" {
+			return nil, false
+		}
+	}
+
+	return user, true
 }
