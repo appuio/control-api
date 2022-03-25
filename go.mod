@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/golang/mock v1.6.0
-	github.com/spf13/cobra v1.2.1
+	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.7.1
 	k8s.io/api v0.23.5
 	k8s.io/apimachinery v0.23.5
@@ -13,7 +13,7 @@ require (
 	sigs.k8s.io/apiserver-runtime v1.0.3-0.20210913073608-0663f60bfee2
 	sigs.k8s.io/controller-runtime v0.11.1
 	sigs.k8s.io/controller-tools v0.8.0
-	sigs.k8s.io/kustomize/kustomize/v4 v4.5.2
+	sigs.k8s.io/kustomize/kustomize/v4 v4.5.3
 )
 
 require (
@@ -127,9 +127,9 @@ require (
 	k8s.io/utils v0.0.0-20211116205334-6203023598ed // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30 // indirect
 	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
-	sigs.k8s.io/kustomize/api v0.11.2 // indirect
-	sigs.k8s.io/kustomize/cmd/config v0.10.4 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.13.3 // indirect
+	sigs.k8s.io/kustomize/api v0.11.3 // indirect
+	sigs.k8s.io/kustomize/cmd/config v0.10.5 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.13.4 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
