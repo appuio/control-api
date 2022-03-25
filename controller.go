@@ -42,6 +42,7 @@ func ControllerCommand() *cobra.Command {
 	probeAddr := cmd.Flags().String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	usernamePrefix := cmd.Flags().String("username-prefix", "", "Prefix prepended to username claims. Usually the same as \"--oidc-username-prefix\" of the Kubernetes API server")
 	rolePrefix := cmd.Flags().String("role-prefix", "control-api:user:", "Prefix prepended to generated cluster roles and bindings to prevent name collisions.")
+	memberRoles := cmd.Flags().StringSlice("member-roles", []string{}, "ClusterRoles to assign to every organization member for its namespace")
 
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
@@ -58,6 +59,7 @@ func ControllerCommand() *cobra.Command {
 		mgr, err := setupManager(
 			*usernamePrefix,
 			*rolePrefix,
+			*memberRoles,
 			ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     *metricsAddr,
@@ -81,7 +83,7 @@ func ControllerCommand() *cobra.Command {
 	return cmd
 }
 
-func setupManager(usernamePrefix, rolePrefix string, opt ctrl.Options) (ctrl.Manager, error) {
+func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, opt ctrl.Options) (ctrl.Manager, error) {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opt)
 	if err != nil {
 		return nil, err
@@ -97,6 +99,19 @@ func setupManager(usernamePrefix, rolePrefix string, opt ctrl.Options) (ctrl.Man
 	}
 	if err = ur.SetupWithManager(mgr); err != nil {
 		return nil, err
+	}
+	if len(memberRoles) > 0 {
+		omr := &controllers.OrganizationMembersReconciler{
+			Client:   mgr.GetClient(),
+			Scheme:   mgr.GetScheme(),
+			Recorder: mgr.GetEventRecorderFor("organization-members-controller"),
+
+			UserPrefix:  usernamePrefix,
+			MemberRoles: memberRoles,
+		}
+		if err = omr.SetupWithManager(mgr); err != nil {
+			return nil, err
+		}
 	}
 	//+kubebuilder:scaffold:builder
 
