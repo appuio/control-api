@@ -33,6 +33,18 @@ rules:
 - apiGroups:
   - appuio.io
   resources:
+  - teams
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - appuio.io
+  resources:
   - users
   verbs:
   - get
@@ -48,6 +60,30 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - organization.appuio.io
+  resources:
+  - organizations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.appuio.io
+  resources:
+  - organizations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
