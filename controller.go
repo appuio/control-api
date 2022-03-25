@@ -41,6 +41,7 @@ func ControllerCommand() *cobra.Command {
 			"Enabling this will ensure there is only one active controller manager.")
 	probeAddr := cmd.Flags().String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	usernamePrefix := cmd.Flags().String("username-prefix", "", "Prefix prepended to username claims. Usually the same as \"--oidc-username-prefix\" of the Kubernetes API server")
+	rolePrefix := cmd.Flags().String("role-prefix", "control-api:user:", "Prefix prepended to generated cluster roles and bindings to prevent name collisions.")
 
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
@@ -56,6 +57,7 @@ func ControllerCommand() *cobra.Command {
 
 		mgr, err := setupManager(
 			*usernamePrefix,
+			*rolePrefix,
 			ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     *metricsAddr,
@@ -79,7 +81,7 @@ func ControllerCommand() *cobra.Command {
 	return cmd
 }
 
-func setupManager(usernamePrefix string, opt ctrl.Options) (ctrl.Manager, error) {
+func setupManager(usernamePrefix, rolePrefix string, opt ctrl.Options) (ctrl.Manager, error) {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opt)
 	if err != nil {
 		return nil, err
@@ -91,6 +93,7 @@ func setupManager(usernamePrefix string, opt ctrl.Options) (ctrl.Manager, error)
 		Recorder: mgr.GetEventRecorderFor("user-controller"),
 
 		UserPrefix: usernamePrefix,
+		RolePrefix: rolePrefix,
 	}
 	if err = ur.SetupWithManager(mgr); err != nil {
 		return nil, err

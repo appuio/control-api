@@ -22,6 +22,9 @@ type UserReconciler struct {
 
 	// UserPrefix is the prefix applied to the user in the ClusterRoleBinding.subjects.name.
 	UserPrefix string
+	// RolePrefix is the prefix applied to the cluster role and the according role binding.
+	// Should help prevent cluster role name collisions.
+	RolePrefix string
 }
 
 //+kubebuilder:rbac:groups=appuio.io,resources=users,verbs=get;list;watch;update;patch
@@ -63,7 +66,7 @@ func (r *UserReconciler) setRBAC(ctx context.Context, user controlv1.User) error
 func (r *UserReconciler) updateClusterRole(ctx context.Context, user controlv1.User) error {
 	cr := rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: roleName(user),
+			Name: r.roleName(user),
 		},
 	}
 	op, err := ctrl.CreateOrUpdate(ctx, r.Client, &cr, func() error {
@@ -84,7 +87,7 @@ func (r *UserReconciler) updateClusterRole(ctx context.Context, user controlv1.U
 func (r *UserReconciler) updateClusterRoleBinding(ctx context.Context, user controlv1.User) error {
 	crb := rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: roleName(user),
+			Name: r.roleName(user),
 		},
 	}
 	op, err := ctrl.CreateOrUpdate(ctx, r.Client, &crb, func() error {
@@ -98,7 +101,7 @@ func (r *UserReconciler) updateClusterRoleBinding(ctx context.Context, user cont
 		crb.RoleRef = rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
 			Kind:     "ClusterRole",
-			Name:     roleName(user),
+			Name:     r.roleName(user),
 		}
 		return ctrl.SetControllerReference(&user, &crb, r.Scheme)
 	})
@@ -113,6 +116,6 @@ func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func roleName(user controlv1.User) string {
-	return user.Name + "-owner"
+func (r *UserReconciler) roleName(user controlv1.User) string {
+	return r.RolePrefix + user.Name + "-owner"
 }

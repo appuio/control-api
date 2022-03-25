@@ -25,6 +25,7 @@ import (
 func Test_UserController_Reconcile_Success(t *testing.T) {
 	ctx := context.Background()
 	userPrefix := "appuio#"
+	rolePrefix := "control-api:user:"
 
 	subject := controlv1.User{
 		ObjectMeta: metav1.ObjectMeta{
@@ -42,6 +43,7 @@ func Test_UserController_Reconcile_Success(t *testing.T) {
 		Recorder: fakeRecorder,
 
 		UserPrefix: userPrefix,
+		RolePrefix: rolePrefix,
 	}).Reconcile(ctx, ctrl.Request{
 		NamespacedName: types.NamespacedName{
 			Name: subject.Name,
@@ -50,14 +52,14 @@ func Test_UserController_Reconcile_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	cr := rbacv1.ClusterRole{}
-	require.NoError(t, c.Get(ctx, types.NamespacedName{Name: "subject-owner"}, &cr))
+	require.NoError(t, c.Get(ctx, types.NamespacedName{Name: rolePrefix + "subject-owner"}, &cr))
 	assert.Len(t, cr.OwnerReferences, 1, "controller must set owner reference")
 	assert.Equal(t, subject.Name, cr.OwnerReferences[0].Name, "owner reference name must match")
 	assert.Len(t, cr.Rules, 1, "ClusterRole should have rule referencing the user")
 	assert.Equal(t, []string{subject.Name}, cr.Rules[0].ResourceNames, "rule resource name must match")
 
 	crb := rbacv1.ClusterRoleBinding{}
-	require.NoError(t, c.Get(ctx, types.NamespacedName{Name: "subject-owner"}, &crb))
+	require.NoError(t, c.Get(ctx, types.NamespacedName{Name: rolePrefix + "subject-owner"}, &crb))
 	assert.Len(t, crb.OwnerReferences, 1, "controller must set owner reference")
 	assert.Equal(t, subject.Name, crb.OwnerReferences[0].Name, "owner reference name must match")
 	assert.Len(t, crb.Subjects, 1, "ClusterRoleBinding should have subject referencing the user")
