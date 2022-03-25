@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 
+	"go.uber.org/multierr"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,14 +45,16 @@ func (r *OrganizationMembersReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, nil
 	}
 
+	var errGroup error
 	for _, role := range r.MemberRoles {
 		err := r.putRoleBinding(ctx, memb, role)
 		if err != nil {
-			return ctrl.Result{}, err
+			errGroup = multierr.Append(errGroup, err)
+			r.Recorder.Event(&memb, "Warning", "RBACUpdateFailed", "Failed to set RBAC for Organization members")
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, errGroup
 }
 
 func (r *OrganizationMembersReconciler) putRoleBinding(ctx context.Context, memb controlv1.OrganizationMembers, role string) error {
