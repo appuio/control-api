@@ -6,6 +6,13 @@ metadata:
   name: control-api-controller
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
   - appuio.io
   resources:
   - users

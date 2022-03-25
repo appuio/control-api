@@ -30,6 +30,7 @@ type UserReconciler struct {
 //+kubebuilder:rbac:groups=appuio.io,resources=users,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=appuio.io,resources=users/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile reacts on changes of users and mirrors these changes to Keycloak
 func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
