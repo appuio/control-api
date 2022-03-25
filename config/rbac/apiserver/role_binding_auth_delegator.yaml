@@ -8,5 +8,5 @@ roleRef:
   name: system:auth-delegator
 subjects:
 - kind: ServiceAccount
-  name: control-api
+  name: control-api-apiserver
   namespace: control-api

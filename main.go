@@ -1,16 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
-	"runtime"
 
-	orgv1 "github.com/appuio/control-api/apis/organization/v1"
-	orgStore "github.com/appuio/control-api/apiserver/organization"
-
-	"github.com/go-logr/logr"
-	"go.uber.org/zap/zapcore"
-	"sigs.k8s.io/apiserver-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"github.com/spf13/cobra"
 )
 
 // Strings are populated by Goreleaser
@@ -18,47 +12,18 @@ var (
 	version = "snapshot"
 	commit  = "unknown"
 	date    = "unknown"
+
+	rootCommand = &cobra.Command{
+		Use:   "control-api {server|controller}",
+		Short: "An aggregated API and controller for APPUiO.",
+	}
 )
 
 func main() {
-	logger := newLogger("control-api", true)
+	rootCommand.AddCommand(ControllerCommand(), APICommand())
 
-	logger.WithValues(
-		"version", version,
-		"date", date,
-		"commit", commit,
-		"go_os", runtime.GOOS,
-		"go_arch", runtime.GOARCH,
-		"go_version", runtime.Version(),
-		"uid", os.Getuid(),
-		"gid", os.Getgid(),
-	).Info("Starting control-api…")
-
-	roles := []string{}
-	usernamePrefix := ""
-	cmd, err := builder.APIServer.
-		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New(&roles, &usernamePrefix)).
-		WithoutEtcd().
-		ExposeLoopbackAuthorizer().
-		ExposeLoopbackMasterClientConfig().
-		Build()
-	if err != nil {
-		logger.Error(err, "Failed to setup API server")
+	if err := rootCommand.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-
-	cmd.Flags().StringSliceVar(&roles, "cluster-roles", []string{}, "Cluster Roles to bind when creating an organization")
-	cmd.Flags().StringVar(&usernamePrefix, "username-prefix", "", "Prefix prepended to username claims. Usually the same as \"--oidc-username-prefix\" of the Kubernetes API server")
-	err = cmd.Execute()
-	if err != nil {
-		logger.Error(err, "API server stopped unexpectedly")
-	}
-}
-
-func newLogger(name string, debug bool) logr.Logger {
-	level := zapcore.InfoLevel
-	if debug {
-		level = zapcore.DebugLevel
-	}
-	logger := zap.New(zap.UseDevMode(true), zap.Level(level))
-	return logger.WithName(name)
 }

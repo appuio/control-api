@@ -32,7 +32,9 @@ generate: ## Generate manifests e.g. CRD, RBAC etc.
 	# Generate code
 	go run sigs.k8s.io/controller-tools/cmd/controller-gen object paths="./..."
 	# Generate CRDs
-	go run sigs.k8s.io/controller-tools/cmd/controller-gen rbac:roleName=control-api-apiserver webhook paths="./..." output:crd:artifacts:config=$(CRD_ROOT_DIR)/v1/base crd:crdVersions=v1
+	go run sigs.k8s.io/controller-tools/cmd/controller-gen webhook paths="./..." output:crd:artifacts:config=$(CRD_ROOT_DIR)/v1/base crd:crdVersions=v1
+	go run sigs.k8s.io/controller-tools/cmd/controller-gen rbac:roleName=control-api-apiserver paths="./apiserver/...;./apis/..." output:artifacts:config=config/rbac/apiserver
+	go run sigs.k8s.io/controller-tools/cmd/controller-gen rbac:roleName=control-api-controller paths="./controllers/..." output:artifacts:config=config/rbac/controller
 
 .PHONY: crd
 crd: generate ## Generate CRD to file
@@ -59,10 +61,14 @@ build.docker: $(BIN_FILENAME) ## Build the docker image
 clean: ## Cleans up the generated resources
 	rm -rf dist/ cover.out $(BIN_FILENAME) || true
 
-.PHONY: run
+.PHONY: run-api
 KUBECONFIG ?= ~/.kube/config
-run: build ## Starts control api against the configured kuberentes cluster
-	$(BIN_FILENAME) --secure-port 9443 --kubeconfig $(KUBECONFIG) --authentication-kubeconfig $(KUBECONFIG) --authorization-kubeconfig $(KUBECONFIG) --cluster-roles appuio-organization-viewer,appuio-organization-admin --username-prefix "appuio#"
+run-api: build ## Starts control api against the configured kuberentes cluster
+	$(BIN_FILENAME) api --secure-port 9443 --kubeconfig $(KUBECONFIG) --authentication-kubeconfig $(KUBECONFIG) --authorization-kubeconfig $(KUBECONFIG) --cluster-roles appuio-organization-viewer,appuio-organization-admin --username-prefix "appuio#"
+
+.PHONY: run-controller
+run-controller: build ## Starts control api against the configured kuberentes cluster
+	$(BIN_FILENAME) controller --username-prefix "appuio#"
 
 .PHONY: local-env
 local-env-setup: ## Setup local kind-based dev environment

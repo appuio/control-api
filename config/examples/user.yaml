@@ -1,0 +1,7 @@
+apiVersion: appuio.io/v1
+kind: User
+metadata:
+  name: example-user
+spec:
+  preferences: {}
+status: {}

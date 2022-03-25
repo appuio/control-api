@@ -8,7 +8,7 @@ spec:
   groupPriorityMinimum: 1000
   versionPriority: 15
   service:
-    name: apiserver
+    name: control-api-apiserver
     namespace: control-api
   version: v1
 

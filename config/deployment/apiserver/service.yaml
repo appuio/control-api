@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: apiserver
+  name: control-api-apiserver
   namespace: control-api
 spec:
   ports:
@@ -9,4 +9,4 @@ spec:
     protocol: TCP
     targetPort: 9443
   selector:
-    app: control-api
+    app: control-api-apiserver
