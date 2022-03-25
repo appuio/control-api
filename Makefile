@@ -21,7 +21,8 @@ all: build ## Invokes the build target
 
 .PHONY: test
 test: ## Run tests
-	go test ./... -coverprofile cover.out
+	go test ./... -coverprofile cover.tmp.out
+	cat cover.tmp.out | grep -v "zz_generated.deepcopy.go" > cover.out
 
 .PHONY: build
 build: generate fmt vet $(BIN_FILENAME) ## Build manager binary
