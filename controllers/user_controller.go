@@ -114,6 +114,8 @@ func (r *UserReconciler) updateClusterRoleBinding(ctx context.Context, user cont
 func (r *UserReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&controlv1.User{}).
+		Owns(&rbacv1.ClusterRole{}).
+		Owns(&rbacv1.ClusterRoleBinding{}).
 		Complete(r)
 }
 
