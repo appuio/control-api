@@ -23,13 +23,13 @@ type UserValidator struct {
 
 // Handle handles the users.appuio.io admission requests
 func (v *UserValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	log := log.FromContext(ctx)
+	log := log.FromContext(ctx).WithName("webhook.validate-users.appuio.io")
 
 	user := &controlv1.User{}
 	if err := v.decoder.Decode(req, user); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-	log.Info("user to validate", "user", user)
+	log.V(4).WithValues("user", user).Info("Validating")
 
 	orgref := user.Spec.Preferences.DefaultOrganizationRef
 	orgMembKey := types.NamespacedName{
@@ -41,7 +41,7 @@ func (v *UserValidator) Handle(ctx context.Context, req admission.Request) admis
 		return admission.Denied(fmt.Sprintf("Unable to load members for organization %s", orgref))
 	}
 
-	log.Info("organization members", "orgmemb", orgmemb)
+	log.V(4).WithValues("orgref", orgref, "orgmemb", orgmemb).Info("organizationmembers of requested default organization")
 
 	for _, orguser := range orgmemb.Spec.UserRefs {
 		if user.Name == orguser.Name {
