@@ -32,7 +32,7 @@ func ControllerCommand() *cobra.Command {
 
 	zapfs := flag.NewFlagSet("zap", flag.ExitOnError)
 	opts := zap.Options{}
-	opts.BindFlags(flag.CommandLine)
+	opts.BindFlags(zapfs)
 	cmd.Flags().AddGoFlagSet(zapfs)
 
 	metricsAddr := cmd.Flags().String("metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
