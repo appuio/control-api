@@ -15,6 +15,36 @@ rules:
 - apiGroups:
   - appuio.io
   resources:
+  - organizationmembers
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - appuio.io
+  resources:
+  - organizationmembers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - appuio.io
+  resources:
+  - teams
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - appuio.io
+  resources:
   - users
   verbs:
   - get
@@ -31,12 +61,48 @@ rules:
   - patch
   - update
 - apiGroups:
+  - organization.appuio.io
+  resources:
+  - organizations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.appuio.io
+  resources:
+  - organizations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
   - clusterroles
   verbs:
   - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  verbs:
+  - create
+  - delete
   - get
   - list
   - patch
