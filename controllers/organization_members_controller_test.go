@@ -107,6 +107,10 @@ func Test_OrganizationMembersReconciler_Reconcile_MissmatchStatus(t *testing.T) 
 		{Name: "u1"},
 		{Name: "u3"},
 	}
+	memb.Spec.UserRefs = []controlv1.UserRef{
+		{Name: "u2"},
+		{Name: "u3"},
+	}
 
 	c := prepareTest(t, &memb)
 	fakeRecorder := record.NewFakeRecorder(3)
@@ -141,7 +145,7 @@ func testRoleExists(t *testing.T, c client.WithWatch, role, userPrefix string, m
 			Kind:     "ClusterRole",
 			Name:     role,
 		})
-		users := memb.Status.ResolvedUserRefs
+		users := memb.Spec.UserRefs
 		require.Len(t, rb.Subjects, len(users))
 		for _, u := range users {
 			assert.Contains(t, rb.Subjects, rbacv1.Subject{

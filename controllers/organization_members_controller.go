@@ -71,8 +71,8 @@ func (r *OrganizationMembersReconciler) putRoleBinding(ctx context.Context, memb
 		},
 	}
 	op, err := ctrl.CreateOrUpdate(ctx, r.Client, &rb, func() error {
-		sub := make([]rbacv1.Subject, len(memb.Status.ResolvedUserRefs))
-		for i, ur := range memb.Status.ResolvedUserRefs {
+		sub := make([]rbacv1.Subject, len(memb.Spec.UserRefs))
+		for i, ur := range memb.Spec.UserRefs {
 			sub[i] = rbacv1.Subject{
 				APIGroup: rbacv1.GroupName,
 				Kind:     "User",
