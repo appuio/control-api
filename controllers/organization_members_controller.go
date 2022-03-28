@@ -34,6 +34,7 @@ type OrganizationMembersReconciler struct {
 // Needed so that we are allowed to delegate common member roles
 //+kubebuilder:rbac:groups="rbac.appuio.io",resources=organizations,verbs=get;list;watch;create;delete;patch;update
 //+kubebuilder:rbac:groups="organization.appuio.io",resources=organizations,verbs=get;list;watch;create;delete;patch;update
+//+kubebuilder:rbac:groups=appuio.io,resources=organizationmembers,verbs=get;list;watch;create;delete;patch;update
 //+kubebuilder:rbac:groups="appuio.io",resources=teams,verbs=get;list;watch;create;delete;patch;update
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
 
