@@ -3,6 +3,7 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,28 +37,28 @@ func TestUserValidator_Handle(t *testing.T) {
 			org:     "test-org",
 			orgmemb: []string{"test-user", "test-user-2"},
 			allowed: true,
-			errcode: 200,
+			errcode: http.StatusOK,
 		},
 		"UserIsNotMember denied": {
 			orgref:  "test-org",
 			org:     "test-org",
 			orgmemb: []string{"test-user-2", "test-user-3"},
 			allowed: false,
-			errcode: 403,
+			errcode: http.StatusForbidden,
 		},
 		"OrgDoesNotExist denied": {
 			orgref:  "test-org-2",
 			org:     "test-org",
 			orgmemb: []string{"test-user"},
 			allowed: false,
-			errcode: 403,
+			errcode: http.StatusForbidden,
 		},
 		"InvalidRequest denied": {
 			orgref:  "",
 			org:     "",
 			orgmemb: []string{"test-user"},
 			allowed: false,
-			errcode: 400, // StatusBadRequest
+			errcode: http.StatusBadRequest,
 		},
 	}
 
