@@ -45,6 +45,7 @@ func ControllerCommand() *cobra.Command {
 	usernamePrefix := cmd.Flags().String("username-prefix", "", "Prefix prepended to username claims. Usually the same as \"--oidc-username-prefix\" of the Kubernetes API server")
 	rolePrefix := cmd.Flags().String("role-prefix", "control-api:user:", "Prefix prepended to generated cluster roles and bindings to prevent name collisions.")
 	memberRoles := cmd.Flags().StringSlice("member-roles", []string{}, "ClusterRoles to assign to every organization member for its namespace")
+	webhookCertDir := cmd.Flags().String("webhook-cert-dir", "", "Directory holding TLS certificate and key for the webhook server. If left empty, {TempDir}/k8s-webhook-server/serving-certs is used")
 
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
@@ -69,6 +70,7 @@ func ControllerCommand() *cobra.Command {
 				HealthProbeBindAddress: *probeAddr,
 				LeaderElection:         *enableLeaderElection,
 				LeaderElectionID:       "d9e2acbf.control-api.appuio.io",
+				CertDir:                *webhookCertDir,
 			})
 		if err != nil {
 			setupLog.Error(err, "unable to setup manager")
