@@ -14,6 +14,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/spf13/cobra"
 
@@ -21,6 +22,7 @@ import (
 	controlv1 "github.com/appuio/control-api/apis/v1"
 
 	"github.com/appuio/control-api/controllers"
+	"github.com/appuio/control-api/webhooks"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -113,6 +115,11 @@ func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, opt c
 			return nil, err
 		}
 	}
+
+	mgr.GetWebhookServer().Register("/validate-appuio-io-v1-user", &webhook.Admission{
+		Handler: &webhooks.UserValidator{},
+	})
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
