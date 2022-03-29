@@ -15,6 +15,8 @@ import (
 
 // +kubebuilder:webhook:path=/validate-appuio-io-v1-user,mutating=false,failurePolicy=fail,groups="appuio.io",resources=users,verbs=create;update,versions=v1,name=validate-users.appuio.io,admissionReviewVersions=v1,sideEffects=None
 
+// +kubebuilder:rbac:groups=appuio.io,resources=organizationmembers,verbs=get
+
 // UserValidator holds context for the validating admission webhook for users.appuio.io
 type UserValidator struct {
 	client  client.Client
