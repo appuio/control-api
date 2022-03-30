@@ -38,11 +38,13 @@ fi
 echo
 identifier=
 while [ x"$identifier" == x"" ]; do
-  read -r -p "Provide an identifier for your local-dev Keycloak realm: " identifier
+  read -r -p "Provide a suffix for your local-dev Keycloak realm (all local-dev realms are prefixed with 'local-dev-'): " identifier
 done
 
 realm_name="local-dev-${identifier}"
 sed -e "s/REPLACEME/${realm_name}/g" "${script_dir}/templates/realm.json.tpl" > "${script_dir}/realm.json"
+
+echo -e "\033[1mUsing '${realm_name}' as your local-dev Keycloak realm\033[0m"
 
 step "Navigate to ${keycloak_url} and create a new realm by importing the '$(realpath "${script_dir}/realm.json")' file."
 
@@ -91,5 +93,5 @@ kubectl apply -k "${script_dir}/../config/user-rbac"
 
 echo =======
 echo "Setup finished. To interact with the local dev cluster, set the KUBECONFIG environment variable as follows:"
-echo "\"export \$KUBECONFIG=$(realpath "${kind_kubeconfig}")\""
+echo "\"export KUBECONFIG=$(realpath "${kind_kubeconfig}")\""
 echo =======
