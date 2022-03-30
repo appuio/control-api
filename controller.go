@@ -46,6 +46,7 @@ func ControllerCommand() *cobra.Command {
 	rolePrefix := cmd.Flags().String("role-prefix", "control-api:user:", "Prefix prepended to generated cluster roles and bindings to prevent name collisions.")
 	memberRoles := cmd.Flags().StringSlice("member-roles", []string{}, "ClusterRoles to assign to every organization member for its namespace")
 	webhookCertDir := cmd.Flags().String("webhook-cert-dir", "", "Directory holding TLS certificate and key for the webhook server. If left empty, {TempDir}/k8s-webhook-server/serving-certs is used")
+	webhookPort := cmd.Flags().Int("webhook-port", 9443, "The port on which the admission webhooks are served")
 
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
@@ -66,7 +67,7 @@ func ControllerCommand() *cobra.Command {
 			ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     *metricsAddr,
-				Port:                   9443,
+				Port:                   *webhookPort,
 				HealthProbeBindAddress: *probeAddr,
 				LeaderElection:         *enableLeaderElection,
 				LeaderElectionID:       "d9e2acbf.control-api.appuio.io",
