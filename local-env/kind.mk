@@ -18,8 +18,12 @@ kind-clean: ## Remove the kind Cluster
 ### Artifacts
 ###
 
+webhook-certs/tls.key:
+	mkdir -p webhook-certs
+	openssl req -x509 -newkey rsa:4096 -nodes -keyout webhook-certs/tls.key -out webhook-certs/tls.crt -days 3650 -subj "/CN=webhook-service.control-api.svc" -addext "subjectAltName = DNS:webhook-service.control-api.svc"
+
 $(KIND_KUBECONFIG): export KUBECONFIG = $(KIND_KUBECONFIG)
-$(KIND_KUBECONFIG):
+$(KIND_KUBECONFIG): webhook-certs/tls.key
 	$(localenv_dir)/setup-kind.sh "$(KIND)" "$(KIND_CLUSTER)" "$(KIND_NODE_VERSION)" "$(KIND_KUBECONFIG)"
 	@kubectl version
 	@kubectl cluster-info
