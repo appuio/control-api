@@ -44,15 +44,15 @@ Please be aware that the productive deployment of the control-api may run on a d
 [kind]: https://kind.sigs.k8s.io/
 
 
-### Running the control-api locally
+### Running the control-api API server locally
 
-You can run the control-api locally against the currently configured Kubernetes cluster with
+You can run the control-api API server locally against the currently configured Kubernetes cluster with
 
 ```bash
-make run
+make run-api
 ```
 
-To access the locally running API server you need to register it with the [kind]-based local environment.
+To access the locally running API server, you need to register it with the [kind]-based local environment.
 You can do this by applying the following.
 
 
@@ -94,10 +94,54 @@ spec:
 EOF
 ```
 
-
 After that you should be able to access your (with `make run` running) API server with
 
 ```bash
 kubectl get organizations
 ```
 
+### Running the control-api controller locally
+
+You can run the control-api controller locally against the currently configured Kubernetes cluster with
+
+```bash
+make run-controller
+```
+
+To access the locally running controller webhook server, you need to register it with the [kind]-based local environment.
+You can do this by applying the following manifests:
+
+```
+HOSTIP=$(docker inspect control-api-v1.22.1-control-plane | jq '.[0].NetworkSettings.Networks.kind.Gateway')
+
+cat <<EOF | sed -e "s/172.21.0.1/$HOSTIP/g" | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-service
+  namespace: default
+spec:
+  ports:
+  - port: 9444
+    protocol: TCP
+    targetPort: 9444
+  type: ExternalName
+  externalName: 172.21.0.1 # Change to host IP
+EOF
+
+kubectl patch validatingwebhookconfiguration validating-webhook-configuration \
+  -p '{
+    "webhooks": [
+      {
+        "name": "validate-users.appuio.io",
+        "clientConfig": {
+          "caBundle": "'"$(base64 -w0 "./local-env/webhook-certs/tls.crt)"'",
+          "service": {
+            "namespace": "default",
+            "port": 9444
+          }
+        }
+      }
+    ]
+  }'
+```
