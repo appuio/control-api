@@ -12,4 +12,6 @@ import (
 	_ "sigs.k8s.io/kustomize/kustomize/v4"
 	// To generate mocks
 	_ "github.com/golang/mock/mockgen"
+	// To have Kind updated via Renovate
+	_ "sigs.k8s.io/kind"
 )
