@@ -64,11 +64,11 @@ clean: ## Cleans up the generated resources
 
 .PHONY: run-api
 KUBECONFIG ?= ~/.kube/config
-run-api: build ## Starts control api against the configured kuberentes cluster
+run-api: build ## Starts control api apiserver against the current Kubernetes cluster (based on your local config)
 	$(BIN_FILENAME) api --secure-port 9443 --kubeconfig $(KUBECONFIG) --authentication-kubeconfig $(KUBECONFIG) --authorization-kubeconfig $(KUBECONFIG) --cluster-roles appuio-organization-viewer,appuio-organization-admin --username-prefix "appuio#"
 
 .PHONY: run-controller
-run-controller: build ## Starts control api against the configured kuberentes cluster
+run-controller: build ## Starts control api controller against the current Kubernetes cluster (based  on your local config)
 	$(BIN_FILENAME) controller --username-prefix "appuio#"
 
 .PHONY: local-env
