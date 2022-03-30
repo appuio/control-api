@@ -90,6 +90,52 @@ kubectl config set-context --current --user=oidc-user
 kubectl apply -k "${script_dir}/../config/crd/apiextensions.k8s.io/v1"
 kubectl apply -k "${script_dir}/../config/deployment"
 kubectl apply -k "${script_dir}/../config/user-rbac"
+kubectl apply -k "${script_dir}/../config/webhook"
+kubectl create secret tls -n control-api webhook-service-tls --cert=webhook-certs/tls.crt --key=webhook-certs/tls.key
+kubectl -n control-api patch deployment control-api-controller \
+  --type=json \
+  -p '[
+    {
+      "op": "add",
+      "path": "/spec/template/spec/containers/0/args/-",
+      "value": "--webhook-cert-dir=/var/run/webhook-service-tls"
+    },
+    {
+      "op": "add",
+      "path": "/spec/template/spec/volumes",
+      value: [
+        {
+          "name": "webhook-service-tls",
+          "secret": {
+            "secretName": "webhook-service-tls"
+          }
+        }
+      ]
+    },
+    {
+      "op": "add",
+      "path": "/spec/template/spec/containers/0/volumeMounts",
+      "value": [
+        {
+          "name": "webhook-service-tls",
+          "mountPath": "/var/run/webhook-service-tls",
+          "readOnly": true
+        }
+      ]
+    }
+  ]'
+kubectl patch validatingwebhookconfiguration validating-webhook-configuration \
+  -p '{
+    "webhooks": [
+      {
+        "name": "validate-users.appuio.io",
+        "clientConfig": {
+          "caBundle": "'"$(base64 -w0 "${script_dir}"/webhook-certs/tls.crt)"'"
+        }
+      }
+    ]
+  }'
+
 
 echo =======
 echo "Setup finished. To interact with the local dev cluster, set the KUBECONFIG environment variable as follows:"

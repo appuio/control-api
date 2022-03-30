@@ -31,6 +31,7 @@ crd*.yaml
 /local-env/realm.json
 /local-env/.created
 /local-env/.kind-setup_complete
+/local-env/webhook-certs
 
 # Go releaser
 dist/
