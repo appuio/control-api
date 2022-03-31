@@ -46,6 +46,11 @@ func TestUserValidator_Handle(t *testing.T) {
 			allowed: false,
 			errcode: http.StatusForbidden,
 		},
+		"NoOrg valid": {
+			orgref:  "",
+			allowed: true,
+			errcode: http.StatusOK,
+		},
 		"OrgDoesNotExist denied": {
 			orgref:  "test-org-2",
 			org:     "test-org",

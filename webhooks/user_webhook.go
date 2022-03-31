@@ -34,6 +34,10 @@ func (v *UserValidator) Handle(ctx context.Context, req admission.Request) admis
 	log.V(4).WithValues("user", user).Info("Validating")
 
 	orgref := user.Spec.Preferences.DefaultOrganizationRef
+	if orgref == "" {
+		// No default org is a valid config
+		return admission.Allowed("user does not have a default organization")
+	}
 	orgMembKey := types.NamespacedName{
 		Name:      "members",
 		Namespace: orgref,
