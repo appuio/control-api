@@ -10,6 +10,7 @@ The templates can be found in directory `templates/`.
 * `kind`
 * `kubectl`
 * `kubelogin` as `kubectl-oidc_login`
+* `OpenSSL` (LibreSSL might not be able to generate the necessary setup for the local dev environment)
 
 The setup script will provide links to the install guides for `kubectl` and `kubelogin` if no appropriate command is found.
 
