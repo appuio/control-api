@@ -10,6 +10,7 @@ import (
 // +kubebuilder:rbac:groups="appuio.io",resources=organizationmembers,verbs=get;list;watch;create;delete;patch;update;edit
 
 // memberProvider is an abstraction for interacting with the OrganizationMembers Object
+//
 //go:generate go run github.com/golang/mock/mockgen -source=$GOFILE -destination=./mock/$GOFILE
 type memberProvider interface {
 	CreateMembers(ctx context.Context, members *controlv1.OrganizationMembers) error

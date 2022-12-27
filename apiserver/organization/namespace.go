@@ -12,6 +12,7 @@ import (
 )
 
 // namespaceProvider is an abstraction for interacting with the Kubernetes API
+//
 //go:generate go run github.com/golang/mock/mockgen -source=$GOFILE -destination=./mock/$GOFILE
 type namespaceProvider interface {
 	GetNamespace(ctx context.Context, name string, options *metav1.GetOptions) (*corev1.Namespace, error)
