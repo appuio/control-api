@@ -70,7 +70,10 @@ func (s organizationStorage) New() runtime.Object {
 	return &orgv1.Organization{}
 }
 
+func (s organizationStorage) Destroy() {}
+
 var _ rest.Scoper = &organizationStorage{}
+var _ rest.Storage = &organizationStorage{}
 
 func (s *organizationStorage) NamespaceScoped() bool {
 	return false
