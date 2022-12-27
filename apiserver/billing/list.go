@@ -4,11 +4,9 @@ import (
 	"context"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/registry/rest"
 )
 
@@ -20,12 +18,6 @@ func (s billingEntityStorage) NewList() runtime.Object {
 
 func (s *billingEntityStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
 	return &demoentities, nil
-}
-
-var _ rest.Watcher = &billingEntityStorage{}
-
-func (s *billingEntityStorage) Watch(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
-	return nil, apierrors.NewMethodNotSupported((&billingv1.BillingEntity{}).GetGroupVersionResource().GroupResource(), "watch")
 }
 
 var tableConvertor = rest.NewDefaultTableConvertor((&billingv1.BillingEntity{}).GetGroupVersionResource().GroupResource())
