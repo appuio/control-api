@@ -7,10 +7,10 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.7.1
 	go.uber.org/multierr v1.8.0
-	k8s.io/api v0.23.5
-	k8s.io/apimachinery v0.23.5
-	k8s.io/apiserver v0.23.5
-	k8s.io/client-go v0.23.5
+	k8s.io/api v0.26.0
+	k8s.io/apimachinery v0.26.0
+	k8s.io/apiserver v0.26.0
+	k8s.io/client-go v0.26.0
 	sigs.k8s.io/apiserver-runtime v1.1.1
 	sigs.k8s.io/controller-runtime v0.11.1
 	sigs.k8s.io/controller-tools v0.8.0
