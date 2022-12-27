@@ -19,7 +19,7 @@ func (s billingEntityStorage) NewList() runtime.Object {
 }
 
 func (s *billingEntityStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
-	return nil, apierrors.NewMethodNotSupported((&billingv1.BillingEntity{}).GetGroupVersionResource().GroupResource(), "get")
+	return &demoentities, nil
 }
 
 var _ rest.Watcher = &billingEntityStorage{}

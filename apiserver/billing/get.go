@@ -18,5 +18,11 @@ func (s *billingEntityStorage) Get(ctx context.Context, name string, options *me
 		return nil, err
 	}
 
-	return nil, apierrors.NewMethodNotSupported((&billingv1.BillingEntity{}).GetGroupVersionResource().GroupResource(), "get")
+	for _, entity := range demoentities.Items {
+		if entity.Name == name {
+			return &entity, nil
+		}
+	}
+
+	return nil, apierrors.NewNotFound((&billingv1.BillingEntity{}).GetGroupVersionResource().GroupResource(), name)
 }

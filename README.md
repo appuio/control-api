@@ -79,6 +79,21 @@ spec:
     port: 9443
   version: v1
 ---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1.billing.appuio.io
+spec:
+  insecureSkipTLSVerify: true
+  group: billing.appuio.io
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  service:
+    name: apiserver
+    namespace: default
+    port: 9443
+  version: v1
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -90,7 +105,7 @@ spec:
     protocol: TCP
     targetPort: 9443
   type: ExternalName
-  externalName: 172.21.0.1 # Change to host IP
+  externalName: host.docker.internal # Change to host IP
 EOF
 ```
 
