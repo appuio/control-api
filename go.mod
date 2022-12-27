@@ -15,7 +15,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.14.1
 	sigs.k8s.io/controller-tools v0.11.1
 	sigs.k8s.io/kind v0.17.0
-	sigs.k8s.io/kustomize/kustomize/v4 v4.5.3
+	sigs.k8s.io/kustomize/kustomize/v4 v4.5.7
 )
 
 require (
@@ -81,7 +81,7 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
-	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca // indirect
+	github.com/xlab/treeprint v1.1.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.5 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.5 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.5 // indirect
@@ -125,9 +125,9 @@ require (
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.33 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
-	sigs.k8s.io/kustomize/api v0.11.3 // indirect
-	sigs.k8s.io/kustomize/cmd/config v0.10.5 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.13.4 // indirect
+	sigs.k8s.io/kustomize/api v0.12.1 // indirect
+	sigs.k8s.io/kustomize/cmd/config v0.10.9 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.13.9 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
