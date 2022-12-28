@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	billingv1 "github.com/appuio/control-api/apis/billing/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
+
+	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 )
 
 var _ rest.Creater = &billingEntityStorage{}
 
 func (s *billingEntityStorage) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
-	org, ok := obj.(*billingv1.BillingEntity)
+	be, ok := obj.(*billingv1.BillingEntity)
 	if !ok {
 		return nil, fmt.Errorf("not a billingentity: %#v", obj)
 	}
@@ -28,5 +28,5 @@ func (s *billingEntityStorage) Create(ctx context.Context, obj runtime.Object, c
 		return nil, err
 	}
 
-	return nil, apierrors.NewMethodNotSupported(org.GetGroupVersionResource().GroupResource(), "create")
+	return be, s.storage.Create(ctx, be)
 }

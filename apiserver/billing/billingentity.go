@@ -1,12 +1,15 @@
 package billingentity
 
 import (
-	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	restbuilder "sigs.k8s.io/apiserver-runtime/pkg/builder/rest"
 	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
+
+	billingv1 "github.com/appuio/control-api/apis/billing/v1"
+	"github.com/appuio/control-api/apiserver/billing/odoo"
+	"github.com/appuio/control-api/apiserver/billing/odoo/fake"
 )
 
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch,resourceNames=extension-apiserver-authentication
@@ -20,13 +23,17 @@ func New() restbuilder.ResourceHandlerProvider {
 			authorizer: rbacAuthorizer{
 				Authorizer: loopback.GetAuthorizer(),
 			},
+			storage: fake.NewFakeOdooStorage(),
 		}, nil
 	}
 }
 
 type billingEntityStorage struct {
 	authorizer rbacAuthorizer
+	storage    odoo.OdooStorage
 }
+
+var _ rest.Storage = &billingEntityStorage{}
 
 func (s billingEntityStorage) New() runtime.Object {
 	return &billingv1.BillingEntity{}
@@ -35,7 +42,6 @@ func (s billingEntityStorage) New() runtime.Object {
 func (s billingEntityStorage) Destroy() {}
 
 var _ rest.Scoper = &billingEntityStorage{}
-var _ rest.Storage = &billingEntityStorage{}
 
 func (s *billingEntityStorage) NamespaceScoped() bool {
 	return false

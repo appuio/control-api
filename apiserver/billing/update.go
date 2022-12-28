@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	billingv1 "github.com/appuio/control-api/apis/billing/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
+
+	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 )
 
 var _ rest.Updater = &billingEntityStorage{}
@@ -23,30 +23,27 @@ func (s *billingEntityStorage) Update(ctx context.Context, name string, objInfo 
 		return nil, false, err
 	}
 
-	newOrg := &billingv1.BillingEntity{}
-
-	oldOrg, err := s.Get(ctx, name, nil)
-	if err != nil {
-
-		return nil, false, err
-	}
-
-	newObj, err := objInfo.UpdatedObject(ctx, oldOrg)
+	oldBE, err := s.storage.Get(ctx, name)
 	if err != nil {
 		return nil, false, err
 	}
 
-	newOrg, ok := newObj.(*billingv1.BillingEntity)
+	newObj, err := objInfo.UpdatedObject(ctx, oldBE)
+	if err != nil {
+		return nil, false, err
+	}
+
+	newBE, ok := newObj.(*billingv1.BillingEntity)
 	if !ok {
 		return nil, false, fmt.Errorf("new object is not an billingentity")
 	}
 
 	if updateValidation != nil {
-		err = updateValidation(ctx, newOrg, oldOrg)
+		err = updateValidation(ctx, newBE, oldBE)
 		if err != nil {
 			return nil, false, err
 		}
 	}
 
-	return newOrg, false, apierrors.NewMethodNotSupported((&billingv1.BillingEntity{}).GetGroupVersionResource().GroupResource(), "update")
+	return newBE, false, s.storage.Update(ctx, newBE)
 }

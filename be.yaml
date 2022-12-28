@@ -1,0 +1,19 @@
+apiVersion: billing.appuio.io/v1
+kind: BillingEntity
+metadata:
+  creationTimestamp: null
+  name: be-2345
+spec:
+  accountingContact:
+    emails: null
+    name: ""
+  address:
+    city: ""
+    country: ""
+    line1: ""
+    postalCode: ""
+  emails:
+  - demo3@example.com
+  languagePreference: ""
+  name: Demo Entity 3
+  phone: ""
