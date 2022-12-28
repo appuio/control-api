@@ -25,12 +25,13 @@ func (s *billingEntityStorage) Update(ctx context.Context, name string, objInfo 
 
 	oldBE, err := s.storage.Get(ctx, name)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("failed to get old object: %w", err)
 	}
 
 	newObj, err := objInfo.UpdatedObject(ctx, oldBE)
 	if err != nil {
-		return nil, false, err
+		// returns a 404 error if the there is no annotation support
+		return nil, false, fmt.Errorf("failed to calculate new object: %w", err)
 	}
 
 	newBE, ok := newObj.(*billingv1.BillingEntity)
@@ -41,7 +42,7 @@ func (s *billingEntityStorage) Update(ctx context.Context, name string, objInfo 
 	if updateValidation != nil {
 		err = updateValidation(ctx, newBE, oldBE)
 		if err != nil {
-			return nil, false, err
+			return nil, false, fmt.Errorf("failed to validate new object: %w", err)
 		}
 	}
 

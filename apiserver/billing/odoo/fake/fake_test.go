@@ -13,7 +13,7 @@ import (
 
 func TestFakeStorageE2E(t *testing.T) {
 	ctx := context.Background()
-	s := fake.NewFakeOdooStorage()
+	s := fake.NewFakeOdooStorage(false)
 
 	_, err := s.Get(ctx, "be-2345")
 	require.ErrorIs(t, err, odoo.ErrNotFound)
@@ -54,7 +54,7 @@ func TestFakeStorageE2E(t *testing.T) {
 
 func TestFakeStorage_List(t *testing.T) {
 	ctx := context.Background()
-	s := fake.NewFakeOdooStorage()
+	s := fake.NewFakeOdooStorage(false)
 
 	_, err := s.List(ctx)
 	require.NoError(t, err)

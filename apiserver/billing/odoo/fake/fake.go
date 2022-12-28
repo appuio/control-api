@@ -19,6 +19,8 @@ const (
 )
 
 type fakeOdooStorage struct {
+	metadataSupport bool
+
 	storeLock sync.RWMutex
 	store     map[string]*billingv1.BillingEntity
 
@@ -29,7 +31,7 @@ type fakeOdooStorage struct {
 
 var _ odoo.OdooStorage = &fakeOdooStorage{}
 
-func NewFakeOdooStorage() odoo.OdooStorage {
+func NewFakeOdooStorage(metadataSupport bool) odoo.OdooStorage {
 	return &fakeOdooStorage{
 		store:     make(map[string]*billingv1.BillingEntity),
 		idCounter: IDStart - IDStep,
@@ -42,9 +44,9 @@ func (s *fakeOdooStorage) Create(ctx context.Context, be *billingv1.BillingEntit
 
 	id := formatID(s.nextID())
 
-	be.ObjectMeta = metav1.ObjectMeta{
-		Name: id,
-	}
+	be.Name = id
+
+	s.cleanMetadata(be)
 
 	s.store[id] = be.DeepCopy()
 
@@ -71,9 +73,7 @@ func (s *fakeOdooStorage) Update(ctx context.Context, be *billingv1.BillingEntit
 		return odoo.ErrNotFound
 	}
 
-	be.ObjectMeta = metav1.ObjectMeta{
-		Name: be.Name,
-	}
+	s.cleanMetadata(be)
 
 	s.store[be.Name] = be.DeepCopy()
 
@@ -98,6 +98,22 @@ func (s *fakeOdooStorage) List(ctx context.Context) ([]billingv1.BillingEntity, 
 
 func (s *fakeOdooStorage) nextID() uint64 {
 	return atomic.AddUint64(&s.idCounter, 2)
+}
+
+// cleanMetadata simulate first naive implementation of the Odoo storage.
+func (s *fakeOdooStorage) cleanMetadata(be *billingv1.BillingEntity) {
+	meta := metav1.ObjectMeta{
+		Name: be.Name,
+	}
+	if s.metadataSupport {
+		meta = metav1.ObjectMeta{
+			Name:            be.Name,
+			ResourceVersion: be.ResourceVersion,
+			Annotations:     be.Annotations,
+			Labels:          be.Labels,
+		}
+	}
+	be.ObjectMeta = meta
 }
 
 func formatID(id uint64) string {

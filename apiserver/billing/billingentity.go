@@ -23,7 +23,7 @@ func New() restbuilder.ResourceHandlerProvider {
 			authorizer: rbacAuthorizer{
 				Authorizer: loopback.GetAuthorizer(),
 			},
-			storage: fake.NewFakeOdooStorage(),
+			storage: fake.NewFakeOdooStorage(false),
 		}, nil
 	}
 }
