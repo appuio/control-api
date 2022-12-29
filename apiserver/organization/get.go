@@ -14,11 +14,6 @@ import (
 var _ rest.Getter = &organizationStorage{}
 
 func (s *organizationStorage) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	err := s.authorizer.AuthorizeGet(ctx, name)
-	if err != nil {
-		return nil, err
-	}
-
 	org := &orgv1.Organization{}
 	ns, err := s.namepaces.GetNamespace(ctx, name, options)
 	if err != nil {

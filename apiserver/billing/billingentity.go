@@ -8,8 +8,10 @@ import (
 	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
+	"github.com/appuio/control-api/apiserver/authwrapper"
 	"github.com/appuio/control-api/apiserver/billing/odoo"
 	"github.com/appuio/control-api/apiserver/billing/odoo/fake"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch,resourceNames=extension-apiserver-authentication
@@ -19,18 +21,19 @@ import (
 // New returns a new storage provider for Organizations
 func New() restbuilder.ResourceHandlerProvider {
 	return func(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
-		return &billingEntityStorage{
-			authorizer: rbacAuthorizer{
-				Authorizer: loopback.GetAuthorizer(),
-			},
+		stor := &billingEntityStorage{
 			storage: fake.NewFakeOdooStorage(false),
-		}, nil
+		}
+		return authwrapper.NewAuthorizedStorage(stor, metav1.GroupVersionResource{
+			Group:    "rbac.appuio.io",
+			Version:  "v1",
+			Resource: "billingentities",
+		}, loopback.GetAuthorizer())
 	}
 }
 
 type billingEntityStorage struct {
-	authorizer rbacAuthorizer
-	storage    odoo.OdooStorage
+	storage odoo.OdooStorage
 }
 
 var _ rest.Storage = &billingEntityStorage{}

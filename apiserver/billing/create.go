@@ -18,10 +18,6 @@ func (s *billingEntityStorage) Create(ctx context.Context, obj runtime.Object, c
 	if !ok {
 		return nil, fmt.Errorf("not a billingentity: %#v", obj)
 	}
-	err := s.authorizer.AuthorizeContext(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	// Validate Org
 	if err := createValidation(ctx, obj); err != nil {

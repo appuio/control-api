@@ -109,12 +109,13 @@ func TestOrganizationStorage_Create(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+			os, mnp, mauth := newMockedOrganizationStorage(t, ctrl)
 			mrb := mock.NewMockroleBindingCreator(ctrl)
-			os.rbac = mrb
+			ds := os.Storage().(*organizationStorage)
+			ds.rbac = mrb
 			mmemb := mock.NewMockmemberProvider(ctrl)
-			os.members = mmemb
-			os.usernamePrefix = "appuio#"
+			ds.members = mmemb
+			ds.usernamePrefix = "appuio#"
 			nsOut := &corev1.Namespace{}
 			if tc.organizationOut != nil {
 				nsOut = tc.organizationOut.ToNamespace()
@@ -180,12 +181,13 @@ func TestOrganizationStorage_Create_Abort(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+			os, mnp, mauth := newMockedOrganizationStorage(t, ctrl)
 			mrb := mock.NewMockroleBindingCreator(ctrl)
-			os.rbac = mrb
+			ds := os.Storage().(*organizationStorage)
+			ds.rbac = mrb
 			mmemb := mock.NewMockmemberProvider(ctrl)
-			os.members = mmemb
-			os.usernamePrefix = "appuio#"
+			ds.members = mmemb
+			ds.usernamePrefix = "appuio#"
 
 			mauth.EXPECT().
 				Authorize(gomock.Any(), isAuthRequest("create")).

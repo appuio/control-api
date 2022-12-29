@@ -18,11 +18,6 @@ func (s *billingEntityStorage) Update(ctx context.Context, name string, objInfo 
 	createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc,
 	forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
 
-	err := s.authorizer.AuthorizeContext(ctx)
-	if err != nil {
-		return nil, false, err
-	}
-
 	oldBE, err := s.storage.Get(ctx, name)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to get old object: %w", err)

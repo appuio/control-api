@@ -15,11 +15,6 @@ import (
 var _ rest.Getter = &billingEntityStorage{}
 
 func (s *billingEntityStorage) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	err := s.authorizer.AuthorizeGet(ctx, name)
-	if err != nil {
-		return nil, err
-	}
-
 	be, err := s.storage.Get(ctx, name)
 	if err != nil {
 		if errors.Is(err, odoo.ErrNotFound) {

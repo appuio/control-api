@@ -97,7 +97,7 @@ func TestOrganizationStorage_List(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+			os, mnp, mauth := newMockedOrganizationStorage(t, ctrl)
 
 			mauth.EXPECT().
 				Authorize(gomock.Any(), isAuthRequest("list")).
@@ -248,7 +248,7 @@ func TestOrganizationStorage_Watch(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+			os, mnp, mauth := newMockedOrganizationStorage(t, ctrl)
 
 			nsWatcher := testWatcher{
 				events: make(chan watch.Event, len(tc.namespacesEvents)),

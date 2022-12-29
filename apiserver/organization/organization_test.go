@@ -2,9 +2,13 @@ package organization
 
 import (
 	"fmt"
+	"testing"
 
+	"github.com/appuio/control-api/apiserver/authwrapper"
+	authmock "github.com/appuio/control-api/apiserver/authwrapper/mock"
 	mock "github.com/appuio/control-api/apiserver/organization/mock"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/require"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 
@@ -13,14 +17,20 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 )
 
-func newMockedOrganizationStorage(ctrl *gomock.Controller) (organizationStorage, *mock.MocknamespaceProvider, *mock.MockAuthorizer) {
+func newMockedOrganizationStorage(t *testing.T, ctrl *gomock.Controller) (authwrapper.StandardStorage, *mock.MocknamespaceProvider, *authmock.MockAuthorizer) {
+	t.Helper()
+
 	mnp := mock.NewMocknamespaceProvider(ctrl)
-	mauth := mock.NewMockAuthorizer(ctrl)
-	os := organizationStorage{
-		namepaces:  mnp,
-		authorizer: rbacAuthorizer{Authorizer: mauth},
-	}
-	return os, mnp, mauth
+	mauth := authmock.NewMockAuthorizer(ctrl)
+	os, err := authwrapper.NewAuthorizedStorage(&organizationStorage{
+		namepaces: mnp,
+	}, metav1.GroupVersionResource{
+		Group:    orgv1.GroupVersion.Group,
+		Version:  orgv1.GroupVersion.Version,
+		Resource: "organizations",
+	}, mauth)
+	require.NoError(t, err)
+	return os.(authwrapper.StandardStorage), mnp, mauth
 }
 
 // Some common test organizations

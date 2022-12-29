@@ -18,23 +18,9 @@ func (s billingEntityStorage) NewList() runtime.Object {
 }
 
 func (s *billingEntityStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
-	err := s.authorizer.AuthorizeContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	bel, err := s.storage.List(ctx)
-	filtered := make([]billingv1.BillingEntity, 0, len(bel))
-	for _, be := range bel {
-		err := s.authorizer.AuthorizeGet(ctx, be.Name)
-		if err != nil {
-			continue
-		}
-		filtered = append(filtered, be)
-	}
-
 	return &billingv1.BillingEntityList{
-		Items: filtered,
+		Items: bel,
 	}, err
 }
 

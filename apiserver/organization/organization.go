@@ -7,8 +7,10 @@ import (
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
+	"github.com/appuio/control-api/apiserver/authwrapper"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -35,12 +37,10 @@ func New(clusterRoles *[]string, usernamePrefix *string) restbuilder.ResourceHan
 		if err != nil {
 			return nil, err
 		}
-		return &organizationStorage{
+
+		stor := &organizationStorage{
 			namepaces: &kubeNamespaceProvider{
 				Client: c,
-			},
-			authorizer: rbacAuthorizer{
-				Authorizer: loopback.GetAuthorizer(),
 			},
 			rbac: kubeRoleBindingCreator{
 				Client:       c,
@@ -50,7 +50,13 @@ func New(clusterRoles *[]string, usernamePrefix *string) restbuilder.ResourceHan
 				Client: c,
 			},
 			usernamePrefix: *usernamePrefix,
-		}, nil
+		}
+
+		return authwrapper.NewAuthorizedStorage(stor, metav1.GroupVersionResource{
+			Group:    "rbac.appuio.io",
+			Version:  "v1",
+			Resource: "organizations",
+		}, loopback.GetAuthorizer())
 	}
 }
 
@@ -59,8 +65,6 @@ type organizationStorage struct {
 
 	members        memberProvider
 	usernamePrefix string
-
-	authorizer rbacAuthorizer
 
 	rbac         roleBindingCreator
 	clusterRoles []string

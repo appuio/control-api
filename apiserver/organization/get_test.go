@@ -86,7 +86,7 @@ func TestOrganizationStorage_Get(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			os, mnp, mauth := newMockedOrganizationStorage(ctrl)
+			os, mnp, mauth := newMockedOrganizationStorage(t, ctrl)
 
 			mauth.EXPECT().
 				Authorize(gomock.Any(), isAuthRequest("get")).
