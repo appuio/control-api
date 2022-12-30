@@ -1,8 +1,6 @@
 package billing
 
 import (
-	billingv1 "github.com/appuio/control-api/apis/billing/v1"
-	"github.com/appuio/control-api/apiserver/authwrapper"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
@@ -10,6 +8,9 @@ import (
 	restbuilder "sigs.k8s.io/apiserver-runtime/pkg/builder/rest"
 	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	billingv1 "github.com/appuio/control-api/apis/billing/v1"
+	"github.com/appuio/control-api/apiserver/authwrapper"
 )
 
 // New returns a new storage provider with RBAC authentication for BillingEntities

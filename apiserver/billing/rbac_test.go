@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/appuio/control-api/apiserver/authwrapper/mock"
-	"github.com/appuio/control-api/apiserver/authwrapper/testresource"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,6 +18,9 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/appuio/control-api/apiserver/authwrapper/mock"
+	"github.com/appuio/control-api/apiserver/authwrapper/testresource"
 )
 
 func Test_createRBACWrapper(t *testing.T) {

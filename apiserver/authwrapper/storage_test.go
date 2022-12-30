@@ -5,9 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/appuio/control-api/apiserver/authwrapper"
-	"github.com/appuio/control-api/apiserver/authwrapper/mock"
-	"github.com/appuio/control-api/apiserver/authwrapper/testresource"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,6 +15,10 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+
+	"github.com/appuio/control-api/apiserver/authwrapper"
+	"github.com/appuio/control-api/apiserver/authwrapper/mock"
+	"github.com/appuio/control-api/apiserver/authwrapper/testresource"
 )
 
 var gvr = func() metav1.GroupVersionResource {
