@@ -1,11 +1,11 @@
-package billingentity
+package odoostorage
 
 import (
 	"context"
 	"errors"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
-	"github.com/appuio/control-api/apiserver/billing/odoo"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

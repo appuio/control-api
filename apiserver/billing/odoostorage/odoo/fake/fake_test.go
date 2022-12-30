@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
-	"github.com/appuio/control-api/apiserver/billing/odoo"
-	"github.com/appuio/control-api/apiserver/billing/odoo/fake"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/fake"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

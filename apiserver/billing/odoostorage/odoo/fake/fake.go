@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
-	"github.com/appuio/control-api/apiserver/billing/odoo"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo"
 )
 
 const (
