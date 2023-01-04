@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-logr/logr"
+	"go.uber.org/multierr"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,10 +40,9 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 	}
 
 	ac := apimeta.NewAccessor()
-
 	objName, err := ac.Name(createdObj)
 	if err != nil {
-		return createdObj, err
+		return createdObj, fmt.Errorf("could not get name of created object: %w", err)
 	}
 
 	rolename := fmt.Sprintf("billingentities-%s-viewer", objName)
@@ -78,13 +79,25 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 		},
 	}
 
+	rollback := func() error {
+		if deleter, canDelete := c.storageCreator.(rest.GracefulDeleter); canDelete {
+			_, _, err := deleter.Delete(ctx, objName, nil, &metav1.DeleteOptions{DryRun: opts.DryRun})
+			return err
+		}
+		logr.FromContextOrDiscard(ctx).Info("storage does not implement GracefulDeleter, skipping rollback", "object", objName)
+		return nil
+	}
+
 	err = c.client.Create(ctx, role, &client.CreateOptions{DryRun: opts.DryRun})
 	if err != nil {
-		return createdObj, err
+		rollbackErr := rollback()
+		return createdObj, multierr.Append(err, rollbackErr)
 	}
 	err = c.client.Create(ctx, rolebinding, &client.CreateOptions{DryRun: opts.DryRun})
 	if err != nil {
-		return createdObj, err
+		rollbackErr := rollback()
+		roleRollbackErr := c.client.Delete(ctx, role, &client.DeleteOptions{DryRun: opts.DryRun})
+		return createdObj, multierr.Combine(err, rollbackErr, roleRollbackErr)
 	}
 
 	return createdObj, nil
