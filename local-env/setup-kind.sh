@@ -56,6 +56,11 @@ echo "Note: After the cluster is created, a browser window will open where you h
 echo -e "================================================================================\033[0m"
 echo ""
 
+base64_no_wrap='base64'
+if [[ "$OSTYPE" == "linux"* ]]; then
+  base64_no_wrap='base64 --wrap 0'
+fi
+
 sed -e "s#ISSUER_KEYCLOAK#${keycloak_url}#; s/REALM/${realm_name}/g" "${script_dir}/templates/kind-oidc.yaml.tpl" > "${script_dir}/.kind-oidc.yaml"
 ${kind_cmd} create cluster \
   --name "${kind_cluster}" \
@@ -130,7 +135,7 @@ kubectl patch validatingwebhookconfiguration validating-webhook-configuration \
       {
         "name": "validate-users.appuio.io",
         "clientConfig": {
-          "caBundle": "'"$(base64 -w0 "${script_dir}"/webhook-certs/tls.crt)"'"
+          "caBundle": "'"$(eval $base64_no_wrap < "${script_dir}"/webhook-certs/tls.crt)"'"
         }
       }
     ]
