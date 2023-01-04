@@ -55,13 +55,14 @@ make run-api
 To access the locally running API server, you need to register it with the [kind]-based local environment.
 You can do this by applying the following.
 
-
 The `externalName` needs to be changed to your specific host IP.
-When running kind on Linux you can find it with `docker inspect
+When running kind on Linux you can find it with `docker inspect`.
 
+On some docker distributions the host IP is accessible via `host.docker.internal`.
 
 ```bash
 HOSTIP=$(docker inspect control-api-v1.22.1-control-plane | jq '.[0].NetworkSettings.Networks.kind.Gateway')
+# HOSTIP=host.docker.internal # On some docker distributions
 
 cat <<EOF | sed -e "s/172.21.0.1/$HOSTIP/g" | kubectl apply -f -
 apiVersion: apiregistration.k8s.io/v1
@@ -71,6 +72,21 @@ metadata:
 spec:
   insecureSkipTLSVerify: true
   group: organization.appuio.io
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  service:
+    name: apiserver
+    namespace: default
+    port: 9443
+  version: v1
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1.billing.appuio.io
+spec:
+  insecureSkipTLSVerify: true
+  group: billing.appuio.io
   groupPriorityMinimum: 1000
   versionPriority: 15
   service:

@@ -17,6 +17,8 @@ var (
 	OrgType = "organization"
 	// DisplayNameKey is the annotation key that stores the display name
 	DisplayNameKey = "organization.appuio.io/display-name"
+	// BillingEntityRefKey is the annotation key that stores the billing entity reference
+	BillingEntityRefKey = "organization.appuio.io/billing-entity-ref"
 )
 
 // NewOrganizationFromNS returns an Organization based on the given namespace
@@ -25,18 +27,21 @@ func NewOrganizationFromNS(ns *corev1.Namespace) *Organization {
 	if ns == nil || ns.Labels == nil || ns.Labels[TypeKey] != OrgType {
 		return nil
 	}
-	displayName := ""
+	var displayName, billingEntityRef string
 	if ns.Annotations != nil {
 		displayName = ns.Annotations[DisplayNameKey]
+		billingEntityRef = ns.Annotations[BillingEntityRefKey]
 	}
 	org := &Organization{
 		ObjectMeta: *ns.ObjectMeta.DeepCopy(),
 		Spec: OrganizationSpec{
-			DisplayName: displayName,
+			DisplayName:      displayName,
+			BillingEntityRef: billingEntityRef,
 		},
 	}
 	if org.Annotations != nil {
 		delete(org.Annotations, DisplayNameKey)
+		delete(org.Annotations, BillingEntityRefKey)
 		delete(org.Labels, TypeKey)
 	}
 	return org
@@ -57,6 +62,9 @@ type Organization struct {
 type OrganizationSpec struct {
 	// DisplayName is a human-friendly name
 	DisplayName string `json:"displayName,omitempty"`
+
+	// BillingEntityRef is the reference to the billing entity
+	BillingEntityRef string `json:"billingEntityRef,omitempty"`
 }
 
 // Organization needs to implement the builder resource interface
@@ -129,6 +137,7 @@ func (o *Organization) ToNamespace() *corev1.Namespace {
 	}
 	ns.Labels[TypeKey] = OrgType
 	ns.Annotations[DisplayNameKey] = o.Spec.DisplayName
+	ns.Annotations[BillingEntityRefKey] = o.Spec.BillingEntityRef
 	return ns
 }
 

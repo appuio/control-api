@@ -18,11 +18,6 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 	createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc,
 	forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
 
-	err := s.authorizer.AuthorizeContext(ctx)
-	if err != nil {
-		return nil, false, err
-	}
-
 	newOrg := &orgv1.Organization{}
 
 	oldOrg, err := s.Get(ctx, name, nil)

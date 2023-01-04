@@ -7,6 +7,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/multierr v1.9.0
+	golang.org/x/exp v0.0.0-20221227203929-1b447090c38c
 	k8s.io/api v0.26.0
 	k8s.io/apimachinery v0.26.0
 	k8s.io/apiserver v0.26.0

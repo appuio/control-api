@@ -40,7 +40,8 @@ func TestNewOrganizationFromNS(t *testing.T) {
 						TypeKey: OrgType,
 					},
 					Annotations: map[string]string{
-						DisplayNameKey: "Foo Bar Inc.",
+						DisplayNameKey:      "Foo Bar Inc.",
+						BillingEntityRefKey: "be-1234",
 					},
 				},
 			},
@@ -51,7 +52,8 @@ func TestNewOrganizationFromNS(t *testing.T) {
 					Annotations: map[string]string{},
 				},
 				Spec: OrganizationSpec{
-					DisplayName: "Foo Bar Inc.",
+					DisplayName:      "Foo Bar Inc.",
+					BillingEntityRef: "be-1234",
 				},
 			},
 		},
@@ -103,7 +105,8 @@ func TestOrganization_ToNamespace(t *testing.T) {
 					Name: "fooBar",
 				},
 				Spec: OrganizationSpec{
-					DisplayName: "Foo Bar Inc.",
+					DisplayName:      "Foo Bar Inc.",
+					BillingEntityRef: "be-1234",
 				},
 			},
 			namespace: &corev1.Namespace{
@@ -113,7 +116,8 @@ func TestOrganization_ToNamespace(t *testing.T) {
 						TypeKey: OrgType,
 					},
 					Annotations: map[string]string{
-						DisplayNameKey: "Foo Bar Inc.",
+						DisplayNameKey:      "Foo Bar Inc.",
+						BillingEntityRefKey: "be-1234",
 					},
 				},
 			},
@@ -141,8 +145,9 @@ func TestOrganization_ToNamespace(t *testing.T) {
 						"foo":   "bar",
 					},
 					Annotations: map[string]string{
-						DisplayNameKey: "Foo Bar Inc.",
-						"bar":          "buzz",
+						DisplayNameKey:      "Foo Bar Inc.",
+						BillingEntityRefKey: "",
+						"bar":               "buzz",
 					},
 				},
 			},

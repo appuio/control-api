@@ -9,7 +9,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
+	"github.com/appuio/control-api/apiserver/authwrapper"
+	billingStore "github.com/appuio/control-api/apiserver/billing"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage"
 	orgStore "github.com/appuio/control-api/apiserver/organization"
 )
 
@@ -19,6 +23,7 @@ func APICommand() *cobra.Command {
 	usernamePrefix := ""
 	cmd, err := builder.APIServer.
 		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New(&roles, &usernamePrefix)).
+		WithResourceAndHandler(&billingv1.BillingEntity{}, billingStore.New(odoostorage.New().(authwrapper.StorageScoper))).
 		WithoutEtcd().
 		ExposeLoopbackAuthorizer().
 		ExposeLoopbackMasterClientConfig().

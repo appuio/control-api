@@ -13,11 +13,6 @@ import (
 var _ rest.GracefulDeleter = &organizationStorage{}
 
 func (s *organizationStorage) Delete(ctx context.Context, name string, deleteValidation rest.ValidateObjectFunc, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
-	err := s.authorizer.AuthorizeContext(ctx)
-	if err != nil {
-		return nil, false, err
-	}
-
 	org, err := s.Get(ctx, name, nil)
 	if err != nil {
 		return nil, false, err
