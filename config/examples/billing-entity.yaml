@@ -1,0 +1,20 @@
+apiVersion: billing.appuio.io/v1
+kind: BillingEntity
+metadata:
+  creationTimestamp: null
+  # The name is generated in the underlying ERP
+spec:
+  accountingContact:
+    emails:
+    - accounting@example.com
+    name: "Ernst Accountant"
+  address:
+    city: "Zurich"
+    country: "Switzerland"
+    line1: "Demostrasse 1"
+    postalCode: "8000"
+  emails:
+  - demo@example.com
+  languagePreference: ""
+  name: Demo Entity
+  phone: "079 123 45 67"
