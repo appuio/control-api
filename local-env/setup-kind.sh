@@ -6,7 +6,7 @@ set -euo pipefail
 readonly script_dir=$(dirname "$0")
 readonly kind_cmd="${1:-kind}"
 readonly kind_cluster="${2:-control-api-localenv}"
-readonly kind_node_version="${3:-v1.22.1}"
+readonly kind_node_version="${3:-v1.25.3}"
 readonly kind_kubeconfig="${4:-"${script_dir}/control-api.kubeconfig"}"
 
 export KUBECONFIG="${kind_kubeconfig}"

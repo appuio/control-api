@@ -16,7 +16,7 @@ localenv_dir ?= $(CURDIR)/$(PROJECT_ROOT_DIR)/local-env
 localenv_dir_created = $(localenv_dir)/.created
 
 # Kind config
-KIND_NODE_VERSION ?= v1.22.1
+KIND_NODE_VERSION ?= v1.25.3
 KIND ?= go run sigs.k8s.io/kind
 KIND_KUBECONFIG ?= $(localenv_dir)/kind-kubeconfig-$(KIND_NODE_VERSION)
 KIND_CLUSTER ?= control-api-$(KIND_NODE_VERSION)
