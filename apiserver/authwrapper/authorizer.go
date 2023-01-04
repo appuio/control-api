@@ -14,23 +14,23 @@ import (
 
 //go:generate go run github.com/golang/mock/mockgen -destination=./mock/$GOFILE -package mock k8s.io/apiserver/pkg/authorization/authorizer Authorizer
 
-// Authorizer processes authorization requests for `{rbacNamespace.Resource}` and checks them based on rbac rules for `{rbacNamespace}`
+// Authorizer processes authorization requests for `{rbacID.Resource}` and checks them based on rbac rules for `{rbacID}`
 type Authorizer struct {
-	Authorizer    authorizer.Authorizer
-	rbacNamespace metav1.GroupVersionResource
+	Authorizer authorizer.Authorizer
+	rbacID     metav1.GroupVersionResource
 }
 
-func NewAuthorizer(rbacNamespace metav1.GroupVersionResource, authorizer authorizer.Authorizer) Authorizer {
+func NewAuthorizer(rbacID metav1.GroupVersionResource, authorizer authorizer.Authorizer) Authorizer {
 	return Authorizer{
-		rbacNamespace: rbacNamespace,
-		Authorizer:    authorizer,
+		rbacID:     rbacID,
+		Authorizer: authorizer,
 	}
 }
 
 // Authorizer makes an authorization decision based on the Attributes.
 // It returns nil when an action is authorized, otherwise it returns an error.
 func (a Authorizer) Authorize(ctx context.Context, attr authorizer.Attributes) error {
-	if attr.GetResource() != a.rbacNamespace.Resource {
+	if attr.GetResource() != a.rbacID.Resource {
 		return fmt.Errorf("unkown resource %q", attr.GetResource())
 	}
 	decision, reason, err := a.Authorizer.Authorize(ctx, authorizer.AttributesRecord{
@@ -38,8 +38,8 @@ func (a Authorizer) Authorize(ctx context.Context, attr authorizer.Attributes) e
 		Verb:            attr.GetVerb(),
 		Name:            attr.GetName(),
 		Namespace:       attr.GetName(), // We handle cluster wide resources
-		APIGroup:        a.rbacNamespace.Group,
-		APIVersion:      a.rbacNamespace.Version,
+		APIGroup:        a.rbacID.Group,
+		APIVersion:      a.rbacID.Version,
 		Resource:        attr.GetResource(),
 		Subresource:     attr.GetSubresource(),
 		ResourceRequest: true, // Always a resource request

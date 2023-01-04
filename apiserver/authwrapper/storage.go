@@ -62,18 +62,18 @@ func (s *authorizedStorageWithLister) ConvertToTable(ctx context.Context, obj ru
 }
 
 // NewAuthorizedStorage returns a new wrapper around the given storage
-// authorizing all requests based on rbacNamespace and implementing the rest.Storage or rest.StandardStorage interface.
+// authorizing all requests based on rbacID and implementing the rest.Storage or rest.StandardStorage interface.
 // It allows filtering list and watch results based on the user's RBAC permissions.
 // If the storage implements rest.StandardStorage, the returned storage will implement rest.StandardStorage.
 // If the storage implements rest.Storage, the returned storage will implement rest.Storage.
 // Only cluster-scoped resources currently are supported. Panics if the storage is namespace-scoped.
-func NewAuthorizedStorage(storage StorageScoper, rbacNamespace metav1.GroupVersionResource, auth authorizer.Authorizer) (Storage, error) {
+func NewAuthorizedStorage(storage StorageScoper, rbacID metav1.GroupVersionResource, auth authorizer.Authorizer) (Storage, error) {
 	if storage.NamespaceScoped() {
 		return nil, errors.New("namespace-scoped resources are not supported")
 	}
 	s := &authorizedStorage{
 		storage:    storage,
-		authorizer: NewAuthorizer(rbacNamespace, auth),
+		authorizer: NewAuthorizer(rbacID, auth),
 	}
 	if _, ok := storage.(rest.Lister); ok {
 		return &authorizedStorageWithLister{s}, nil

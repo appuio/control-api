@@ -321,7 +321,7 @@ func ctxWithInfo(verb string, name string) context.Context {
 		})
 }
 
-func mustAuthorizedStorage(t *testing.T, base authwrapper.StorageScoper, rbacNamespace metav1.GroupVersionResource, auth authorizer.Authorizer) authwrapper.Storage {
+func mustAuthorizedStorage(t *testing.T, base authwrapper.StorageScoper, rbacID metav1.GroupVersionResource, auth authorizer.Authorizer) authwrapper.Storage {
 	t.Helper()
 
 	s, err := authwrapper.NewAuthorizedStorage(base, gvr, auth)
