@@ -6,7 +6,7 @@ set -euo pipefail
 readonly script_dir=$(dirname "$0")
 readonly kind_cmd="${1:-kind}"
 readonly kind_cluster="${2:-control-api-localenv}"
-readonly kind_node_version="${3:-v1.22.1}"
+readonly kind_node_version="${3:-v1.25.3}"
 readonly kind_kubeconfig="${4:-"${script_dir}/control-api.kubeconfig"}"
 
 export KUBECONFIG="${kind_kubeconfig}"
@@ -46,15 +46,20 @@ sed -e "s/REPLACEME/${realm_name}/g" "${script_dir}/templates/realm.json.tpl" > 
 
 echo -e "\033[1mUsing '${realm_name}' as your local-dev Keycloak realm\033[0m"
 
-step "Navigate to ${keycloak_url} and create a new realm by importing the '$(realpath "${script_dir}/realm.json")' file."
+step "Navigate to ${keycloak_url}/auth/admin/ and create a new realm by importing the '$(realpath "${script_dir}/realm.json")' file."
 
-step "Create a user in the new realm, grant it realm role 'admin'.\nMake sure the user has an email configured and 'Email Verified' is set to 'On'."
+step "Create a user in the new realm, grant it 'local-dev' client role 'admin'.\nMake sure the user has an email configured and 'Email Verified' is set to 'On'."
 
 echo ""
 echo -e "\033[1m================================================================================"
 echo "Note: After the cluster is created, a browser window will open where you have to sign in to Keycloak with the user you've created in the previous step."
 echo -e "================================================================================\033[0m"
 echo ""
+
+base64_no_wrap='base64'
+if [[ "$OSTYPE" == "linux"* ]]; then
+  base64_no_wrap='base64 --wrap 0'
+fi
 
 sed -e "s#ISSUER_KEYCLOAK#${keycloak_url}#; s/REALM/${realm_name}/g" "${script_dir}/templates/kind-oidc.yaml.tpl" > "${script_dir}/.kind-oidc.yaml"
 ${kind_cmd} create cluster \
@@ -130,7 +135,7 @@ kubectl patch validatingwebhookconfiguration validating-webhook-configuration \
       {
         "name": "validate-users.appuio.io",
         "clientConfig": {
-          "caBundle": "'"$(base64 -w0 "${script_dir}"/webhook-certs/tls.crt)"'"
+          "caBundle": "'"$(eval $base64_no_wrap < "${script_dir}"/webhook-certs/tls.crt)"'"
         }
       }
     ]

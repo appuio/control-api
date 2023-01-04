@@ -61,7 +61,7 @@ When running kind on Linux you can find it with `docker inspect`.
 On some docker distributions the host IP is accessible via `host.docker.internal`.
 
 ```bash
-HOSTIP=$(docker inspect control-api-v1.22.1-control-plane | jq '.[0].NetworkSettings.Networks.kind.Gateway')
+HOSTIP=$(docker inspect control-api-v1.25.3-control-plane | jq '.[0].NetworkSettings.Networks.kind.Gateway')
 # HOSTIP=host.docker.internal # On some docker distributions
 
 cat <<EOF | sed -e "s/172.21.0.1/$HOSTIP/g" | kubectl apply -f -
@@ -128,7 +128,7 @@ To access the locally running controller webhook server, you need to register it
 You can do this by applying the following manifests:
 
 ```
-HOSTIP=$(docker inspect control-api-v1.22.1-control-plane | jq '.[0].NetworkSettings.Networks.kind.Gateway')
+HOSTIP=$(docker inspect control-api-v1.25.3-control-plane | jq '.[0].NetworkSettings.Networks.kind.Gateway')
 
 cat <<EOF | sed -e "s/172.21.0.1/$HOSTIP/g" | kubectl apply -f -
 apiVersion: v1
