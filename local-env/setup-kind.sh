@@ -46,7 +46,7 @@ sed -e "s/REPLACEME/${realm_name}/g" "${script_dir}/templates/realm.json.tpl" > 
 
 echo -e "\033[1mUsing '${realm_name}' as your local-dev Keycloak realm\033[0m"
 
-step "Navigate to ${keycloak_url} and create a new realm by importing the '$(realpath "${script_dir}/realm.json")' file."
+step "Navigate to ${keycloak_url}/auth/admin/ and create a new realm by importing the '$(realpath "${script_dir}/realm.json")' file."
 
 step "Create a user in the new realm, grant it realm role 'admin'.\nMake sure the user has an email configured and 'Email Verified' is set to 'On'."
 
