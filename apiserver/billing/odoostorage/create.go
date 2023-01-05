@@ -11,8 +11,6 @@ import (
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 )
 
-var _ rest.Creater = &billingEntityStorage{}
-
 func (s *billingEntityStorage) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	be, ok := obj.(*billingv1.BillingEntity)
 	if !ok {

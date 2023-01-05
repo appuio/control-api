@@ -11,8 +11,6 @@ import (
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 )
 
-var _ rest.Lister = &billingEntityStorage{}
-
 func (s billingEntityStorage) NewList() runtime.Object {
 	return &billingv1.BillingEntityList{}
 }
