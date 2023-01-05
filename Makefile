@@ -64,8 +64,10 @@ clean: ## Cleans up the generated resources
 
 .PHONY: run-api
 KUBECONFIG ?= ~/.kube/config
+BE_STORAGE ?= fake
+BE_ODOO_URL ?= https://odoo.example.com
 run-api: build ## Starts control api apiserver against the current Kubernetes cluster (based on your local config)
-	$(BIN_FILENAME) api --secure-port 9443 --kubeconfig $(KUBECONFIG) --authentication-kubeconfig $(KUBECONFIG) --authorization-kubeconfig $(KUBECONFIG) --cluster-roles appuio-organization-viewer,appuio-organization-admin --username-prefix "appuio#"
+	$(BIN_FILENAME) api --secure-port 9443 --kubeconfig $(KUBECONFIG) --authentication-kubeconfig $(KUBECONFIG) --authorization-kubeconfig $(KUBECONFIG) --cluster-roles appuio-organization-viewer,appuio-organization-admin --username-prefix "appuio#" --billing-entity-storage $(BE_STORAGE) --billing-entity-odoo8-url $(BE_ODOO_URL)
 
 .PHONY: run-controller
 run-controller: build ## Starts control api controller against the current Kubernetes cluster (based  on your local config)

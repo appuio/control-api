@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"strings"
 
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client"
 )
@@ -12,15 +13,82 @@ type Partner struct {
 	ID int `json:"id,omitempty" yaml:"id,omitempty"`
 	// Name is the display name of the partner.
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
-	// PaymentTerm holds the terms of payment for the partner.
-	PaymentTerm OdooCompositeID `json:"property_payment_term,omitempty" yaml:"property_payment_term,omitempty"`
+
+	// CategoryID is the category of the partner.
+	CategoryID []int `json:"category_id,omitempty" yaml:"category_id,omitempty"`
+	// Lang is the language of the partner.
+	Lang string `json:"lang,omitempty" yaml:"lang,omitempty"`
+	// NotifyEmail is the email notification preference of the partner.
+	NotifyEmail string `json:"notify_email,omitempty" yaml:"notify_email,omitempty"`
 	// ParentID is set if a customer is a sub-account (payment contact, ...) of another customer (company) account.
 	Parent OdooCompositeID `json:"parent_id,omitempty" yaml:"parent_id,omitempty"`
+	// PaymentTerm holds the terms of payment for the partner.
+	PaymentTerm OdooCompositeID `json:"property_payment_term,omitempty" yaml:"property_payment_term,omitempty"`
+
+	// InvoiceContactName is the contact person for invoices.
+	InvoiceContactName string `json:"x_invoice_contact,omitempty" yaml:"x_invoice_contact,omitempty"`
+	// UseParentAddress is set if the partner uses the address of the parent partner.
+	UseParentAddress bool `json:"use_parent_address,omitempty" yaml:"use_parent_address,omitempty"`
+
+	// Street is the street address of the partner.
+	Street string `json:"street,omitempty" yaml:"street,omitempty"`
+	// Street2 is the second line of the street address of the partner.
+	Street2 string `json:"street2,omitempty" yaml:"street2,omitempty"`
+	// City is the city of the partner.
+	City string `json:"city,omitempty" yaml:"city,omitempty"`
+	// Zip is the zip code of the partner.
+	Zip string `json:"zip,omitempty" yaml:"zip,omitempty"`
+	// CountryID is the country of the partner.
+	CountryID OdooCompositeID `json:"country_id,omitempty" yaml:"country_id,omitempty"`
+
+	// EmailRaw is the email addresses of the partner, comma-separated.
+	EmailRaw string `json:"email,omitempty" yaml:"email,omitempty"`
+	// Phone is the phone number of the partner.
+	Phone string `json:"phone,omitempty" yaml:"phone,omitempty"`
+}
+
+func (p Partner) Emails() []string {
+	return splitCommaSeparated(p.EmailRaw)
+}
+
+func (p *Partner) SetEmails(emails []string) {
+	p.EmailRaw = strings.Join(emails, ", ")
+}
+
+func splitCommaSeparated(s string) []string {
+	p := strings.Split(s, ",")
+	for i, v := range p {
+		p[i] = strings.TrimSpace(v)
+	}
+	return p
 }
 
 // PartnerList holds the search results for Partner for deserialization
 type PartnerList struct {
 	Items []Partner `json:"records"`
+}
+
+// PartnerFields is the list of fields that are fetched for a partner.
+var PartnerFields = []string{
+	"name",
+
+	"category_id",
+	"lang",
+	"notify_email",
+	"parent_id",
+	"property_payment_term",
+
+	"x_invoice_contact",
+	"use_parent_address",
+
+	"street",
+	"street2",
+	"city",
+	"zip",
+	"country_id",
+
+	"email",
+	"phone",
 }
 
 // FetchPartnerByID searches for the partner by ID and returns the first entry in the result.
@@ -44,7 +112,7 @@ func (o Odoo) searchPartners(ctx context.Context, domainFilters []client.Filter)
 	err := o.querier.SearchGenericModel(ctx, client.SearchReadModel{
 		Model:  "res.partner",
 		Domain: domainFilters,
-		Fields: []string{"name", "property_payment_term", "parent_id"},
+		Fields: PartnerFields,
 	}, result)
 	return result.Items, err
 }
