@@ -26,14 +26,14 @@ type Partner struct {
 	PaymentTerm OdooCompositeID `json:"property_payment_term,omitempty" yaml:"property_payment_term,omitempty"`
 
 	// InvoiceContactName is the contact person for invoices.
-	InvoiceContactName string `json:"x_invoice_contact,omitempty" yaml:"x_invoice_contact,omitempty"`
+	InvoiceContactName Nullable[string] `json:"x_invoice_contact,omitempty" yaml:"x_invoice_contact,omitempty"`
 	// UseParentAddress is set if the partner uses the address of the parent partner.
 	UseParentAddress bool `json:"use_parent_address,omitempty" yaml:"use_parent_address,omitempty"`
 
 	// Street is the street address of the partner.
 	Street string `json:"street,omitempty" yaml:"street,omitempty"`
 	// Street2 is the second line of the street address of the partner.
-	Street2 string `json:"street2,omitempty" yaml:"street2,omitempty"`
+	Street2 Nullable[string] `json:"street2,omitempty" yaml:"street2,omitempty"`
 	// City is the city of the partner.
 	City string `json:"city,omitempty" yaml:"city,omitempty"`
 	// Zip is the zip code of the partner.

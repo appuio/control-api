@@ -63,13 +63,13 @@ func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.Billing
 			Emails: mainContact.Emails(),
 			Address: billingv1.BillingEntityAddress{
 				Line1:      mainContact.Street,
-				Line2:      mainContact.Street2,
+				Line2:      mainContact.Street2.Value,
 				City:       mainContact.City,
 				PostalCode: mainContact.Zip,
 				Country:    mainContact.CountryID.Name,
 			},
 			AccountingContact: billingv1.BillingEntityContact{
-				Name:   accountingContact.Name,
+				Name:   accountingContact.InvoiceContactName.Value,
 				Emails: accountingContact.Emails(),
 			},
 			LanguagePreference: "",
