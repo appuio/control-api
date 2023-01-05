@@ -11,6 +11,7 @@ import (
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	"github.com/appuio/control-api/apiserver/authwrapper"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage"
 )
 
 // New returns a new storage provider with RBAC authentication for BillingEntities
@@ -31,8 +32,8 @@ func New(stor authwrapper.StorageScoper) restbuilder.ResourceHandlerProvider {
 		}
 
 		stor := &createRBACWrapper{
-			storageCreator: astor.(storageCreator),
-			client:         c,
+			Storage: astor.(odoostorage.Storage),
+			client:  c,
 		}
 
 		return stor, nil

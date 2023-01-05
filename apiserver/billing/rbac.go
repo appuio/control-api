@@ -13,17 +13,13 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/filters"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
 
-type storageCreator interface {
-	rest.Storage
-	rest.Creater
-	rest.Scoper
-}
+	"github.com/appuio/control-api/apiserver/billing/odoostorage"
+)
 
 // createRBACWrapper is a wrapper around the storage that creates a ClusterRole and ClusterRoleBinding for each BillingEntity on creation.
 type createRBACWrapper struct {
-	storageCreator
+	odoostorage.Storage
 	client client.Client
 }
 
@@ -34,7 +30,7 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 	}
 	user := attr.GetUser()
 
-	createdObj, err := c.storageCreator.Create(ctx, obj, createValidation, opts)
+	createdObj, err := c.Storage.Create(ctx, obj, createValidation, opts)
 	if err != nil {
 		return createdObj, err
 	}
@@ -80,7 +76,7 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 	}
 
 	rollback := func() error {
-		if deleter, canDelete := c.storageCreator.(rest.GracefulDeleter); canDelete {
+		if deleter, canDelete := c.Storage.(rest.GracefulDeleter); canDelete {
 			_, _, err := deleter.Delete(ctx, objName, nil, &metav1.DeleteOptions{DryRun: opts.DryRun})
 			return err
 		}

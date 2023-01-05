@@ -10,7 +10,7 @@ import (
 )
 
 // New returns a new storage provider for Organizations
-func New() rest.Storage {
+func New() Storage {
 	return &billingEntityStorage{
 		storage: fake.NewFakeOdooStorage(false),
 	}
@@ -20,15 +20,22 @@ type billingEntityStorage struct {
 	storage odoo.OdooStorage
 }
 
-var _ rest.Storage = &billingEntityStorage{}
+type Storage interface {
+	rest.Storage
+	rest.Scoper
+
+	rest.CreaterUpdater
+	rest.Lister
+	rest.Getter
+}
+
+var _ Storage = &billingEntityStorage{}
 
 func (s billingEntityStorage) New() runtime.Object {
 	return &billingv1.BillingEntity{}
 }
 
 func (s billingEntityStorage) Destroy() {}
-
-var _ rest.Scoper = &billingEntityStorage{}
 
 func (s *billingEntityStorage) NamespaceScoped() bool {
 	return false

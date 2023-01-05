@@ -33,8 +33,8 @@ func Test_createRBACWrapper(t *testing.T) {
 	defer ctrl.Finish()
 
 	subject := &createRBACWrapper{
-		storageCreator: clusterScopedStorage{store},
-		client:         c,
+		Storage: clusterScopedStorage{store},
+		client:  c,
 	}
 
 	store.EXPECT().
@@ -62,8 +62,8 @@ func Test_createRBACWrapper_rollback(t *testing.T) {
 	defer ctrl.Finish()
 
 	subject := &createRBACWrapper{
-		storageCreator: clusterScopedStorage{store},
-		client:         c,
+		Storage: clusterScopedStorage{store},
+		client:  c,
 	}
 
 	store.EXPECT().
