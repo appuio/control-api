@@ -96,11 +96,11 @@ var PartnerFields = []string{
 }
 
 // FetchPartnerByID searches for the partner by ID and returns the first entry in the result.
-// If no result has been found, nil is returned without error.
-func (o Odoo) FetchPartnerByID(ctx context.Context, id int) (Partner, error) {
-	result, err := o.SearchPartners(ctx, []client.Filter{
+// If no result has been found, a not found error is returned.
+func (o Odoo) FetchPartnerByID(ctx context.Context, id int, domainFilters ...client.Filter) (Partner, error) {
+	result, err := o.SearchPartners(ctx, append(domainFilters,
 		[]any{"id", "in", []int{id}},
-	})
+	))
 	if err != nil {
 		return Partner{}, err
 	}

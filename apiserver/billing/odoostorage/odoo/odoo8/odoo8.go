@@ -19,6 +19,9 @@ import (
 // Used to identify the accounting contact of a company.
 const roleAccountCategory = 7
 
+var roleAccountFilter = []any{"category_id", "in", []int{roleAccountCategory}}
+var activeFilter = []any{"active", "in", []bool{true}}
+
 func NewOdoo8Storage(odooURL string, debugTransport bool) odoo.OdooStorage {
 	return &oodo8Storage{
 		odooURL:        odooURL,
@@ -43,7 +46,7 @@ func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.Billing
 	}
 	o := model.NewOdoo(session)
 
-	accountingContact, err := o.FetchPartnerByID(ctx, id)
+	accountingContact, err := o.FetchPartnerByID(ctx, id, roleAccountFilter, activeFilter)
 	if err != nil {
 		return nil, fmt.Errorf("fetching accounting contact by ID: %w", err)
 	}
@@ -52,7 +55,7 @@ func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.Billing
 		return nil, fmt.Errorf("accounting contact %d has no parent", id)
 	}
 
-	company, err := o.FetchPartnerByID(ctx, accountingContact.Parent.ID)
+	company, err := o.FetchPartnerByID(ctx, accountingContact.Parent.ID, activeFilter)
 	if err != nil {
 		return nil, fmt.Errorf("fetching parent %d of accounting contact %d failed: %w", accountingContact.Parent.ID, id, err)
 	}
@@ -71,7 +74,8 @@ func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, err
 	o := model.NewOdoo(session)
 
 	accPartners, err := o.SearchPartners(ctx, []client.Filter{
-		[]any{"category_id", "in", []int{roleAccountCategory}},
+		roleAccountFilter,
+		activeFilter,
 	})
 	if err != nil {
 		return nil, err
@@ -87,6 +91,7 @@ func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, err
 	}
 
 	companies, err := o.SearchPartners(ctx, []client.Filter{
+		activeFilter,
 		[]any{"id", "in", companyIDs},
 	})
 	if err != nil {
@@ -105,7 +110,7 @@ func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, err
 		}
 		mp, ok := companySet[p.Parent.ID]
 		if !ok {
-			l.Info("could not load parent partner", "parent_id", p.Parent.ID, "id", p.ID)
+			l.Info("could not load parent partner (maybe no longer active?)", "parent_id", p.Parent.ID, "id", p.ID)
 			continue
 		}
 		bes = append(bes, mapPartnersToBillingEntity(mp, p))
