@@ -22,7 +22,7 @@ type JSONRPCRequest struct {
 	Method string `json:"method,omitempty"`
 
 	// Params includes the actual request payload.
-	Params interface{} `json:"params,omitempty"`
+	Params any `json:"params,omitempty"`
 }
 
 var uuidGenerator = uuid.NewString
@@ -33,7 +33,7 @@ var uuidGenerator = uuid.NewString
 // * "jsonrpc" will be set to "2.0"
 // * "method" will be set to "call"
 // * "params" will be set to whatever was passed in
-func NewJSONRPCRequest(params interface{}) *JSONRPCRequest {
+func NewJSONRPCRequest(params any) *JSONRPCRequest {
 	return &JSONRPCRequest{
 		ID:      uuidGenerator(),
 		JSONRPC: "2.0",
@@ -67,13 +67,13 @@ type JSONRPCResponse struct {
 
 // JSONRPCError holds error information.
 type JSONRPCError struct {
-	Message string                 `json:"message,omitempty"`
-	Code    int                    `json:"code,omitempty"`
-	Data    map[string]interface{} `json:"data,omitempty"`
+	Message string         `json:"message,omitempty"`
+	Code    int            `json:"code,omitempty"`
+	Data    map[string]any `json:"data,omitempty"`
 }
 
 // DecodeResult takes a buffer, decodes the intermediate JSONRPCResponse and then the contained "result" field into "result".
-func DecodeResult(buf io.Reader, result interface{}) error {
+func DecodeResult(buf io.Reader, result any) error {
 	// Decode intermediate
 	var res JSONRPCResponse
 	if err := json.NewDecoder(buf).Decode(&res); err != nil {

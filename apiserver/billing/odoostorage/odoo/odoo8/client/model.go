@@ -11,7 +11,7 @@ type SearchReadModel struct {
 
 // Filter to use in queries, usually in the format of
 // [predicate, operator, value], eg ["employee_id.user_id.id", "=", 123]
-type Filter interface{}
+type Filter any
 
 // Method identifies the type of write operation.
 type Method string
@@ -39,8 +39,8 @@ type WriteModel struct {
 	// Example:
 	//  Args[0] = [221]
 	//  Args[1] = {Name: "Updated Name"}
-	Args []interface{} `json:"args"`
+	Args []any `json:"args"`
 	// KWArgs is an additional object required to be non-nil, otherwise the request simply fails.
-	// In most cases it's enough to set it to `map[string]interface{}{}`.
-	KWArgs map[string]interface{} `json:"kwargs"`
+	// In most cases it's enough to set it to `map[string]any{}`.
+	KWArgs map[string]any `json:"kwargs"`
 }

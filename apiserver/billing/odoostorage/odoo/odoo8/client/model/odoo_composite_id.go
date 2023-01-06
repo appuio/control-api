@@ -31,7 +31,7 @@ func (t *OdooCompositeID) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 
-	var values []interface{}
+	var values []any
 	if err := json.Unmarshal(b, &values); err != nil {
 		return err
 	}
@@ -66,5 +66,5 @@ func (t *OdooCompositeID) UnmarshalJSON(b []byte) error {
 
 // MarshalJSON handles serialization of OdooCompositeID.
 func (t OdooCompositeID) MarshalJSON() ([]byte, error) {
-	return json.Marshal([...]interface{}{t.ID, t.Name})
+	return json.Marshal([...]any{t.ID, t.Name})
 }

@@ -39,7 +39,7 @@ func (s *billingEntityStorage) ConvertToTable(ctx context.Context, obj runtime.O
 		table.ColumnDefinitions = []metav1.TableColumnDefinition{
 			{Name: "Name", Type: "string", Format: "name", Description: desc["name"]},
 			{Name: "Display Name", Type: "string", Description: "Name of the billing entity"},
-			// {Name: "Age", Type: "date", Description: desc["creationTimestamp"]},
+			{Name: "Invoice Contact", Type: "string", Description: "Name of the contact person for invoices"},
 		}
 	}
 	return &table, nil
@@ -50,7 +50,7 @@ func beToTableRow(be *billingv1.BillingEntity) metav1.TableRow {
 		Cells: []any{
 			be.GetName(),
 			be.Spec.Name,
-			// duration.HumanDuration(time.Since(be.GetCreationTimestamp().Time))
+			be.Spec.AccountingContact.Name,
 		},
 		Object: runtime.RawExtension{Object: be},
 	}

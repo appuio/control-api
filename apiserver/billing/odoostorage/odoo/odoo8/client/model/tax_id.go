@@ -24,7 +24,7 @@ type InvoiceLineTaxID struct {
 
 // UnmarshalJSON handles deserialization of InvoiceLineTaxID.
 func (a *InvoiceLineTaxID) UnmarshalJSON(b []byte) error {
-	var params []interface{}
+	var params []any
 	if err := json.Unmarshal(b, &params); err != nil {
 		return err
 	}
@@ -48,9 +48,9 @@ func (a *InvoiceLineTaxID) UnmarshalJSON(b []byte) error {
 	if !ok {
 		return fmt.Errorf("expected second parameter to be of type bool, got %v", params[1])
 	}
-	p3, ok := params[2].([]interface{})
+	p3, ok := params[2].([]any)
 	if !ok {
-		return fmt.Errorf("expected third parameter to be of type []interface{}, got %v", params[2])
+		return fmt.Errorf("expected third parameter to be of type []any, got %v", params[2])
 	}
 	if len(p3) != 1 {
 		return fmt.Errorf("expected third parameter to contain %d element, got %d", 1, len(p3))
@@ -77,5 +77,5 @@ func (a InvoiceLineTaxID) MarshalJSON() ([]byte, error) {
 	}
 	p2 := a.secondParameter || secondParameterDefault
 
-	return json.Marshal([...]interface{}{p1, p2, [...]int{a.ID}})
+	return json.Marshal([...]any{p1, p2, [...]int{a.ID}})
 }

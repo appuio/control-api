@@ -16,6 +16,9 @@ import (
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client/model"
 )
 
+// Used to identify the accounting contact of a company.
+const roleAccountCategory = 7
+
 func NewOdoo8Storage(odooURL string, debugTransport bool) odoo.OdooStorage {
 	return &oodo8Storage{
 		odooURL:        odooURL,
@@ -49,12 +52,12 @@ func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.Billing
 		return nil, fmt.Errorf("accounting contact %d has no parent", id)
 	}
 
-	mainContact, err := o.FetchPartnerByID(ctx, accountingContact.Parent.ID)
+	company, err := o.FetchPartnerByID(ctx, accountingContact.Parent.ID)
 	if err != nil {
-		return nil, fmt.Errorf("fetching accounting contact by ID: %w", err)
+		return nil, fmt.Errorf("fetching parent %d of accounting contact %d failed: %w", accountingContact.Parent.ID, id, err)
 	}
 
-	be := mapPartnersToBillingEntity(mainContact, &accountingContact)
+	be := mapPartnersToBillingEntity(company, accountingContact)
 	return &be, nil
 }
 
@@ -67,8 +70,6 @@ func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, err
 	}
 	o := model.NewOdoo(session)
 
-	const roleAccountCategory = 7
-
 	accPartners, err := o.SearchPartners(ctx, []client.Filter{
 		[]any{"category_id", "in", []int{roleAccountCategory}},
 	})
@@ -76,25 +77,25 @@ func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, err
 		return nil, err
 	}
 
-	mainIDs := make([]int, 0, len(accPartners))
+	companyIDs := make([]int, 0, len(accPartners))
 	for _, p := range accPartners {
 		if !p.Parent.Valid {
 			l.Info("role account has no parent", "id", p.ID)
 			continue
 		}
-		mainIDs = append(mainIDs, p.Parent.ID)
+		companyIDs = append(companyIDs, p.Parent.ID)
 	}
 
-	mainPartners, err := o.SearchPartners(ctx, []client.Filter{
-		[]any{"id", "in", mainIDs},
+	companies, err := o.SearchPartners(ctx, []client.Filter{
+		[]any{"id", "in", companyIDs},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	mainPartnerSet := make(map[int]model.Partner)
-	for _, p := range mainPartners {
-		mainPartnerSet[p.ID] = p
+	companySet := make(map[int]model.Partner, len(companies))
+	for _, p := range companies {
+		companySet[p.ID] = p
 	}
 
 	bes := make([]billingv1.BillingEntity, 0, len(accPartners))
@@ -102,12 +103,12 @@ func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, err
 		if !p.Parent.Valid {
 			continue
 		}
-		mp, ok := mainPartnerSet[p.Parent.ID]
+		mp, ok := companySet[p.Parent.ID]
 		if !ok {
 			l.Info("could not load parent partner", "parent_id", p.Parent.ID, "id", p.ID)
 			continue
 		}
-		bes = append(bes, mapPartnersToBillingEntity(mp, &p))
+		bes = append(bes, mapPartnersToBillingEntity(mp, p))
 	}
 
 	return bes, nil
@@ -137,31 +138,26 @@ func odooIDToK8sID(id int) string {
 	return fmt.Sprintf("be-%d", id)
 }
 
-func mapPartnersToBillingEntity(main model.Partner, accounting *model.Partner) billingv1.BillingEntity {
-	acc := billingv1.BillingEntityContact{}
-	if accounting != nil {
-		acc = billingv1.BillingEntityContact{
-			Name:   accounting.InvoiceContactName.Value,
-			Emails: accounting.Emails(),
-		}
-	}
-
+func mapPartnersToBillingEntity(company model.Partner, accounting model.Partner) billingv1.BillingEntity {
 	return billingv1.BillingEntity{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: odooIDToK8sID(accounting.ID),
 		},
 		Spec: billingv1.BillingEntitySpec{
-			Name:   main.Name,
-			Phone:  main.Phone.Value,
-			Emails: main.Emails(),
+			Name:   company.Name + ", " + accounting.Name,
+			Phone:  company.Phone.Value,
+			Emails: company.Emails(),
 			Address: billingv1.BillingEntityAddress{
-				Line1:      main.Street.Value,
-				Line2:      main.Street2.Value,
-				City:       main.City.Value,
-				PostalCode: main.Zip.Value,
-				Country:    main.CountryID.Name,
+				Line1:      company.Street.Value,
+				Line2:      company.Street2.Value,
+				City:       company.City.Value,
+				PostalCode: company.Zip.Value,
+				Country:    company.CountryID.Name,
 			},
-			AccountingContact:  acc,
+			AccountingContact: billingv1.BillingEntityContact{
+				Name:   accounting.InvoiceContactName.Value,
+				Emails: accounting.Emails(),
+			},
 			LanguagePreference: "",
 		},
 	}
