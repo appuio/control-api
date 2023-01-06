@@ -10,13 +10,13 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
+	"k8s.io/klog/v2"
 )
 
 func TestClient_parseURL(t *testing.T) {
@@ -182,7 +182,7 @@ func TestLogin_BadResponse(t *testing.T) {
 
 func newTestContext(t *testing.T) context.Context {
 	zlogger := zaptest.NewLogger(t, zaptest.Level(zapcore.Level(-2)))
-	return logr.NewContext(context.Background(), zapr.NewLogger(zlogger))
+	return klog.NewContext(context.Background(), zapr.NewLogger(zlogger))
 }
 
 func newTestURL(t *testing.T, baseURL, username, password, db string) string {

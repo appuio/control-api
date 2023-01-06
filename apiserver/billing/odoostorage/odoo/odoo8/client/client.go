@@ -22,7 +22,7 @@ type Client struct {
 // ClientOptions configures the Odoo client.
 type ClientOptions struct {
 	// UseDebugLogger sets the http.Transport field of the internal http client with a transport implementation that logs the raw contents of requests and responses.
-	// The logger is retrieved from the request's context via logr.FromContextOrDiscard.
+	// The logger is retrieved from the request's context via klog.FromContext.
 	// The log level used is '2'.
 	// Any "password":"..." byte content is replaced with a placeholder to avoid leaking credentials.
 	// Still, this should not be called in production as other sensitive information might be leaked.

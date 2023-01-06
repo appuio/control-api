@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/go-logr/logr"
+	"k8s.io/klog/v2"
 )
 
 type debugTransport struct {
@@ -29,7 +29,7 @@ func (c Client) useDebugLogger(enabled bool) {
 
 // RoundTrip implements http.RoundTripper.
 func (t *debugTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	logger := logr.FromContextOrDiscard(r.Context())
+	logger := klog.FromContext(r.Context())
 	if r.Body != nil {
 		reqBody, _ := r.GetBody()
 		defer reqBody.Close()
