@@ -17,6 +17,9 @@ import (
 	"github.com/appuio/control-api/apiserver/billing/odoostorage"
 )
 
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=get;list;watch;create;delete;patch;update;edit
+// +kubebuilder:rbac:groups=rbac.appuio.io,resources=billingentities,verbs=*
+
 // createRBACWrapper is a wrapper around the storage that creates a ClusterRole and ClusterRoleBinding for each BillingEntity on creation.
 type createRBACWrapper struct {
 	odoostorage.Storage
