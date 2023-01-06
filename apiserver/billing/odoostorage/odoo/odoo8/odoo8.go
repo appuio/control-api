@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo"
@@ -53,32 +54,63 @@ func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.Billing
 		return nil, fmt.Errorf("fetching accounting contact by ID: %w", err)
 	}
 
-	return &billingv1.BillingEntity{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: billingv1.BillingEntitySpec{
-			Name:   mainContact.Name,
-			Phone:  mainContact.Phone,
-			Emails: mainContact.Emails(),
-			Address: billingv1.BillingEntityAddress{
-				Line1:      mainContact.Street,
-				Line2:      mainContact.Street2.Value,
-				City:       mainContact.City,
-				PostalCode: mainContact.Zip,
-				Country:    mainContact.CountryID.Name,
-			},
-			AccountingContact: billingv1.BillingEntityContact{
-				Name:   accountingContact.InvoiceContactName.Value,
-				Emails: accountingContact.Emails(),
-			},
-			LanguagePreference: "",
-		},
-	}, nil
+	be := mapPartnersToBillingEntity(mainContact, &accountingContact)
+	return &be, nil
 }
 
 func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, error) {
-	return []billingv1.BillingEntity{}, nil
+	l := klog.FromContext(ctx)
+
+	session, err := s.newSession(ctx)
+	if err != nil {
+		return nil, err
+	}
+	o := model.NewOdoo(session)
+
+	const roleAccountCategory = 7
+
+	accPartners, err := o.SearchPartners(ctx, []client.Filter{
+		[]any{"category_id", "in", []int{roleAccountCategory}},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	mainIDs := make([]int, 0, len(accPartners))
+	for _, p := range accPartners {
+		if !p.Parent.Valid {
+			l.Info("role account has no parent", "id", p.ID)
+			continue
+		}
+		mainIDs = append(mainIDs, p.Parent.ID)
+	}
+
+	mainPartners, err := o.SearchPartners(ctx, []client.Filter{
+		[]any{"id", "in", mainIDs},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	mainPartnerSet := make(map[int]model.Partner)
+	for _, p := range mainPartners {
+		mainPartnerSet[p.ID] = p
+	}
+
+	bes := make([]billingv1.BillingEntity, 0, len(accPartners))
+	for _, p := range accPartners {
+		if !p.Parent.Valid {
+			continue
+		}
+		mp, ok := mainPartnerSet[p.Parent.ID]
+		if !ok {
+			l.Info("could not load parent partner", "parent_id", p.Parent.ID, "id", p.ID)
+			continue
+		}
+		bes = append(bes, mapPartnersToBillingEntity(mp, &p))
+	}
+
+	return bes, nil
 }
 
 func (s *oodo8Storage) Create(ctx context.Context, be *billingv1.BillingEntity) error {
@@ -103,4 +135,34 @@ func k8sIDToOdooID(id string) (int, error) {
 
 func odooIDToK8sID(id int) string {
 	return fmt.Sprintf("be-%d", id)
+}
+
+func mapPartnersToBillingEntity(main model.Partner, accounting *model.Partner) billingv1.BillingEntity {
+	acc := billingv1.BillingEntityContact{}
+	if accounting != nil {
+		acc = billingv1.BillingEntityContact{
+			Name:   accounting.InvoiceContactName.Value,
+			Emails: accounting.Emails(),
+		}
+	}
+
+	return billingv1.BillingEntity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: odooIDToK8sID(accounting.ID),
+		},
+		Spec: billingv1.BillingEntitySpec{
+			Name:   main.Name,
+			Phone:  main.Phone.Value,
+			Emails: main.Emails(),
+			Address: billingv1.BillingEntityAddress{
+				Line1:      main.Street.Value,
+				Line2:      main.Street2.Value,
+				City:       main.City.Value,
+				PostalCode: main.Zip.Value,
+				Country:    main.CountryID.Name,
+			},
+			AccountingContact:  acc,
+			LanguagePreference: "",
+		},
+	}
 }

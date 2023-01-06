@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client"
@@ -17,7 +18,7 @@ type Partner struct {
 	// CategoryID is the category of the partner.
 	CategoryID []int `json:"category_id,omitempty" yaml:"category_id,omitempty"`
 	// Lang is the language of the partner.
-	Lang string `json:"lang,omitempty" yaml:"lang,omitempty"`
+	Lang Nullable[string] `json:"lang,omitempty" yaml:"lang,omitempty"`
 	// NotifyEmail is the email notification preference of the partner.
 	NotifyEmail string `json:"notify_email,omitempty" yaml:"notify_email,omitempty"`
 	// ParentID is set if a customer is a sub-account (payment contact, ...) of another customer (company) account.
@@ -31,31 +32,34 @@ type Partner struct {
 	UseParentAddress bool `json:"use_parent_address,omitempty" yaml:"use_parent_address,omitempty"`
 
 	// Street is the street address of the partner.
-	Street string `json:"street,omitempty" yaml:"street,omitempty"`
+	Street Nullable[string] `json:"street,omitempty" yaml:"street,omitempty"`
 	// Street2 is the second line of the street address of the partner.
 	Street2 Nullable[string] `json:"street2,omitempty" yaml:"street2,omitempty"`
 	// City is the city of the partner.
-	City string `json:"city,omitempty" yaml:"city,omitempty"`
+	City Nullable[string] `json:"city,omitempty" yaml:"city,omitempty"`
 	// Zip is the zip code of the partner.
-	Zip string `json:"zip,omitempty" yaml:"zip,omitempty"`
+	Zip Nullable[string] `json:"zip,omitempty" yaml:"zip,omitempty"`
 	// CountryID is the country of the partner.
 	CountryID OdooCompositeID `json:"country_id,omitempty" yaml:"country_id,omitempty"`
 
 	// EmailRaw is the email addresses of the partner, comma-separated.
-	EmailRaw string `json:"email,omitempty" yaml:"email,omitempty"`
+	EmailRaw Nullable[string] `json:"email,omitempty" yaml:"email,omitempty"`
 	// Phone is the phone number of the partner.
-	Phone string `json:"phone,omitempty" yaml:"phone,omitempty"`
+	Phone Nullable[string] `json:"phone,omitempty" yaml:"phone,omitempty"`
 }
 
 func (p Partner) Emails() []string {
-	return splitCommaSeparated(p.EmailRaw)
+	return splitCommaSeparated(p.EmailRaw.Value)
 }
 
 func (p *Partner) SetEmails(emails []string) {
-	p.EmailRaw = strings.Join(emails, ", ")
+	p.EmailRaw = Nullable[string]{Valid: true, Value: strings.Join(emails, ", ")}
 }
 
 func splitCommaSeparated(s string) []string {
+	if s == "" {
+		return []string{}
+	}
 	p := strings.Split(s, ",")
 	for i, v := range p {
 		p[i] = strings.TrimSpace(v)
@@ -93,21 +97,20 @@ var PartnerFields = []string{
 
 // FetchPartnerByID searches for the partner by ID and returns the first entry in the result.
 // If no result has been found, nil is returned without error.
-func (o Odoo) FetchPartnerByID(ctx context.Context, id int) (*Partner, error) {
-	result, err := o.searchPartners(ctx, []client.Filter{
-		[]interface{}{"id", "in", []int{id}},
+func (o Odoo) FetchPartnerByID(ctx context.Context, id int) (Partner, error) {
+	result, err := o.SearchPartners(ctx, []client.Filter{
+		[]any{"id", "in", []int{id}},
 	})
 	if err != nil {
-		return nil, err
+		return Partner{}, err
 	}
 	if len(result) > 0 {
-		return &result[0], nil
+		return result[0], nil
 	}
-	// not found
-	return nil, nil
+	return Partner{}, fmt.Errorf("partner with ID %d: %w", id, errNotFound)
 }
 
-func (o Odoo) searchPartners(ctx context.Context, domainFilters []client.Filter) ([]Partner, error) {
+func (o Odoo) SearchPartners(ctx context.Context, domainFilters []client.Filter) ([]Partner, error) {
 	result := &PartnerList{}
 	err := o.querier.SearchGenericModel(ctx, client.SearchReadModel{
 		Model:  "res.partner",
