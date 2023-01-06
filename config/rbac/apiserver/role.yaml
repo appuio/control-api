@@ -94,7 +94,27 @@ rules:
 - apiGroups:
   - rbac.appuio.io
   resources:
+  - billingentities
+  verbs:
+  - '*'
+- apiGroups:
+  - rbac.appuio.io
+  resources:
   - organizations
+  verbs:
+  - create
+  - delete
+  - edit
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - clusterroles
   verbs:
   - create
   - delete
