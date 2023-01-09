@@ -14,6 +14,8 @@ type Partner struct {
 	ID int `json:"id,omitempty" yaml:"id,omitempty"`
 	// Name is the display name of the partner.
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	// CreationTimestamp is the creation date of the partner.
+	CreationTimestamp client.Date `json:"create_date,omitempty" yaml:"create_date,omitempty"`
 
 	// CategoryID is the category of the partner.
 	CategoryID []int `json:"category_id,omitempty" yaml:"category_id,omitempty"`
@@ -75,6 +77,7 @@ type PartnerList struct {
 // PartnerFields is the list of fields that are fetched for a partner.
 var PartnerFields = []string{
 	"name",
+	"create_date",
 
 	"category_id",
 	"lang",

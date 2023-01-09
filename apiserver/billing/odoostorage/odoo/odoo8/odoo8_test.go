@@ -3,6 +3,7 @@ package odoo8
 import (
 	"context"
 	"testing"
+	"time"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client"
@@ -18,14 +19,17 @@ func TestGet(t *testing.T) {
 	ctrl, mock, subject := createStorage(t)
 	defer ctrl.Finish()
 
+	tn := time.Now()
+
 	gomock.InOrder(
 		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
 			Items: []model.Partner{
 				{
-					ID:       456,
-					Name:     "Accounting",
-					Parent:   model.OdooCompositeID{ID: 123, Valid: true},
-					EmailRaw: model.Nullable[string]{Valid: true, Value: "accounting@test.com, notifications@test.com"},
+					ID:                456,
+					Name:              "Accounting",
+					CreationTimestamp: client.Date(tn),
+					Parent:            model.OdooCompositeID{ID: 123, Valid: true},
+					EmailRaw:          model.Nullable[string]{Valid: true, Value: "accounting@test.com, notifications@test.com"},
 				},
 			},
 		}).Return(nil),
@@ -40,7 +44,8 @@ func TestGet(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, &billingv1.BillingEntity{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "be-456",
+			Name:              "be-456",
+			CreationTimestamp: metav1.Time{Time: tn},
 		},
 		Spec: billingv1.BillingEntitySpec{
 			Name:   "Test Company, Accounting",
@@ -125,11 +130,13 @@ func TestList(t *testing.T) {
 					Parent: model.OdooCompositeID{ID: 124, Valid: true},
 				},
 				{
+					// Can't load parent
 					ID:     458,
 					Name:   "Accounting",
 					Parent: model.OdooCompositeID{ID: 99999, Valid: true},
 				},
 				{
+					// No parent
 					ID:     459,
 					Name:   "Accounting",
 					Parent: model.OdooCompositeID{Valid: false},

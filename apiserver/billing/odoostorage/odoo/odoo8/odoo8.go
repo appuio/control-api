@@ -143,6 +143,9 @@ func mapPartnersToBillingEntity(company model.Partner, accounting model.Partner)
 	return billingv1.BillingEntity{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: odooIDToK8sID(accounting.ID),
+			CreationTimestamp: metav1.Time{
+				Time: accounting.CreationTimestamp.ToTime(),
+			},
 		},
 		Spec: billingv1.BillingEntitySpec{
 			Name:   company.Name + ", " + accounting.Name,
