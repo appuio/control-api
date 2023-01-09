@@ -13,7 +13,7 @@ import (
 // NewFakeStorage returns a new storage provider for BillingEntities
 func NewFakeStorage(metadataSupport bool) Storage {
 	return &billingEntityStorage{
-		storage: fake.NewFakeOdooStorage(false),
+		storage: fake.NewFakeOdooStorage(metadataSupport),
 	}
 }
 
