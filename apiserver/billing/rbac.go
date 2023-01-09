@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"go.uber.org/multierr"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -12,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/filters"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/appuio/control-api/apiserver/billing/odoostorage"
@@ -83,7 +83,7 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 			_, _, err := deleter.Delete(ctx, objName, nil, &metav1.DeleteOptions{DryRun: opts.DryRun})
 			return err
 		}
-		logr.FromContextOrDiscard(ctx).Info("storage does not implement GracefulDeleter, skipping rollback", "object", objName)
+		klog.FromContext(ctx).Info("storage does not implement GracefulDeleter, skipping rollback", "object", objName)
 		return nil
 	}
 

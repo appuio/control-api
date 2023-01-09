@@ -7,12 +7,20 @@ import (
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/fake"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8"
 )
 
-// New returns a new storage provider for Organizations
-func New() Storage {
+// NewFakeStorage returns a new storage provider for BillingEntities
+func NewFakeStorage(metadataSupport bool) Storage {
 	return &billingEntityStorage{
-		storage: fake.NewFakeOdooStorage(false),
+		storage: fake.NewFakeOdooStorage(metadataSupport),
+	}
+}
+
+// NewOdoo8Storage returns a new storage provider for BillingEntities
+func NewOdoo8Storage(odooURL string, debugTransport bool) Storage {
+	return &billingEntityStorage{
+		storage: odoo8.NewOdoo8Storage(odooURL, debugTransport),
 	}
 }
 
@@ -20,6 +28,7 @@ type billingEntityStorage struct {
 	storage odoo.OdooStorage
 }
 
+// Storage defines the features of a storage provider for BillingEntities
 type Storage interface {
 	rest.Storage
 	rest.Scoper
