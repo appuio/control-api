@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/endpoints/request"
 )
@@ -46,10 +47,7 @@ func TestOrganizationStorage_Update(t *testing.T) {
 		"GivenUpdateOrg_ThenSuccess": {
 			name: "foo",
 			updateFunc: func(obj runtime.Object) runtime.Object {
-				org, ok := obj.(*orgv1.Organization)
-				if !ok {
-					return nil
-				}
+				org := obj.(*orgv1.Organization).DeepCopy()
 				org.Spec.DisplayName = "New Foo Inc."
 				return org
 			},
@@ -70,6 +68,47 @@ func TestOrganizationStorage_Update(t *testing.T) {
 				},
 			},
 		},
+		"GivenUpdateOrg_ValidBillingEntity_ThenSuccess": {
+			name: "foo",
+			updateFunc: func(obj runtime.Object) runtime.Object {
+				org := obj.(*orgv1.Organization).DeepCopy()
+				org.Spec.BillingEntityRef = "foo"
+				return org
+			},
+
+			namespace: fooNs,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+
+			organization: &orgv1.Organization{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "foo",
+					Labels:      map[string]string{},
+					Annotations: map[string]string{},
+				},
+				Spec: orgv1.OrganizationSpec{
+					DisplayName:      "Foo Inc.",
+					BillingEntityRef: "foo",
+				},
+			},
+		},
+		"GivenUpdateOrg_InvalidBillingEntity_ThenFail": {
+			name: "foo",
+			updateFunc: func(obj runtime.Object) runtime.Object {
+				org := obj.(*orgv1.Organization).DeepCopy()
+				org.Spec.BillingEntityRef = "invalid"
+				return org
+			},
+
+			namespace: fooNs,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+
+			err: apierrors.NewBadRequest("failed to validate billing entity reference: billingentities.billing.appuio.io \"invalid\" not found"),
+		},
+
 		"GivenUpdateNonOrg_ThenFail": {
 			name:      "default",
 			namespace: defaultNs,
@@ -149,13 +188,18 @@ func TestOrganizationStorage_Update(t *testing.T) {
 				Return(tc.namespaceUpdateErr).
 				AnyTimes()
 
-			org, _, err := os.Update(request.WithRequestInfo(request.NewContext(),
-				&request.RequestInfo{
-					Verb:     "update",
-					APIGroup: orgv1.GroupVersion.Group,
-					Resource: "organizations",
-					Name:     tc.name,
-				}),
+			org, _, err := os.Update(
+				request.WithUser(
+					request.WithRequestInfo(request.NewContext(),
+						&request.RequestInfo{
+							Verb:     "update",
+							APIGroup: orgv1.GroupVersion.Group,
+							Resource: "organizations",
+							Name:     tc.name,
+						}),
+					&user.DefaultInfo{
+						Name: "appuio#foo",
+					}),
 				tc.name, testUpdateInfo(tc.updateFunc), nil, nil, false, nil)
 
 			if tc.err != nil {

@@ -18,29 +18,33 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 	createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc,
 	forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
 
-	newOrg := &orgv1.Organization{}
-
-	oldOrg, err := s.Get(ctx, name, nil)
-	if err != nil {
-
-		return nil, false, err
-	}
-
-	newObj, err := objInfo.UpdatedObject(ctx, oldOrg)
+	oldObj, err := s.Get(ctx, name, nil)
 	if err != nil {
 		return nil, false, err
 	}
+	oldOrg, ok := oldObj.(*orgv1.Organization)
+	if !ok {
+		return nil, false, fmt.Errorf("old object is not an organization")
+	}
 
+	newObj, err := objInfo.UpdatedObject(ctx, oldObj)
+	if err != nil {
+		return nil, false, err
+	}
 	newOrg, ok := newObj.(*orgv1.Organization)
 	if !ok {
 		return nil, false, fmt.Errorf("new object is not an organization")
 	}
 
 	if updateValidation != nil {
-		err = updateValidation(ctx, newOrg, oldOrg)
+		err = updateValidation(ctx, newOrg, oldObj)
 		if err != nil {
 			return nil, false, err
 		}
+	}
+
+	if err := s.billingEntityValidator(ctx, newOrg, oldOrg); err != nil {
+		return nil, false, fmt.Errorf("failed to validate billing entity reference: %w", err)
 	}
 
 	return newOrg, false, convertNamespaceError(s.namepaces.UpdateNamespace(ctx, newOrg.ToNamespace(), options))

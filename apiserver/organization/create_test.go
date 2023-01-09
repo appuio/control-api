@@ -48,6 +48,33 @@ func TestOrganizationStorage_Create(t *testing.T) {
 			memberName:      "smith",
 			organizationOut: fooOrg,
 		},
+		"GivenCreateOrgValidBillingEntity_ThenSuccess": {
+			userID: "appuio#smith",
+			organizationIn: func() *orgv1.Organization {
+				fooOrg := fooOrg.DeepCopy()
+				fooOrg.Spec.BillingEntityRef = "foo"
+				return fooOrg
+			}(),
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+			memberName:      "smith",
+			organizationOut: fooOrg,
+		},
+		"GivenCreateOrgInvalidBillingEntity_ThenFail": {
+			userID: "appuio#smith",
+			organizationIn: func() *orgv1.Organization {
+				fooOrg := fooOrg.DeepCopy()
+				fooOrg.Spec.BillingEntityRef = "blub"
+				return fooOrg
+			}(),
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+			memberName:       "smith",
+			err:              errors.New("failed to validate billing entity reference: billingentities.billing.appuio.io \"blub\" not found"),
+			skipRoleBindings: true,
+		},
 		"GivenCreateOrgFromNonAPPUiOUser_ThenSuccessButNoSA": {
 			userID:         "cluster-admin",
 			organizationIn: fooOrg,
