@@ -94,6 +94,7 @@ func (c Client) login(ctx context.Context) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	return c.decodeSession(resp)
 }
