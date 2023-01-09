@@ -24,14 +24,14 @@ var activeFilter = []any{"active", "in", []bool{true}}
 
 func NewOdoo8Storage(odooURL string, debugTransport bool) odoo.OdooStorage {
 	return &oodo8Storage{
-		odooURL:        odooURL,
-		debugTransport: debugTransport,
+		sessionCreator: func(ctx context.Context) (client.QueryExecutor, error) {
+			return client.Open(ctx, odooURL, client.ClientOptions{UseDebugLogger: debugTransport})
+		},
 	}
 }
 
 type oodo8Storage struct {
-	odooURL        string
-	debugTransport bool
+	sessionCreator func(ctx context.Context) (client.QueryExecutor, error)
 }
 
 func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.BillingEntity, error) {
@@ -40,7 +40,7 @@ func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.Billing
 		return nil, err
 	}
 
-	session, err := s.newSession(ctx)
+	session, err := s.sessionCreator(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.Billing
 func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, error) {
 	l := klog.FromContext(ctx)
 
-	session, err := s.newSession(ctx)
+	session, err := s.sessionCreator(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -125,10 +125,6 @@ func (s *oodo8Storage) Create(ctx context.Context, be *billingv1.BillingEntity) 
 
 func (s *oodo8Storage) Update(ctx context.Context, be *billingv1.BillingEntity) error {
 	return errors.New("not implemented")
-}
-
-func (s *oodo8Storage) newSession(ctx context.Context) (*client.Session, error) {
-	return client.Open(ctx, s.odooURL, client.ClientOptions{UseDebugLogger: s.debugTransport})
 }
 
 func k8sIDToOdooID(id string) (int, error) {
