@@ -25,6 +25,9 @@ func (s *organizationStorage) Create(ctx context.Context, obj runtime.Object, cr
 	if err := createValidation(ctx, obj); err != nil {
 		return nil, err
 	}
+	if err := s.billingEntityValidator(ctx, org, nil); err != nil {
+		return nil, fmt.Errorf("failed to validate billing entity reference: %w", err)
+	}
 
 	return s.create(ctx, org, options)
 }

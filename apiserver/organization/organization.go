@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
 	"github.com/appuio/control-api/apiserver/authwrapper"
@@ -27,14 +28,18 @@ import (
 // +kubebuilder:rbac:groups="flowcontrol.apiserver.k8s.io",resources=prioritylevelconfigurations;flowschemas,verbs=get;list;watch
 
 // New returns a new storage provider for Organizations
-func New(clusterRoles *[]string, usernamePrefix *string) restbuilder.ResourceHandlerProvider {
+func New(clusterRoles *[]string, usernamePrefix *string, allowEmptyBillingEntity *bool) restbuilder.ResourceHandlerProvider {
 	return func(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
+		masterConfig := loopback.GetLoopbackMasterClientConfig()
+
 		c, err := client.NewWithWatch(loopback.GetLoopbackMasterClientConfig(), client.Options{})
 		if err != nil {
 			return nil, err
 		}
-		err = controlv1.AddToScheme(c.Scheme())
-		if err != nil {
+		if err := controlv1.AddToScheme(c.Scheme()); err != nil {
+			return nil, err
+		}
+		if err := billingv1.AddToScheme(c.Scheme()); err != nil {
 			return nil, err
 		}
 
@@ -49,7 +54,9 @@ func New(clusterRoles *[]string, usernamePrefix *string) restbuilder.ResourceHan
 			members: kubeMemberProvider{
 				Client: c,
 			},
-			usernamePrefix: *usernamePrefix,
+			usernamePrefix:          *usernamePrefix,
+			impersonator:            impersonatorFromRestconf{masterConfig, client.Options{Scheme: c.Scheme()}},
+			allowEmptyBillingEntity: *allowEmptyBillingEntity,
 		}
 
 		return authwrapper.NewAuthorizedStorage(stor, metav1.GroupVersionResource{
@@ -68,6 +75,10 @@ type organizationStorage struct {
 
 	rbac         roleBindingCreator
 	clusterRoles []string
+
+	impersonator impersonator
+
+	allowEmptyBillingEntity bool
 }
 
 func (s organizationStorage) New() runtime.Object {
