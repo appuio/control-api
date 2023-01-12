@@ -19,6 +19,8 @@ var (
 	DisplayNameKey = "organization.appuio.io/display-name"
 	// BillingEntityRefKey is the annotation key that stores the billing entity reference
 	BillingEntityRefKey = "organization.appuio.io/billing-entity-ref"
+	// BillingEntityNameKey is the annotation key that stores the billing entity name
+	BillingEntityNameKey = "status.organization.appuio.io/billing-entity-name"
 )
 
 // NewOrganizationFromNS returns an Organization based on the given namespace
@@ -27,10 +29,11 @@ func NewOrganizationFromNS(ns *corev1.Namespace) *Organization {
 	if ns == nil || ns.Labels == nil || ns.Labels[TypeKey] != OrgType {
 		return nil
 	}
-	var displayName, billingEntityRef string
+	var displayName, billingEntityRef, billingEntityName string
 	if ns.Annotations != nil {
 		displayName = ns.Annotations[DisplayNameKey]
 		billingEntityRef = ns.Annotations[BillingEntityRefKey]
+		billingEntityName = ns.Annotations[BillingEntityNameKey]
 	}
 	org := &Organization{
 		ObjectMeta: *ns.ObjectMeta.DeepCopy(),
@@ -38,10 +41,14 @@ func NewOrganizationFromNS(ns *corev1.Namespace) *Organization {
 			DisplayName:      displayName,
 			BillingEntityRef: billingEntityRef,
 		},
+		Status: OrganizationStatus{
+			BillingEntityName: billingEntityName,
+		},
 	}
 	if org.Annotations != nil {
 		delete(org.Annotations, DisplayNameKey)
 		delete(org.Annotations, BillingEntityRefKey)
+		delete(org.Annotations, BillingEntityNameKey)
 		delete(org.Labels, TypeKey)
 	}
 	return org
@@ -56,6 +63,8 @@ type Organization struct {
 
 	// Spec holds the cluster specific metadata.
 	Spec OrganizationSpec `json:"spec,omitempty"`
+	// Status holds the organization specific status
+	Status OrganizationStatus `json:"status,omitempty"`
 }
 
 // OrganizationSpec defines the desired state of the Organization
@@ -65,6 +74,11 @@ type OrganizationSpec struct {
 
 	// BillingEntityRef is the reference to the billing entity
 	BillingEntityRef string `json:"billingEntityRef,omitempty"`
+}
+
+type OrganizationStatus struct {
+	// BillingEntityName is the name of the billing entity
+	BillingEntityName string `json:"billingEntityName,omitempty"`
 }
 
 // Organization needs to implement the builder resource interface
@@ -138,6 +152,7 @@ func (o *Organization) ToNamespace() *corev1.Namespace {
 	ns.Labels[TypeKey] = OrgType
 	ns.Annotations[DisplayNameKey] = o.Spec.DisplayName
 	ns.Annotations[BillingEntityRefKey] = o.Spec.BillingEntityRef
+	ns.Annotations[BillingEntityNameKey] = o.Status.BillingEntityName
 	return ns
 }
 

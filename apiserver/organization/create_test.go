@@ -53,6 +53,7 @@ func TestOrganizationStorage_Create(t *testing.T) {
 			organizationIn: func() *orgv1.Organization {
 				fooOrg := fooOrg.DeepCopy()
 				fooOrg.Spec.BillingEntityRef = "foo"
+				fooOrg.Status.BillingEntityName = "Foorg"
 				return fooOrg
 			}(),
 			authDecision: authResponse{

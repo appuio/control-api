@@ -2,12 +2,14 @@ package organization
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 )
 
@@ -26,6 +28,8 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 	if !ok {
 		return nil, false, fmt.Errorf("old object is not an organization")
 	}
+
+	objInfo = rest.WrapUpdatedObjectInfo(objInfo, filterStatusUpdates)
 
 	newObj, err := objInfo.UpdatedObject(ctx, oldObj)
 	if err != nil {
@@ -48,4 +52,28 @@ func (s *organizationStorage) Update(ctx context.Context, name string, objInfo r
 	}
 
 	return newOrg, false, convertNamespaceError(s.namepaces.UpdateNamespace(ctx, newOrg.ToNamespace(), options))
+}
+
+func filterStatusUpdates(ctx context.Context, newObj, oldObj runtime.Object) (transformedNewObj runtime.Object, err error) {
+	requestInfo, found := request.RequestInfoFrom(ctx)
+	if !found {
+		return nil, errors.New("no RequestInfo found in the context")
+	}
+
+	oldOrg, ok := oldObj.(*orgv1.Organization)
+	if !ok {
+		return nil, fmt.Errorf("old object is not an organization")
+	}
+	newOrg, ok := newObj.(*orgv1.Organization)
+	if !ok {
+		return nil, fmt.Errorf("new object is not an organization")
+	}
+
+	if requestInfo.Subresource == "status" {
+		withUpdatedStatus := oldOrg.DeepCopy()
+		withUpdatedStatus.Status = newOrg.Status
+		return withUpdatedStatus, nil
+	}
+	newOrg.Status = oldOrg.Status
+	return newOrg, nil
 }
