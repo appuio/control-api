@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
-	billingv1 "github.com/appuio/control-api/apis/billing/v1"
-	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client"
-	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client/clientmock"
-	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client/model"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	billingv1 "github.com/appuio/control-api/apis/billing/v1"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client/clientmock"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client/model"
 )
 
 func TestGet(t *testing.T) {
@@ -46,9 +47,12 @@ func TestGet(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "be-456",
 			CreationTimestamp: metav1.Time{Time: tn},
+			Annotations: map[string]string{
+				VSHNAccountingContactNameKey: "Accounting",
+			},
 		},
 		Spec: billingv1.BillingEntitySpec{
-			Name:   "Test Company, Accounting",
+			Name:   "Test Company",
 			Emails: []string{},
 			AccountingContact: billingv1.BillingEntityContact{
 				Emails: []string{
@@ -157,9 +161,12 @@ func TestList(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "be-456",
+				Annotations: map[string]string{
+					VSHNAccountingContactNameKey: "Accounting",
+				},
 			},
 			Spec: billingv1.BillingEntitySpec{
-				Name:   "Test Company, Accounting",
+				Name:   "Test Company",
 				Emails: []string{},
 				AccountingContact: billingv1.BillingEntityContact{
 					Emails: []string{},
@@ -168,9 +175,12 @@ func TestList(t *testing.T) {
 		}, {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "be-457",
+				Annotations: map[string]string{
+					VSHNAccountingContactNameKey: "Accounting",
+				},
 			},
 			Spec: billingv1.BillingEntitySpec{
-				Name:   "Foo Company, Accounting",
+				Name:   "Foo Company",
 				Emails: []string{},
 				AccountingContact: billingv1.BillingEntityContact{
 					Emails: []string{},
