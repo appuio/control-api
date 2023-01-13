@@ -21,6 +21,9 @@ func (s *organizationStorage) Create(ctx context.Context, obj runtime.Object, cr
 		return nil, fmt.Errorf("not an organization: %#v", obj)
 	}
 
+	// Status can only be updated (not created) though the status subresource
+	org.Status = orgv1.OrganizationStatus{}
+
 	// Validate Org
 	if err := createValidation(ctx, obj); err != nil {
 		return nil, err

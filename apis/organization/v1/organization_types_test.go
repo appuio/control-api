@@ -108,6 +108,9 @@ func TestOrganization_ToNamespace(t *testing.T) {
 					DisplayName:      "Foo Bar Inc.",
 					BillingEntityRef: "be-1234",
 				},
+				Status: OrganizationStatus{
+					BillingEntityName: "Fooaccounting",
+				},
 			},
 			namespace: &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -116,8 +119,9 @@ func TestOrganization_ToNamespace(t *testing.T) {
 						TypeKey: OrgType,
 					},
 					Annotations: map[string]string{
-						DisplayNameKey:      "Foo Bar Inc.",
-						BillingEntityRefKey: "be-1234",
+						DisplayNameKey:       "Foo Bar Inc.",
+						BillingEntityRefKey:  "be-1234",
+						BillingEntityNameKey: "Fooaccounting",
 					},
 				},
 			},
@@ -145,9 +149,10 @@ func TestOrganization_ToNamespace(t *testing.T) {
 						"foo":   "bar",
 					},
 					Annotations: map[string]string{
-						DisplayNameKey:      "Foo Bar Inc.",
-						BillingEntityRefKey: "",
-						"bar":               "buzz",
+						DisplayNameKey:       "Foo Bar Inc.",
+						BillingEntityRefKey:  "",
+						BillingEntityNameKey: "",
+						"bar":                "buzz",
 					},
 				},
 			},

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -18,6 +19,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
 
@@ -48,6 +50,9 @@ func ControllerCommand() *cobra.Command {
 	webhookCertDir := cmd.Flags().String("webhook-cert-dir", "", "Directory holding TLS certificate and key for the webhook server. If left empty, {TempDir}/k8s-webhook-server/serving-certs is used")
 	webhookPort := cmd.Flags().Int("webhook-port", 9443, "The port on which the admission webhooks are served")
 
+	beRefreshInterval := cmd.Flags().Duration("billing-entity-refresh-interval", 5*time.Minute, "The interval at which the billing entity cache is refreshed")
+	beRefreshJitter := cmd.Flags().Duration("billing-entity-refresh-jitter", time.Minute, "The jitter added to the interval at which the billing entity cache is refreshed")
+
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
 		setupLog := ctrl.Log.WithName("setup")
@@ -55,6 +60,7 @@ func ControllerCommand() *cobra.Command {
 		utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 		utilruntime.Must(orgv1.AddToScheme(scheme))
 		utilruntime.Must(controlv1.AddToScheme(scheme))
+		utilruntime.Must(billingv1.AddToScheme(scheme))
 		//+kubebuilder:scaffold:scheme
 
 		ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
@@ -64,6 +70,8 @@ func ControllerCommand() *cobra.Command {
 			*usernamePrefix,
 			*rolePrefix,
 			*memberRoles,
+			*beRefreshInterval,
+			*beRefreshJitter,
 			ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     *metricsAddr,
@@ -88,7 +96,7 @@ func ControllerCommand() *cobra.Command {
 	return cmd
 }
 
-func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, opt ctrl.Options) (ctrl.Manager, error) {
+func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, beRefreshInterval, beRefreshJitter time.Duration, opt ctrl.Options) (ctrl.Manager, error) {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opt)
 	if err != nil {
 		return nil, err
@@ -117,6 +125,17 @@ func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, opt c
 		if err = omr.SetupWithManager(mgr); err != nil {
 			return nil, err
 		}
+	}
+	obenc := &controllers.OrgBillingEntityNameCacheController{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("organization-billing-entity-name-cache-controller"),
+
+		RefreshInterval: beRefreshInterval,
+		RefreshJitter:   beRefreshJitter,
+	}
+	if err = obenc.SetupWithManager(mgr); err != nil {
+		return nil, err
 	}
 
 	mgr.GetWebhookServer().Register("/validate-appuio-io-v1-user", &webhook.Admission{

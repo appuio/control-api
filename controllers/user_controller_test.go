@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
 	. "github.com/appuio/control-api/controllers"
@@ -71,13 +72,10 @@ func prepareTest(t *testing.T, initObjs ...client.Object) client.WithWatch {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(orgv1.AddToScheme(scheme))
 	utilruntime.Must(controlv1.AddToScheme(scheme))
+	utilruntime.Must(billingv1.AddToScheme(scheme))
 
 	return fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(initObjs...).
 		Build()
-}
-
-func boolP(b bool) *bool {
-	return &b
 }

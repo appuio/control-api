@@ -43,12 +43,16 @@ func TestOrganizationStorage_Update(t *testing.T) {
 
 		organization *orgv1.Organization
 		err          error
+
+		subresource string
 	}{
 		"GivenUpdateOrg_ThenSuccess": {
 			name: "foo",
 			updateFunc: func(obj runtime.Object) runtime.Object {
 				org := obj.(*orgv1.Organization).DeepCopy()
 				org.Spec.DisplayName = "New Foo Inc."
+				// This can only be changed though the status subresource
+				org.Status.BillingEntityName = "New Foo Inc., Accounting"
 				return org
 			},
 
@@ -67,6 +71,34 @@ func TestOrganizationStorage_Update(t *testing.T) {
 					DisplayName: "New Foo Inc.",
 				},
 			},
+		},
+		"GivenUpdateOrgStatus_ThenSuccess": {
+			name: "foo",
+			updateFunc: func(obj runtime.Object) runtime.Object {
+				org := obj.(*orgv1.Organization).DeepCopy()
+				// Status subresource can only change the fields in the status
+				org.Spec.DisplayName = "New Foo Inc."
+				org.Status.BillingEntityName = "New Foo Inc., Accounting"
+				return org
+			},
+
+			namespace: fooNs,
+			authDecision: authResponse{
+				decision: authorizer.DecisionAllow,
+			},
+
+			organization: &orgv1.Organization{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "foo",
+					Labels:      map[string]string{},
+					Annotations: map[string]string{},
+				},
+				Spec: fooOrg.Spec,
+				Status: orgv1.OrganizationStatus{
+					BillingEntityName: "New Foo Inc., Accounting",
+				},
+			},
+			subresource: "status",
 		},
 		"GivenUpdateOrg_ValidBillingEntity_ThenSuccess": {
 			name: "foo",
@@ -192,10 +224,11 @@ func TestOrganizationStorage_Update(t *testing.T) {
 				request.WithUser(
 					request.WithRequestInfo(request.NewContext(),
 						&request.RequestInfo{
-							Verb:     "update",
-							APIGroup: orgv1.GroupVersion.Group,
-							Resource: "organizations",
-							Name:     tc.name,
+							Verb:        "update",
+							APIGroup:    orgv1.GroupVersion.Group,
+							Resource:    "organizations",
+							Name:        tc.name,
+							Subresource: tc.subresource,
 						}),
 					&user.DefaultInfo{
 						Name: "appuio#foo",

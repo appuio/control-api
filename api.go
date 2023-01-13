@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
@@ -20,6 +21,16 @@ import (
 	orgStore "github.com/appuio/control-api/apiserver/organization"
 )
 
+type organizationStatusRegisterer struct {
+	*orgv1.Organization
+}
+
+func (o organizationStatusRegisterer) GetGroupVersionResource() schema.GroupVersionResource {
+	gvr := o.Organization.GetGroupVersionResource()
+	gvr.Resource = fmt.Sprintf("%s/status", gvr.Resource)
+	return gvr
+}
+
 // APICommand creates a new command allowing to start the API server
 func APICommand() *cobra.Command {
 	roles := []string{}
@@ -27,9 +38,11 @@ func APICommand() *cobra.Command {
 	var allowEmptyBillingEntity bool
 
 	ob := &odooStorageBuilder{}
+	ost := orgStore.New(&roles, &usernamePrefix, &allowEmptyBillingEntity)
 
 	cmd, err := builder.APIServer.
-		WithResourceAndHandler(&orgv1.Organization{}, orgStore.New(&roles, &usernamePrefix, &allowEmptyBillingEntity)).
+		WithResourceAndHandler(&orgv1.Organization{}, ost).
+		WithResourceAndHandler(organizationStatusRegisterer{&orgv1.Organization{}}, ost).
 		WithResourceAndHandler(&billingv1.BillingEntity{}, ob.Build).
 		WithoutEtcd().
 		ExposeLoopbackAuthorizer().
