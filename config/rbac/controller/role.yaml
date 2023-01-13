@@ -63,6 +63,14 @@ rules:
   - patch
   - update
 - apiGroups:
+  - billing.appuio.io
+  resources:
+  - billingentities
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - organization.appuio.io
   resources:
   - organizations
@@ -85,6 +93,14 @@ rules:
 - apiGroups:
   - rbac.appuio.io
   resources:
+  - billingentities
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - rbac.appuio.io
+  resources:
   - organizations
   verbs:
   - create
@@ -94,6 +110,14 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - rbac.appuio.io
+  resources:
+  - organizations/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:

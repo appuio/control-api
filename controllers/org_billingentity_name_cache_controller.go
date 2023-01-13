@@ -25,9 +25,13 @@ type OrgBillingEntityNameCacheController struct {
 	RefreshJitter   time.Duration
 }
 
+//+kubebuilder:rbac:groups="rbac.appuio.io",resources=organizations,verbs=get;list;watch
 //+kubebuilder:rbac:groups="organization.appuio.io",resources=organizations,verbs=get;list;watch
+//+kubebuilder:rbac:groups="rbac.appuio.io",resources=organizations/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups="organization.appuio.io",resources=organizations/status,verbs=get;update;patch
 
+//+kubebuilder:rbac:groups="rbac.appuio.io",resources=billingentities,verbs=get;list;watch
+//+kubebuilder:rbac:groups="billing.appuio.io",resources=billingentities,verbs=get;list;watch
 
 // Reconcile periodically updates the organizations .status.billingEntityName field.
 func (r *OrgBillingEntityNameCacheController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
