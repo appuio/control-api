@@ -16,6 +16,8 @@ import (
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client/model"
 )
 
+const VSHNAccountingContactNameKey = "billing.appuio.io/vshn-accounting-contact-name"
+
 // Used to identify the accounting contact of a company.
 const roleAccountCategory = 7
 
@@ -146,9 +148,12 @@ func mapPartnersToBillingEntity(company model.Partner, accounting model.Partner)
 			CreationTimestamp: metav1.Time{
 				Time: accounting.CreationTimestamp.ToTime(),
 			},
+			Annotations: map[string]string{
+				VSHNAccountingContactNameKey: accounting.Name,
+			},
 		},
 		Spec: billingv1.BillingEntitySpec{
-			Name:   company.Name + ", " + accounting.Name,
+			Name:   company.Name,
 			Phone:  company.Phone.Value,
 			Emails: company.Emails(),
 			Address: billingv1.BillingEntityAddress{
