@@ -28,7 +28,8 @@ type OrgBillingEntityNameCacheController struct {
 //+kubebuilder:rbac:groups="organization.appuio.io",resources=organizations,verbs=get;list;watch
 //+kubebuilder:rbac:groups="organization.appuio.io",resources=organizations/status,verbs=get;update;patch
 
-// Reconcile reacts on changes of users and mirrors these changes to Keycloak
+
+// Reconcile periodically updates the organizations .status.billingEntityName field.
 func (r *OrgBillingEntityNameCacheController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	log.V(4).WithValues("request", req).Info("Reconciling")
