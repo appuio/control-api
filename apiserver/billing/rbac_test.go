@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/appuio/control-api/apiserver/authwrapper/mock"
-	"github.com/appuio/control-api/apiserver/authwrapper/testresource"
+	"github.com/appuio/control-api/apiserver/testresource"
 )
 
 func Test_createRBACWrapper(t *testing.T) {

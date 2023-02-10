@@ -1,0 +1,30 @@
+apiVersion: user.appuio.io/v1
+kind: Invitation
+metadata:
+  name: e303b166-5d66-4151-8f5f-b84ba84a7559
+spec:
+  note: "New employee dev1 (Delilah Vernon) starting 2020-04-01"
+  email: "dev1.int@acme.com"
+  # For billing entity invitations
+  targetRefs:
+  - apiGroup: "rbac.authorization.k8s.io"
+    kind: "ClusterRoleBinding"
+    name: "be-123-viewer"
+    namespace: ""
+  # OR
+  # For organization invitations
+  - apiGroup: "appuio.io"
+    kind: "OrganizationMembers"
+    name: "members"
+    namespace: "acme"
+  - apiGroup: "rbac.authorization.k8s.io"
+    kind: "RoleBinding"
+    name: "control-api:organization-admin"
+    namespace: "acme"
+  # OR
+  # For teams invitations
+  - apiGroup: "appuio.io"
+    kind: "Team"
+    name: "dev"
+    namespace: "acme"
+status: {}

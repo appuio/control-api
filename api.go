@@ -11,14 +11,18 @@ import (
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder"
+	"sigs.k8s.io/apiserver-runtime/pkg/util/loopback"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
+	userv1 "github.com/appuio/control-api/apis/user/v1"
 	"github.com/appuio/control-api/apiserver/authwrapper"
 	billingStore "github.com/appuio/control-api/apiserver/billing"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage"
 	orgStore "github.com/appuio/control-api/apiserver/organization"
+	"github.com/appuio/control-api/apiserver/secretstorage"
 )
 
 type organizationStatusRegisterer struct {
@@ -44,6 +48,17 @@ func APICommand() *cobra.Command {
 		WithResourceAndHandler(&orgv1.Organization{}, ost).
 		WithResourceAndHandler(organizationStatusRegisterer{&orgv1.Organization{}}, ost).
 		WithResourceAndHandler(&billingv1.BillingEntity{}, ob.Build).
+		WithResourceAndHandler(&userv1.Invitation{}, func(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
+			c, err := client.NewWithWatch(loopback.GetLoopbackMasterClientConfig(), client.Options{})
+			if err != nil {
+				return nil, err
+			}
+			err = userv1.AddToScheme(c.Scheme())
+			if err != nil {
+				return nil, err
+			}
+			return secretstorage.NewStorage(&userv1.Invitation{}, c, "default")
+		}).
 		WithoutEtcd().
 		ExposeLoopbackAuthorizer().
 		ExposeLoopbackMasterClientConfig().

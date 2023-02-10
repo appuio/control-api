@@ -18,7 +18,7 @@ import (
 
 	"github.com/appuio/control-api/apiserver/authwrapper"
 	"github.com/appuio/control-api/apiserver/authwrapper/mock"
-	"github.com/appuio/control-api/apiserver/authwrapper/testresource"
+	"github.com/appuio/control-api/apiserver/testresource"
 )
 
 var gvr = func() metav1.GroupVersionResource {
