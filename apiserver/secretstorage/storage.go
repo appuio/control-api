@@ -15,6 +15,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/server/storage"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
@@ -49,8 +51,13 @@ type secretStorage struct {
 	namespace string
 }
 
+type ScopedStandardStorage interface {
+	rest.StandardStorage
+	rest.Scoper
+}
+
 // NewStorage creates a new storage for the given object.
-func NewStorage(object resource.Object, cc client.WithWatch, backingNS string) (rest.StandardStorage, error) {
+func NewStorage(object resource.Object, cc client.WithWatch, backingNS string) (ScopedStandardStorage, error) {
 	// Supporting namespaced objects would need some way to create a unique hash out of the namespace and name.
 	// k8s.io/apiserver/pkg/endpoints/request.NamespaceFrom(ctx)
 	if object.NamespaceScoped() {
@@ -245,6 +252,7 @@ func (s *secretStorage) Update(
 		return nil, false, fmt.Errorf("failed to decode object: %w", err)
 	}
 
+	objInfo = rest.WrapUpdatedObjectInfo(objInfo, filterStatusUpdates)
 	newObj, err := objInfo.UpdatedObject(ctx, oldObj)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to calculate new object: %w", err)
@@ -289,6 +297,13 @@ func (s *secretStorage) create(ctx context.Context, obj runtime.Object, createVa
 	ac, err := apimeta.Accessor(obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to access object metadata: %w", err)
+	}
+
+	// Add empty status if the object supports it
+	// Status can only be modified through the status subresource and update calls
+	st, hasStatus := obj.(resource.ObjectWithStatusSubResource)
+	if hasStatus {
+		st.New().(resource.ObjectWithStatusSubResource).GetStatus().CopyTo(st)
 	}
 
 	if createValidation != nil {
@@ -361,4 +376,29 @@ func objectPatch(serialized []byte) (client.Patch, error) {
 		},
 	})
 	return client.RawPatch(types.StrategicMergePatchType, jp), err
+}
+
+// filterStatusUpdates handles the status subresource if the object supports it
+func filterStatusUpdates(ctx context.Context, newObj, oldObj runtime.Object) (transformedNewObj runtime.Object, err error) {
+	oldWithStatus, ok := oldObj.(resource.ObjectWithStatusSubResource)
+	if !ok {
+		return newObj, nil
+	}
+	newWithStatus, ok := newObj.(resource.ObjectWithStatusSubResource)
+	if !ok {
+		return newObj, nil
+	}
+	requestInfo, found := request.RequestInfoFrom(ctx)
+	if !found {
+		return nil, errors.New("no RequestInfo found in the context")
+	}
+
+	if requestInfo.Subresource == "status" {
+		withUpdatedStatus := oldWithStatus.DeepCopyObject().(resource.ObjectWithStatusSubResource)
+		newWithStatus.GetStatus().CopyTo(withUpdatedStatus)
+		return withUpdatedStatus, nil
+	}
+	// Status must be updated through the status subresource
+	oldWithStatus.GetStatus().CopyTo(newWithStatus)
+	return newWithStatus, nil
 }

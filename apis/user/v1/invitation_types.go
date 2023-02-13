@@ -60,7 +60,7 @@ type InvitationStatus struct {
 }
 
 // Invitation needs to implement the builder resource interface
-var _ resource.Object = &Invitation{}
+var _ resource.ObjectWithStatusSubResource = &Invitation{}
 
 // GetObjectMeta returns the objects meta reference.
 func (o *Invitation) GetObjectMeta() *metav1.ObjectMeta {
@@ -96,6 +96,20 @@ func (o *Invitation) New() runtime.Object {
 // NewList return a new list instance of the resource
 func (o *Invitation) NewList() runtime.Object {
 	return &InvitationList{}
+}
+
+// GetStatus returns the status of the resource
+func (o *Invitation) GetStatus() resource.StatusSubResource {
+	return &o.Status
+}
+
+// CopyTo copies the status to the given parent resource
+func (s *InvitationStatus) CopyTo(parent resource.ObjectWithStatusSubResource) {
+	parent.(*Invitation).Status = *s.DeepCopy()
+}
+
+func (s InvitationStatus) SubResourceName() string {
+	return "status"
 }
 
 // +kubebuilder:object:root=true
