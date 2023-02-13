@@ -19,6 +19,7 @@ import (
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
+	userv1 "github.com/appuio/control-api/apis/user/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
 	. "github.com/appuio/control-api/controllers"
 )
@@ -73,6 +74,7 @@ func prepareTest(t *testing.T, initObjs ...client.Object) client.WithWatch {
 	utilruntime.Must(orgv1.AddToScheme(scheme))
 	utilruntime.Must(controlv1.AddToScheme(scheme))
 	utilruntime.Must(billingv1.AddToScheme(scheme))
+	utilruntime.Must(userv1.AddToScheme(scheme))
 
 	return fake.NewClientBuilder().
 		WithScheme(scheme).

@@ -8,6 +8,8 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
+
+	"github.com/appuio/control-api/apiserver/secretstorage/status"
 )
 
 // +kubebuilder:object:root=true
@@ -26,7 +28,7 @@ type TestResourceWithStatusStatus struct {
 }
 
 // TestResourceWithStatus needs to implement the builder resource interface
-var _ resource.ObjectWithStatusSubResource = &TestResourceWithStatus{}
+var _ status.ObjectWithStatusSubResource = &TestResourceWithStatus{}
 
 // GetObjectMeta returns the objects meta reference.
 func (o *TestResourceWithStatus) GetObjectMeta() *metav1.ObjectMeta {
@@ -65,12 +67,12 @@ func (o *TestResourceWithStatus) NewList() runtime.Object {
 }
 
 // GetStatus returns the status of the resource
-func (o *TestResourceWithStatus) GetStatus() resource.StatusSubResource {
+func (o *TestResourceWithStatus) SecretStorageGetStatus() status.StatusSubResource {
 	return &o.Status
 }
 
 // CopyTo copies the status to the given parent resource
-func (s *TestResourceWithStatusStatus) CopyTo(parent resource.ObjectWithStatusSubResource) {
+func (s *TestResourceWithStatusStatus) SecretStorageCopyTo(parent status.ObjectWithStatusSubResource) {
 	parent.(*TestResourceWithStatus).Status = *s.DeepCopy()
 }
 

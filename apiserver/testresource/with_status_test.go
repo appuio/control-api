@@ -8,7 +8,7 @@ import (
 
 func TestStatus(t *testing.T) {
 	subject := &TestResourceWithStatus{}
-	(&TestResourceWithStatusStatus{Num: 7}).CopyTo(subject)
+	(&TestResourceWithStatusStatus{Num: 7}).SecretStorageCopyTo(subject)
 
-	require.Equal(t, 7, subject.GetStatus().(*TestResourceWithStatusStatus).Num)
+	require.Equal(t, 7, subject.SecretStorageGetStatus().(*TestResourceWithStatusStatus).Num)
 }

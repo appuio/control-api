@@ -20,6 +20,7 @@ import (
 	billingStore "github.com/appuio/control-api/apiserver/billing"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage"
 	orgStore "github.com/appuio/control-api/apiserver/organization"
+	"github.com/appuio/control-api/apiserver/secretstorage"
 	"github.com/appuio/control-api/apiserver/user"
 )
 
@@ -38,7 +39,7 @@ func APICommand() *cobra.Command {
 		WithResourceAndHandler(organizationStatusRegisterer{&orgv1.Organization{}}, ost).
 		WithResourceAndHandler(&billingv1.BillingEntity{}, ob.Build).
 		WithResourceAndHandler(&userv1.Invitation{}, ib.Build).
-		// WithResourceAndHandler(secretstorage.NewStatusSubResourceRegisterer(&userv1.Invitation{}), ib.Build).
+		WithResourceAndHandler(secretstorage.NewStatusSubResourceRegisterer(&userv1.Invitation{}), ib.Build).
 		WithoutEtcd().
 		ExposeLoopbackAuthorizer().
 		ExposeLoopbackMasterClientConfig().

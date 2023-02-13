@@ -94,7 +94,7 @@ func TestStatusSubresource(t *testing.T) {
 	_, err = s.Create(context.Background(), ttr, nil, &metav1.CreateOptions{})
 	require.NoError(t, err)
 	// Empty status on create, can only be set via the status subresource
-	require.Equal(t, 0, ttr.GetStatus().(*testresource.TestResourceWithStatusStatus).Num)
+	require.Equal(t, 0, ttr.SecretStorageGetStatus().(*testresource.TestResourceWithStatusStatus).Num)
 	testStatusValue(t, s, 0)
 
 	// Update the status
@@ -119,7 +119,7 @@ func testStatusValue(t *testing.T, s rest.Getter, expected int) {
 
 	ttr, err := s.Get(context.Background(), "test", &metav1.GetOptions{})
 	require.NoError(t, err)
-	require.Equal(t, expected, ttr.(*testresource.TestResourceWithStatus).GetStatus().(*testresource.TestResourceWithStatusStatus).Num)
+	require.Equal(t, expected, ttr.(*testresource.TestResourceWithStatus).SecretStorageGetStatus().(*testresource.TestResourceWithStatusStatus).Num)
 }
 
 func buildClient(t *testing.T, initObjs ...client.Object) client.WithWatch {

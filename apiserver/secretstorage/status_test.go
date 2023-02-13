@@ -3,8 +3,9 @@ package secretstorage
 import (
 	"testing"
 
-	"github.com/appuio/control-api/apiserver/testresource"
 	"github.com/stretchr/testify/require"
+
+	"github.com/appuio/control-api/apiserver/testresource"
 )
 
 func TestStatusSubResourceRegisterer(t *testing.T) {

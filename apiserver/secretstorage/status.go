@@ -4,7 +4,8 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
+
+	"github.com/appuio/control-api/apiserver/secretstorage/status"
 )
 
 // NewStatusSubResourceRegisterer returns a helper type to register a status subresource for a resource.
@@ -12,12 +13,12 @@ import (
 //	builder.APIServer.
 //		WithResourceAndHandler(&Resource{}, storage).
 //		WithResourceAndHandler(StatusSubResourceRegisterer{&Resource{}}, storage).
-func NewStatusSubResourceRegisterer(o resource.ObjectWithStatusSubResource) resource.ObjectWithStatusSubResource {
+func NewStatusSubResourceRegisterer(o status.ObjectWithStatusSubResource) status.ObjectWithStatusSubResource {
 	return statusSubResourceRegisterer{o}
 }
 
 type statusSubResourceRegisterer struct {
-	resource.ObjectWithStatusSubResource
+	status.ObjectWithStatusSubResource
 }
 
 func (o statusSubResourceRegisterer) GetGroupVersionResource() schema.GroupVersionResource {

@@ -32,6 +32,8 @@ import (
 	"k8s.io/apiserver/pkg/server/storage"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/appuio/control-api/apiserver/secretstorage/status"
 )
 
 const (
@@ -301,9 +303,9 @@ func (s *secretStorage) create(ctx context.Context, obj runtime.Object, createVa
 
 	// Add empty status if the object supports it
 	// Status can only be modified through the status subresource and update calls
-	st, hasStatus := obj.(resource.ObjectWithStatusSubResource)
+	st, hasStatus := obj.(status.ObjectWithStatusSubResource)
 	if hasStatus {
-		st.New().(resource.ObjectWithStatusSubResource).GetStatus().CopyTo(st)
+		st.New().(status.ObjectWithStatusSubResource).SecretStorageGetStatus().SecretStorageCopyTo(st)
 	}
 
 	if createValidation != nil {
@@ -380,11 +382,11 @@ func objectPatch(serialized []byte) (client.Patch, error) {
 
 // filterStatusUpdates handles the status subresource if the object supports it
 func filterStatusUpdates(ctx context.Context, newObj, oldObj runtime.Object) (transformedNewObj runtime.Object, err error) {
-	oldWithStatus, ok := oldObj.(resource.ObjectWithStatusSubResource)
+	oldWithStatus, ok := oldObj.(status.ObjectWithStatusSubResource)
 	if !ok {
 		return newObj, nil
 	}
-	newWithStatus, ok := newObj.(resource.ObjectWithStatusSubResource)
+	newWithStatus, ok := newObj.(status.ObjectWithStatusSubResource)
 	if !ok {
 		return newObj, nil
 	}
@@ -394,11 +396,11 @@ func filterStatusUpdates(ctx context.Context, newObj, oldObj runtime.Object) (tr
 	}
 
 	if requestInfo.Subresource == "status" {
-		withUpdatedStatus := oldWithStatus.DeepCopyObject().(resource.ObjectWithStatusSubResource)
-		newWithStatus.GetStatus().CopyTo(withUpdatedStatus)
+		withUpdatedStatus := oldWithStatus.DeepCopyObject().(status.ObjectWithStatusSubResource)
+		newWithStatus.SecretStorageGetStatus().SecretStorageCopyTo(withUpdatedStatus)
 		return withUpdatedStatus, nil
 	}
 	// Status must be updated through the status subresource
-	oldWithStatus.GetStatus().CopyTo(newWithStatus)
+	oldWithStatus.SecretStorageGetStatus().SecretStorageCopyTo(newWithStatus)
 	return newWithStatus, nil
 }

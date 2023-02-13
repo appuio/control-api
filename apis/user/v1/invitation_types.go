@@ -5,6 +5,8 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
+
+	"github.com/appuio/control-api/apiserver/secretstorage/status"
 )
 
 const (
@@ -52,15 +54,15 @@ type TargetRef struct {
 // InvitationStatus defines the observed state of the Invitation
 type InvitationStatus struct {
 	// Token is the invitation token
-	Token string `json:"token,omitempty"`
+	Token string `json:"token"`
 	// ValidUntil is the time when the invitation expires
-	ValidUntil metav1.Time `json:"validUntil,omitempty"`
+	ValidUntil metav1.Time `json:"validUntil"`
 	// Conditions is a list of conditions for the invitation
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions"`
 }
 
 // Invitation needs to implement the builder resource interface
-var _ resource.ObjectWithStatusSubResource = &Invitation{}
+var _ status.ObjectWithStatusSubResource = &Invitation{}
 
 // GetObjectMeta returns the objects meta reference.
 func (o *Invitation) GetObjectMeta() *metav1.ObjectMeta {
@@ -98,13 +100,13 @@ func (o *Invitation) NewList() runtime.Object {
 	return &InvitationList{}
 }
 
-// GetStatus returns the status of the resource
-func (o *Invitation) GetStatus() resource.StatusSubResource {
+// SecretStorageGetStatus returns the status of the resource
+func (o *Invitation) SecretStorageGetStatus() status.StatusSubResource {
 	return &o.Status
 }
 
 // CopyTo copies the status to the given parent resource
-func (s *InvitationStatus) CopyTo(parent resource.ObjectWithStatusSubResource) {
+func (s *InvitationStatus) SecretStorageCopyTo(parent status.ObjectWithStatusSubResource) {
 	parent.(*Invitation).Status = *s.DeepCopy()
 }
 
