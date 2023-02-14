@@ -36,6 +36,8 @@ import (
 	"github.com/appuio/control-api/apiserver/secretstorage/status"
 )
 
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+
 const (
 	secretObjectKey = "object"
 )
