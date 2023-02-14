@@ -15,7 +15,7 @@ import (
 	userv1 "github.com/appuio/control-api/apis/user/v1"
 )
 
-// InvitationTokenReconciler reconciles a User object
+// InvitationTokenReconciler reconciles invitations and adds a token to the status if required.
 type InvitationTokenReconciler struct {
 	client.Client
 
