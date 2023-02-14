@@ -101,6 +101,22 @@ rules:
 - apiGroups:
   - rbac.appuio.io
   resources:
+  - invitations
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - rbac.appuio.io
+  resources:
+  - invitations/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - rbac.appuio.io
+  resources:
   - organizations
   verbs:
   - create
@@ -142,3 +158,19 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - user.appuio.io
+  resources:
+  - invitations
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - user.appuio.io
+  resources:
+  - invitations/status
+  verbs:
+  - get
+  - patch
+  - update

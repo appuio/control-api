@@ -25,3 +25,18 @@ spec:
     name: control-api-apiserver
     namespace: control-api
   version: v1
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1.user.appuio.io
+spec:
+  insecureSkipTLSVerify: true
+  group: user.appuio.io
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  service:
+    name: apiserver
+    namespace: default
+    port: 9443
+  version: v1

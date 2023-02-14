@@ -21,6 +21,7 @@ import (
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
+	userv1 "github.com/appuio/control-api/apis/user/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
 
 	"github.com/appuio/control-api/controllers"
@@ -53,6 +54,8 @@ func ControllerCommand() *cobra.Command {
 	beRefreshInterval := cmd.Flags().Duration("billing-entity-refresh-interval", 5*time.Minute, "The interval at which the billing entity cache is refreshed")
 	beRefreshJitter := cmd.Flags().Duration("billing-entity-refresh-jitter", time.Minute, "The jitter added to the interval at which the billing entity cache is refreshed")
 
+	invTokenValidFor := cmd.Flags().Duration("invitation-valid-for", 30*24*time.Hour, "The duration an invitation token is valid for")
+
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
 		setupLog := ctrl.Log.WithName("setup")
@@ -61,6 +64,7 @@ func ControllerCommand() *cobra.Command {
 		utilruntime.Must(orgv1.AddToScheme(scheme))
 		utilruntime.Must(controlv1.AddToScheme(scheme))
 		utilruntime.Must(billingv1.AddToScheme(scheme))
+		utilruntime.Must(userv1.AddToScheme(scheme))
 		//+kubebuilder:scaffold:scheme
 
 		ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
@@ -72,6 +76,7 @@ func ControllerCommand() *cobra.Command {
 			*memberRoles,
 			*beRefreshInterval,
 			*beRefreshJitter,
+			*invTokenValidFor,
 			ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     *metricsAddr,
@@ -96,7 +101,7 @@ func ControllerCommand() *cobra.Command {
 	return cmd
 }
 
-func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, beRefreshInterval, beRefreshJitter time.Duration, opt ctrl.Options) (ctrl.Manager, error) {
+func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, beRefreshInterval, beRefreshJitter, invTokenValidFor time.Duration, opt ctrl.Options) (ctrl.Manager, error) {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opt)
 	if err != nil {
 		return nil, err
@@ -135,6 +140,16 @@ func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, beRef
 		RefreshJitter:   beRefreshJitter,
 	}
 	if err = obenc.SetupWithManager(mgr); err != nil {
+		return nil, err
+	}
+	invtoc := &controllers.InvitationTokenReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("invitation-token-controller"),
+
+		TokenValidFor: invTokenValidFor,
+	}
+	if err = invtoc.SetupWithManager(mgr); err != nil {
 		return nil, err
 	}
 

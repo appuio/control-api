@@ -8,17 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	billingv1 "github.com/appuio/control-api/apis/billing/v1"
-	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
 	. "github.com/appuio/control-api/controllers"
 )
@@ -65,17 +58,4 @@ func Test_UserController_Reconcile_Success(t *testing.T) {
 	assert.Equal(t, subject.Name, crb.OwnerReferences[0].Name, "owner reference name must match")
 	assert.Len(t, crb.Subjects, 1, "ClusterRoleBinding should have subject referencing the user")
 	assert.Equal(t, userPrefix+subject.Name, crb.Subjects[0].Name, "user name must match and include prefix")
-}
-
-func prepareTest(t *testing.T, initObjs ...client.Object) client.WithWatch {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(orgv1.AddToScheme(scheme))
-	utilruntime.Must(controlv1.AddToScheme(scheme))
-	utilruntime.Must(billingv1.AddToScheme(scheme))
-
-	return fake.NewClientBuilder().
-		WithScheme(scheme).
-		WithObjects(initObjs...).
-		Build()
 }
