@@ -1,0 +1,7 @@
+apiVersion: appuio.io/v1
+kind: Team
+metadata:
+  name: dev
+  namespace: example-org
+spec:
+  userRefs: []

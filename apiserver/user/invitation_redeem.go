@@ -7,9 +7,6 @@ import (
 	"strings"
 	"time"
 
-	controlv1 "github.com/appuio/control-api/apis/v1"
-	"go.uber.org/multierr"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -71,36 +68,19 @@ func (s *invitationRedeemer) Connect(ctx context.Context, name string, options r
 			return
 		}
 
-		{
-			var errs []error
-			for _, target := range inv.Spec.TargetRefs {
-				err := addUserToTargetGroup(ctx, s.client, user.GetName(), target, true)
-				if err != nil {
-					errs = append(errs, err)
-				}
-			}
-			if err := multierr.Combine(errs...); err != nil {
-				l.Error(err, "failed to add user to target groups (dry-run)")
-				responder.Error(fmt.Errorf("failed to add user to target groups (dry-run): %w", err))
-				return
+		ts := make([]userv1.TargetStatus, len(inv.Spec.TargetRefs))
+		for i, target := range inv.Spec.TargetRefs {
+			ts[i] = userv1.TargetStatus{
+				TargetRef: target,
+				Condition: metav1.Condition{
+					Type:   userv1.ConditionRedeemed,
+					Status: metav1.ConditionUnknown,
+				},
 			}
 		}
 
-		{
-			var errs []error
-			for _, target := range inv.Spec.TargetRefs {
-				err := addUserToTargetGroup(ctx, s.client, user.GetName(), target, false)
-				if err != nil {
-					errs = append(errs, err)
-				}
-			}
-			if err := multierr.Combine(errs...); err != nil {
-				l.Error(err, "failed to add user to target groups")
-				responder.Error(fmt.Errorf("failed to add user to target groups: %w", err))
-				return
-			}
-		}
-
+		inv.Status.TargetStatuses = ts
+		inv.Status.RedeemedBy = user.GetName()
 		apimeta.SetStatusCondition(&inv.Status.Conditions, metav1.Condition{
 			Type:    userv1.ConditionRedeemed,
 			Status:  metav1.ConditionTrue,
@@ -144,61 +124,4 @@ func unauthorized(resp rest.Responder) {
 		Code:   http.StatusUnauthorized,
 		Reason: metav1.StatusReasonUnauthorized,
 	})
-}
-
-func addUserToTargetGroup(ctx context.Context, c client.Client, user string, target userv1.TargetRef, dryrun bool) error {
-	var updateOpts []client.UpdateOption
-	if dryrun {
-		updateOpts = append(updateOpts, client.DryRunAll)
-	}
-
-	switch {
-	case target.APIGroup == "appuio.io" && target.Kind == "OrganizationMembers":
-		om := controlv1.OrganizationMembers{}
-		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &om); err != nil {
-			return err
-		}
-		om.Spec.UserRefs, _ = ensure(om.Spec.UserRefs, controlv1.UserRef{Name: user})
-		return c.Update(ctx, &om, updateOpts...)
-	case target.APIGroup == "appuio.io" && target.Kind == "Team":
-		te := controlv1.Team{}
-		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &te); err != nil {
-			return err
-		}
-		te.Spec.UserRefs, _ = ensure(te.Spec.UserRefs, controlv1.UserRef{Name: user})
-		return c.Update(ctx, &te, updateOpts...)
-	case target.APIGroup == "rbac.authorization.k8s.io" && target.Kind == "ClusterRoleBinding":
-		crb := rbacv1.ClusterRoleBinding{}
-		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &crb); err != nil {
-			return err
-		}
-		crb.Subjects, _ = ensure(crb.Subjects, newSubject(user))
-		return c.Update(ctx, &crb, updateOpts...)
-	case target.APIGroup == "rbac.authorization.k8s.io" && target.Kind == "RoleBinding":
-		rb := rbacv1.RoleBinding{}
-		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &rb); err != nil {
-			return err
-		}
-		rb.Subjects, _ = ensure(rb.Subjects, newSubject(user))
-		return c.Update(ctx, &rb, updateOpts...)
-	}
-
-	return fmt.Errorf("unsupported target %s.%s", target.APIGroup, target.Kind)
-}
-
-func ensure[T comparable](s []T, e T) (ret []T, added bool) {
-	for _, v := range s {
-		if v == e {
-			return s, false
-		}
-	}
-	return append(s, e), true
-}
-
-func newSubject(user string) rbacv1.Subject {
-	return rbacv1.Subject{
-		Kind:     rbacv1.UserKind,
-		APIGroup: rbacv1.GroupName,
-		Name:     user,
-	}
 }
