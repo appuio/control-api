@@ -21,6 +21,7 @@ func NewInvitationStorage(backingNS string) restbuilder.ResourceHandlerProvider 
 		if err != nil {
 			return nil, err
 		}
+
 		err = userv1.AddToScheme(c.Scheme())
 		if err != nil {
 			return nil, err
@@ -28,6 +29,12 @@ func NewInvitationStorage(backingNS string) restbuilder.ResourceHandlerProvider 
 		stor, err := secretstorage.NewStorage(&userv1.Invitation{}, c, backingNS)
 		if err != nil {
 			return nil, err
+		}
+
+		stor = &invitationRedeemer{
+			ScopedStandardStorage: stor,
+
+			client: c,
 		}
 
 		astor, err := authwrapper.NewAuthorizedStorage(stor, metav1.GroupVersionResource{

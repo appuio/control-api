@@ -18,9 +18,10 @@ import (
 
 //go:generate go run github.com/golang/mock/mockgen -destination=./mock/$GOFILE -package mock k8s.io/apiserver/pkg/registry/rest StandardStorage,Storage
 
-var _ rest.StandardStorage = &authorizedStorageWithLister{}
+var _ StandardStorage = &authorizedStorageWithLister{}
 
 type Storage interface {
+	rest.Connecter
 	rest.Storage
 
 	// Storage returns the underlying storage
@@ -28,6 +29,7 @@ type Storage interface {
 }
 
 type StandardStorage interface {
+	rest.Connecter
 	rest.StandardStorage
 
 	// Storage returns the underlying storage
@@ -231,6 +233,67 @@ func (s *authorizedStorage) Update(ctx context.Context, name string, objInfo res
 	}
 
 	return nil, false, newMethodNotSupported("update")
+}
+
+func (s *authorizedStorage) ConnectMethods() []string {
+	if c, ok := s.storage.(rest.Connecter); ok {
+		return c.ConnectMethods()
+	}
+	return []string{}
+}
+
+func (s *authorizedStorage) NewConnectOptions() (runtime.Object, bool, string) {
+	if c, ok := s.storage.(rest.Connecter); ok {
+		return c.NewConnectOptions()
+	}
+	return nil, false, ""
+}
+
+func (s *authorizedStorage) Connect(ctx context.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
+	if c, ok := s.storage.(rest.Connecter); ok {
+		return &authorizedConnectHandler{
+			Connecter:  c,
+			authorizer: s.authorizer,
+			ctx:        ctx,
+			name:       name,
+			options:    options,
+			responder:  responder,
+		}, nil
+	}
+
+	return &methodNotSupportedHandler{responder}, nil
+}
+
+type authorizedConnectHandler struct {
+	rest.Connecter
+	authorizer Authorizer
+
+	ctx       context.Context
+	name      string
+	options   runtime.Object
+	responder rest.Responder
+}
+
+func (h *authorizedConnectHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if err := h.authorizer.AuthorizeContext(h.ctx); err != nil {
+		h.responder.Error(err)
+		return
+	}
+
+	serv, err := h.Connecter.Connect(h.ctx, h.name, h.options, h.responder)
+	if err != nil {
+		h.responder.Error(err)
+		return
+	}
+	serv.ServeHTTP(w, req)
+}
+
+type methodNotSupportedHandler struct {
+	responder rest.Responder
+}
+
+func (m *methodNotSupportedHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	m.responder.Error(newMethodNotSupported(req.Method))
 }
 
 func newMethodNotSupported(action string) *apierrors.StatusError {

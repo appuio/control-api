@@ -1,6 +1,9 @@
 package v1
 
 import (
+	"net/url"
+
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -100,6 +103,11 @@ func (o *Invitation) NewList() runtime.Object {
 	return &InvitationList{}
 }
 
+// IsRedeemed returns true if the invitation has been redeemed
+func (o *Invitation) IsRedeemed() bool {
+	return apimeta.IsStatusConditionTrue(o.Status.Conditions, ConditionRedeemed)
+}
+
 // SecretStorageGetStatus returns the status of the resource
 func (o *Invitation) SecretStorageGetStatus() status.StatusSubResource {
 	return &o.Status
@@ -130,6 +138,22 @@ var _ resource.ObjectList = &InvitationList{}
 // GetListMeta returns the list meta reference.
 func (in *InvitationList) GetListMeta() *metav1.ListMeta {
 	return &in.ListMeta
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type RedeemOptions struct {
+	metav1.TypeMeta `json:",inline"`
+
+	Token string `json:"token"`
+}
+
+var _ resource.QueryParameterObject = &RedeemOptions{}
+
+// apiserver-runtime tracks its own version of the query parameter scheme.
+// Just registering the conversion functions to the scheme is not enough.
+// It also needs to implement the resource.QueryParameterObject interface.
+func (o *RedeemOptions) ConvertFromUrlValues(values *url.Values) error {
+	return convert_url_Values_To__RedeemOptions(values, o)
 }
 
 func init() {
