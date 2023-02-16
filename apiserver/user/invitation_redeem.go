@@ -40,16 +40,20 @@ func (ir *invitationRedeemer) NewConnectOptions() (runtime.Object, bool, string)
 	return &userv1.RedeemOptions{}, true, "token"
 }
 
+// Connect implements the REDEEM method for invitations.
+// It is used to redeem an invitation by a user.
+// The user is identified by the username in the request context.
+// The token is taken from the path.
+// If the invitation is valid, the invitation is marked as redeemed and the user and a snapshot of the users targets are stored in the status.
+// The snapshot is later used in a controller to add the user to the targets in an idempotent and retryable way.
+// If user or token are invalid, the request is rejected with a 403.
 func (s *invitationRedeemer) Connect(ctx context.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
+	l := klog.FromContext(ctx).WithName("InvitationRedeemer.Connect").WithValues("invitation", name)
 	opts := options.(*userv1.RedeemOptions)
-
-	l := klog.FromContext(ctx).WithName("InvitationRedeemer.Connect")
-	l.V(1).Info("called", "name", name, "token", opts.Token)
+	// Might come from the path, so we need to trim the leading slash
+	token := strings.TrimLeft(opts.Token, "/")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		// Might come from the path, so we need to trim the leading slash
-		token := strings.TrimLeft(opts.Token, "/")
-
 		inv := &userv1.Invitation{}
 		if err := s.client.Get(ctx, client.ObjectKey{Name: name}, inv); err != nil {
 			responder.Error(err)
@@ -58,13 +62,15 @@ func (s *invitationRedeemer) Connect(ctx context.Context, name string, options r
 
 		tokenValid := inv.Status.Token != "" && inv.Status.ValidUntil.After(time.Now())
 		if inv.IsRedeemed() || !tokenValid || inv.Status.Token != token {
-			unauthorized(responder)
+			l.Info("invalid token")
+			forbidden(responder)
 			return
 		}
 
 		user, ok := userFrom(ctx, s.usernamePrefix)
 		if !ok {
-			unauthorized(responder)
+			l.Info("no allowed user found in request context", "usernamePrefix", s.usernamePrefix)
+			forbidden(responder)
 			return
 		}
 
@@ -118,10 +124,10 @@ func userFrom(ctx context.Context, usernamePrefix string) (u user.Info, ok bool)
 	return user, true
 }
 
-func unauthorized(resp rest.Responder) {
-	resp.Object(http.StatusUnauthorized, &metav1.Status{
+func forbidden(resp rest.Responder) {
+	resp.Object(http.StatusForbidden, &metav1.Status{
 		Status: metav1.StatusFailure,
-		Code:   http.StatusUnauthorized,
+		Code:   http.StatusForbidden,
 		Reason: metav1.StatusReasonUnauthorized,
 	})
 }

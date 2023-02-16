@@ -39,7 +39,6 @@ func (r *InvitationRedeemReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	log := log.FromContext(ctx)
 	log.V(4).WithValues("request", req).Info("Reconciling")
 
-	log.V(4).Info("Getting the User...")
 	inv := userv1.Invitation{}
 	if err := r.Get(ctx, req.NamespacedName, &inv); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -105,14 +104,14 @@ func addUserToTarget(ctx context.Context, c client.Client, user string, target u
 		}
 		te.Spec.UserRefs, _ = ensure(te.Spec.UserRefs, controlv1.UserRef{Name: user})
 		return c.Update(ctx, &te)
-	case target.APIGroup == "rbac.authorization.k8s.io" && target.Kind == "ClusterRoleBinding":
+	case target.APIGroup == rbacv1.GroupName && target.Kind == "ClusterRoleBinding":
 		crb := rbacv1.ClusterRoleBinding{}
 		if err := c.Get(ctx, client.ObjectKey{Name: target.Name}, &crb); err != nil {
 			return err
 		}
 		crb.Subjects, _ = ensure(crb.Subjects, newSubject(user))
 		return c.Update(ctx, &crb)
-	case target.APIGroup == "rbac.authorization.k8s.io" && target.Kind == "RoleBinding":
+	case target.APIGroup == rbacv1.GroupName && target.Kind == "RoleBinding":
 		rb := rbacv1.RoleBinding{}
 		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &rb); err != nil {
 			return err
@@ -121,9 +120,12 @@ func addUserToTarget(ctx context.Context, c client.Client, user string, target u
 		return c.Update(ctx, &rb)
 	}
 
-	return fmt.Errorf("unsupported target %s.%s", target.APIGroup, target.Kind)
+	return fmt.Errorf("unsupported target %q.%q", target.APIGroup, target.Kind)
 }
 
+// ensure ensures that the given element is present in the given slice.
+// If the element is already present, the original slice is returned.
+// If the element is not present, a new slice is returned with the element appended.
 func ensure[T comparable](s []T, e T) (ret []T, added bool) {
 	for _, v := range s {
 		if v == e {

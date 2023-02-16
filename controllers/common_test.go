@@ -4,8 +4,10 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -27,4 +29,12 @@ func prepareTest(t *testing.T, initObjs ...client.Object) client.WithWatch {
 		WithScheme(scheme).
 		WithObjects(initObjs...).
 		Build()
+}
+
+func requestFor(obj client.Object) ctrl.Request {
+	return ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name: obj.GetName(),
+		},
+	}
 }
