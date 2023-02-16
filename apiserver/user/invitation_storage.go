@@ -15,7 +15,7 @@ import (
 )
 
 // New returns a new storage provider with RBAC authentication for BillingEntities
-func NewInvitationStorage(backingNS string) restbuilder.ResourceHandlerProvider {
+func NewInvitationStorage(backingNS, usernamePrefix string) restbuilder.ResourceHandlerProvider {
 	return func(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
 		c, err := client.NewWithWatch(loopback.GetLoopbackMasterClientConfig(), client.Options{})
 		if err != nil {
@@ -33,8 +33,8 @@ func NewInvitationStorage(backingNS string) restbuilder.ResourceHandlerProvider 
 
 		stor = &invitationRedeemer{
 			ScopedStandardStorage: stor,
-
-			client: c,
+			client:                c,
+			usernamePrefix:        usernamePrefix,
 		}
 
 		astor, err := authwrapper.NewAuthorizedStorage(stor, metav1.GroupVersionResource{
