@@ -19,10 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	userv1 "github.com/appuio/control-api/apis/user/v1"
-	"github.com/appuio/control-api/apiserver/user/mock"
+	"github.com/appuio/control-api/apiserver/authwrapper/mock"
 )
-
-//go:generate go run github.com/golang/mock/mockgen -destination=./mock/responder.go -package mock k8s.io/apiserver/pkg/registry/rest Responder
 
 func TestConnect_Redeem_Success(t *testing.T) {
 	target := userv1.TargetRef{

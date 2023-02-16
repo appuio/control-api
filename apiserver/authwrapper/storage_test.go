@@ -3,6 +3,10 @@ package authwrapper_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -281,6 +285,113 @@ func TestWatch(t *testing.T) {
 	})
 }
 
+func TestConnectMethods(t *testing.T) {
+	ctrl, stor, mauth, _ := setupStandardStorage(t)
+	defer ctrl.Finish()
+
+	t.Run("pass through", func(t *testing.T) {
+		subject := mustAuthorizedStorage(t, &connecter{
+			clusterScopedStorage: clusterScopedStorage{stor},
+			methods:              []string{"BLUB"},
+		}, gvr, mauth).(rest.Connecter)
+		assert.Equal(t, []string{"BLUB"}, subject.ConnectMethods())
+	})
+
+	t.Run("not implemented", func(t *testing.T) {
+		subject := mustAuthorizedStorage(t, clusterScopedStorage{stor}, gvr, mauth).(rest.Connecter)
+		assert.Equal(t, []string{}, subject.ConnectMethods())
+	})
+}
+
+func TestNewConnectOptions(t *testing.T) {
+	ctrl, stor, mauth, _ := setupStandardStorage(t)
+	defer ctrl.Finish()
+
+	t.Run("pass through", func(t *testing.T) {
+		subject := mustAuthorizedStorage(t, &connecter{
+			clusterScopedStorage: clusterScopedStorage{stor},
+			newConnectOptions:    func() (runtime.Object, bool, string) { return &metav1.TableOptions{}, true, "foo" },
+		}, gvr, mauth).(rest.Connecter)
+
+		obj, path, pathAt := subject.NewConnectOptions()
+		assert.IsType(t, &metav1.TableOptions{}, obj)
+		assert.True(t, path)
+		assert.Equal(t, "foo", pathAt)
+	})
+
+	t.Run("not implemented", func(t *testing.T) {
+		subject := mustAuthorizedStorage(t, clusterScopedStorage{stor}, gvr, mauth).(rest.Connecter)
+		obj, path, pathAt := subject.NewConnectOptions()
+		assert.Nil(t, obj)
+		assert.False(t, path)
+		assert.Equal(t, "", pathAt)
+	})
+}
+
+func TestConnect(t *testing.T) {
+	ctrl, store, mauth, subject := setupStandardStorage(t)
+	defer ctrl.Finish()
+
+	t.Run("allow", func(t *testing.T) {
+		allowAuthResponse(mauth)
+
+		subject := newConnecterStorage(t, store, mauth)
+
+		resp := mock.NewMockResponder(ctrl)
+		resp.EXPECT().Object(200, gomock.Any())
+
+		ctx := ctxWithInfo("custom", "")
+		h, err := subject.Connect(ctx, "tr1", nil, resp)
+		require.NoError(t, err)
+		require.NotNil(t, h)
+		req, err := http.NewRequestWithContext(ctx, "CUSTOM", "", nil)
+		require.NoError(t, err)
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	})
+
+	t.Run("deny", func(t *testing.T) {
+		denyAuthResponse(mauth)
+
+		subject := newConnecterStorage(t, store, mauth)
+
+		resp := mock.NewMockResponder(ctrl)
+		resp.EXPECT().Error(errorMatcher{"forbidden"})
+
+		ctx := ctxWithInfo("custom", "")
+		h, err := subject.Connect(ctx, "tr1", nil, resp)
+		require.NoError(t, err)
+		require.NotNil(t, h)
+		req, err := http.NewRequestWithContext(ctx, "CUSTOM", "", nil)
+		require.NoError(t, err)
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	})
+
+	t.Run("not implemented", func(t *testing.T) {
+		resp := mock.NewMockResponder(ctrl)
+		resp.EXPECT().Error(errorMatcher{"not supported"})
+
+		ctx := ctxWithInfo("custom", "")
+		h, err := subject.Connect(ctx, "tr1", nil, resp)
+		require.NoError(t, err)
+		require.NotNil(t, h)
+		req, err := http.NewRequestWithContext(ctx, "CUSTOM", "", nil)
+		require.NoError(t, err)
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	})
+}
+
+func newConnecterStorage(t *testing.T, store *mock.MockStandardStorage, mauth *mock.MockAuthorizer) rest.Connecter {
+	subject := mustAuthorizedStorage(t, &connecter{
+		clusterScopedStorage: clusterScopedStorage{store},
+		connect: func(ctx context.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				responder.Object(http.StatusOK, &metav1.Status{Status: metav1.StatusSuccess})
+			}), nil
+		},
+	}, gvr, mauth).(rest.Connecter)
+	return subject
+}
+
 func setupStandardStorage(t *testing.T) (*gomock.Controller, *mock.MockStandardStorage, *mock.MockAuthorizer, authwrapper.StandardStorage) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
@@ -374,4 +485,44 @@ type clusterScopedStorage struct {
 
 func (clusterScopedStorage) NamespaceScoped() bool {
 	return false
+}
+
+var _ rest.Connecter = &connecter{}
+
+type connecter struct {
+	clusterScopedStorage
+
+	methods           []string
+	newConnectOptions func() (runtime.Object, bool, string)
+	connect           func(ctx context.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error)
+}
+
+func (c *connecter) ConnectMethods() []string {
+	return c.methods
+}
+
+func (c *connecter) NewConnectOptions() (runtime.Object, bool, string) {
+	return c.newConnectOptions()
+}
+
+func (s *connecter) Connect(ctx context.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
+	return s.connect(ctx, name, options, responder)
+}
+
+var _ gomock.Matcher = errorMatcher{}
+
+type errorMatcher struct {
+	contains string
+}
+
+func (e errorMatcher) Matches(in interface{}) bool {
+	err, ok := in.(error)
+	if !ok {
+		return false
+	}
+	return strings.Contains(err.Error(), e.contains)
+}
+
+func (e errorMatcher) String() string {
+	return fmt.Sprintf("error containing %q", e.contains)
 }
