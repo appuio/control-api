@@ -1,3 +1,4 @@
 resources:
 - ../../rbac/controller
 - deployment.yaml
+- metrics-service.yaml
