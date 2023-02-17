@@ -95,29 +95,45 @@ func addUserToTarget(ctx context.Context, c client.Client, user string, target u
 		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &om); err != nil {
 			return err
 		}
-		om.Spec.UserRefs, _ = ensure(om.Spec.UserRefs, controlv1.UserRef{Name: user})
-		return c.Update(ctx, &om)
+		refs, added := ensure(om.Spec.UserRefs, controlv1.UserRef{Name: user})
+		om.Spec.UserRefs = refs
+		if added {
+			return c.Update(ctx, &om)
+		}
+		return nil
 	case target.APIGroup == "appuio.io" && target.Kind == "Team":
 		te := controlv1.Team{}
 		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &te); err != nil {
 			return err
 		}
-		te.Spec.UserRefs, _ = ensure(te.Spec.UserRefs, controlv1.UserRef{Name: user})
-		return c.Update(ctx, &te)
+		refs, added := ensure(te.Spec.UserRefs, controlv1.UserRef{Name: user})
+		te.Spec.UserRefs = refs
+		if added {
+			return c.Update(ctx, &te)
+		}
+		return nil
 	case target.APIGroup == rbacv1.GroupName && target.Kind == "ClusterRoleBinding":
 		crb := rbacv1.ClusterRoleBinding{}
 		if err := c.Get(ctx, client.ObjectKey{Name: target.Name}, &crb); err != nil {
 			return err
 		}
-		crb.Subjects, _ = ensure(crb.Subjects, newSubject(user))
-		return c.Update(ctx, &crb)
+		subjects, added := ensure(crb.Subjects, newSubject(user))
+		crb.Subjects = subjects
+		if added {
+			return c.Update(ctx, &crb)
+		}
+		return nil
 	case target.APIGroup == rbacv1.GroupName && target.Kind == "RoleBinding":
 		rb := rbacv1.RoleBinding{}
 		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &rb); err != nil {
 			return err
 		}
-		rb.Subjects, _ = ensure(rb.Subjects, newSubject(user))
-		return c.Update(ctx, &rb)
+		subjects, added := ensure(rb.Subjects, newSubject(user))
+		rb.Subjects = subjects
+		if added {
+			return c.Update(ctx, &rb)
+		}
+		return nil
 	}
 
 	return fmt.Errorf("unsupported target %q.%q", target.APIGroup, target.Kind)
