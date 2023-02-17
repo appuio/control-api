@@ -44,7 +44,7 @@ func (ir *invitationRedeemer) NewConnectOptions() (runtime.Object, bool, string)
 // It is used to redeem an invitation by a user.
 // The user is identified by the username in the request context.
 // The token is taken from the path.
-// If the invitation is valid, the invitation is marked as redeemed and the user and a snapshot of the users targets are stored in the status.
+// If the invitation is valid, the invitation is marked as redeemed, the user, and a snapshot of the invitations's targets are stored in the status.
 // The snapshot is later used in a controller to add the user to the targets in an idempotent and retryable way.
 // If user or token are invalid, the request is rejected with a 403.
 func (s *invitationRedeemer) Connect(ctx context.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
