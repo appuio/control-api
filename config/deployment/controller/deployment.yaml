@@ -21,9 +21,11 @@ spec:
         image: ghcr.io/appuio/control-api:latest
         ports:
         - containerPort: 9443
+        - containerPort: 8080
         args:
         - "controller"
         - "--username-prefix=appuio#"
+        - "--metrics-bind-address=:8080"
         resources:
           requests:
             cpu: 100m

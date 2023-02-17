@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: control-api-controller-metrics
+  namespace: control-api-controller
+  labels:
+    app: control-api-controller
+spec:
+  type: ClusterIP
+  selector:
+    app: control-api-controller
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
