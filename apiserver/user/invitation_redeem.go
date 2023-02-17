@@ -20,6 +20,11 @@ import (
 	"github.com/appuio/control-api/apiserver/secretstorage"
 )
 
+//+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations,verbs=get;list;watch
+//+kubebuilder:rbac:groups="user.appuio.io",resources=invitations,verbs=get;list;watch
+//+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups="user.appuio.io",resources=invitations/status,verbs=get;update;patch
+
 var _ rest.Connecter = &invitationRedeemer{}
 var _ rest.StandardStorage = &invitationRedeemer{}
 var _ rest.Scoper = &invitationRedeemer{}
