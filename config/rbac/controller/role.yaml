@@ -27,6 +27,17 @@ rules:
 - apiGroups:
   - appuio.io
   resources:
+  - organizationmembers
+  - teams
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - appuio.io
+  resources:
   - organizationmembers/status
   verbs:
   - get
@@ -141,6 +152,19 @@ rules:
   - clusterroles
   verbs:
   - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - rolebindings
+  verbs:
+  - create
+  - delete
   - get
   - list
   - patch

@@ -32,7 +32,7 @@ func APICommand() *cobra.Command {
 
 	ob := &odooStorageBuilder{}
 	ost := orgStore.New(&roles, &usernamePrefix, &allowEmptyBillingEntity)
-	ib := &invitationStorageBuilder{}
+	ib := &invitationStorageBuilder{usernamePrefix: &usernamePrefix}
 
 	cmd, err := builder.APIServer.
 		WithResourceAndHandler(&orgv1.Organization{}, ost).
@@ -96,11 +96,13 @@ func (o *odooStorageBuilder) Build(s *runtime.Scheme, g genericregistry.RESTOpti
 }
 
 type invitationStorageBuilder struct {
+	usernamePrefix *string
+
 	backingNS string
 }
 
 func (i *invitationStorageBuilder) Build(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
-	return user.NewInvitationStorage(i.backingNS)(s, g)
+	return user.NewInvitationStorage(i.backingNS, *i.usernamePrefix)(s, g)
 }
 
 type organizationStatusRegisterer struct {

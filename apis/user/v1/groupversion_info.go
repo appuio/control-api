@@ -5,6 +5,9 @@
 package v1
 
 import (
+	"net/url"
+
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
@@ -15,7 +18,12 @@ var (
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
-
-	// AddToScheme adds the types in this group-version to the given scheme.
-	AddToScheme = SchemeBuilder.AddToScheme
 )
+
+// AddToScheme adds the types in this group-version to the given scheme.
+func AddToScheme(s *runtime.Scheme) error {
+	if err := s.AddConversionFunc((*url.Values)(nil), (*RedeemOptions)(nil), Convert_url_Values_To__RedeemOptions); err != nil {
+		return err
+	}
+	return SchemeBuilder.AddToScheme(s)
+}

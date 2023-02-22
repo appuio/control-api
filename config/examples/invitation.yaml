@@ -7,24 +7,24 @@ spec:
   email: "dev1.int@acme.com"
   # For billing entity invitations
   targetRefs:
-  - apiGroup: "rbac.authorization.k8s.io"
-    kind: "ClusterRoleBinding"
-    name: "be-123-viewer"
+  - apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRoleBinding
+    name: billingentities-be-2345-viewer
     namespace: ""
   # OR
   # For organization invitations
-  - apiGroup: "appuio.io"
-    kind: "OrganizationMembers"
-    name: "members"
-    namespace: "acme"
-  - apiGroup: "rbac.authorization.k8s.io"
-    kind: "RoleBinding"
-    name: "control-api:organization-admin"
-    namespace: "acme"
+  - apiGroup: appuio.io
+    kind: OrganizationMembers
+    name: members
+    namespace: example-org
+  - apiGroup: rbac.authorization.k8s.io
+    kind: RoleBinding
+    name: control-api:organization-admin
+    namespace: example-org
   # OR
   # For teams invitations
-  - apiGroup: "appuio.io"
-    kind: "Team"
-    name: "dev"
-    namespace: "acme"
+  - apiGroup: appuio.io
+    kind: Team
+    name: dev
+    namespace: example-org
 status: {}

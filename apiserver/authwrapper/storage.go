@@ -16,11 +16,12 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 )
 
-//go:generate go run github.com/golang/mock/mockgen -destination=./mock/$GOFILE -package mock k8s.io/apiserver/pkg/registry/rest StandardStorage,Storage
+//go:generate go run github.com/golang/mock/mockgen -destination=./mock/$GOFILE -package mock k8s.io/apiserver/pkg/registry/rest StandardStorage,Storage,Responder
 
-var _ rest.StandardStorage = &authorizedStorageWithLister{}
+var _ StandardStorage = &authorizedStorageWithLister{}
 
 type Storage interface {
+	rest.Connecter
 	rest.Storage
 
 	// Storage returns the underlying storage
@@ -28,6 +29,7 @@ type Storage interface {
 }
 
 type StandardStorage interface {
+	rest.Connecter
 	rest.StandardStorage
 
 	// Storage returns the underlying storage
@@ -231,6 +233,45 @@ func (s *authorizedStorage) Update(ctx context.Context, name string, objInfo res
 	}
 
 	return nil, false, newMethodNotSupported("update")
+}
+
+// ConnectMethods implements the rest.Connecter interface.
+func (s *authorizedStorage) ConnectMethods() []string {
+	if c, ok := s.storage.(rest.Connecter); ok {
+		return c.ConnectMethods()
+	}
+	return []string{}
+}
+
+// NewConnectOptions implements the rest.Connecter interface.
+func (s *authorizedStorage) NewConnectOptions() (runtime.Object, bool, string) {
+	if c, ok := s.storage.(rest.Connecter); ok {
+		return c.NewConnectOptions()
+	}
+	return nil, false, ""
+}
+
+// Connect implements the rest.Connecter interface.
+func (s *authorizedStorage) Connect(ctx context.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
+	if c, ok := s.storage.(rest.Connecter); ok {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if err := s.authorizer.AuthorizeContext(ctx); err != nil {
+				responder.Error(err)
+				return
+			}
+
+			serv, err := c.Connect(ctx, name, options, responder)
+			if err != nil {
+				responder.Error(err)
+				return
+			}
+			serv.ServeHTTP(w, req)
+		}), nil
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		responder.Error(newMethodNotSupported(req.Method))
+	}), nil
 }
 
 func newMethodNotSupported(action string) *apierrors.StatusError {

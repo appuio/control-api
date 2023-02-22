@@ -152,6 +152,14 @@ func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, beRef
 	if err = invtoc.SetupWithManager(mgr); err != nil {
 		return nil, err
 	}
+	invred := &controllers.InvitationRedeemReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("invitation-redeem-controller"),
+	}
+	if err = invred.SetupWithManager(mgr); err != nil {
+		return nil, err
+	}
 
 	mgr.GetWebhookServer().Register("/validate-appuio-io-v1-user", &webhook.Admission{
 		Handler: &webhooks.UserValidator{},
