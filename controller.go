@@ -56,6 +56,7 @@ func ControllerCommand() *cobra.Command {
 	beRefreshJitter := cmd.Flags().Duration("billing-entity-refresh-jitter", time.Minute, "The jitter added to the interval at which the billing entity cache is refreshed")
 
 	invTokenValidFor := cmd.Flags().Duration("invitation-valid-for", 30*24*time.Hour, "The duration an invitation token is valid for")
+	redeemedInvitationTTL := cmd.Flags().Duration("redeemed-invitation-ttl", 30*24*time.Hour, "The duration for which a redeemed invitation is kept before deleting it")
 
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
@@ -78,6 +79,7 @@ func ControllerCommand() *cobra.Command {
 			*beRefreshInterval,
 			*beRefreshJitter,
 			*invTokenValidFor,
+			*redeemedInvitationTTL,
 			ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     *metricsAddr,
@@ -102,7 +104,7 @@ func ControllerCommand() *cobra.Command {
 	return cmd
 }
 
-func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, beRefreshInterval, beRefreshJitter, invTokenValidFor time.Duration, opt ctrl.Options) (ctrl.Manager, error) {
+func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, beRefreshInterval, beRefreshJitter, invTokenValidFor time.Duration, redeemedInvitationTTL time.Duration, opt ctrl.Options) (ctrl.Manager, error) {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opt)
 	if err != nil {
 		return nil, err
@@ -164,6 +166,15 @@ func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, beRef
 		Recorder: mgr.GetEventRecorderFor("invitation-redeem-controller"),
 	}
 	if err = invred.SetupWithManager(mgr); err != nil {
+		return nil, err
+	}
+	invclean := &controllers.InvitationCleanupReconciler{
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		Recorder:              mgr.GetEventRecorderFor("invitation-cleanup-controller"),
+		RedeemedInvitationTTL: redeemedInvitationTTL,
+	}
+	if err = invclean.SetupWithManager(mgr); err != nil {
 		return nil, err
 	}
 
