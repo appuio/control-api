@@ -94,7 +94,7 @@ func TestUserValidator_Handle(t *testing.T) {
 				},
 			}
 
-			uv := prepareTest(t, &user, &orgmemb)
+			uv := prepareUserValidatorTest(t, &user, &orgmemb)
 
 			userJson, err := json.Marshal(user)
 			require.NoError(t, err)
@@ -141,7 +141,7 @@ func TestUserValidator_Handle(t *testing.T) {
 	}
 }
 
-func prepareTest(t *testing.T, initObjs ...client.Object) *UserValidator {
+func prepareUserValidatorTest(t *testing.T, initObjs ...client.Object) *UserValidator {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(orgv1.AddToScheme(scheme))

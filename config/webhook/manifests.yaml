@@ -11,6 +11,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-user-appuio-io-v1-invitation
+  failurePolicy: Fail
+  name: validate-invitations.user.appuio.io
+  rules:
+  - apiGroups:
+    - user.appuio.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - invitations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-appuio-io-v1-user
   failurePolicy: Fail
   name: validate-users.appuio.io
