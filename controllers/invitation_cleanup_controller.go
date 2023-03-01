@@ -25,10 +25,10 @@ type InvitationCleanupReconciler struct {
 	RedeemedInvitationTTL time.Duration
 }
 
-//+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations,verbs=get;list;watch
-//+kubebuilder:rbac:groups="user.appuio.io",resources=invitations,verbs=get;list;watch
-//+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups="user.appuio.io",resources=invitations/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations,verbs=get;list;watch;delete
+//+kubebuilder:rbac:groups="user.appuio.io",resources=invitations,verbs=get;list;watch;delete
+//+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations/status,verbs=get
+//+kubebuilder:rbac:groups="user.appuio.io",resources=invitations/status,verbs=get
 
 // Reconcile reacts on invitations and removes them if required
 func (r *InvitationCleanupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -56,15 +56,16 @@ func (r *InvitationCleanupReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		ttlExpirationTime := cond.LastTransitionTime.Add(r.RedeemedInvitationTTL)
 		if ttlExpirationTime.Before(now.Time) {
 			log.V(4).Info("Redeemed Invitation TTL expired - deleting", "ttlExpirationTime", ttlExpirationTime)
-			return r.DeleteInvitation(ctx, inv)
+			return ctrl.Result{}, r.Delete(ctx, &inv)
 		}
 		return ctrl.Result{RequeueAfter: ttlExpirationTime.Sub(now.Add(-time.Minute))}, nil
-	} else {
-		if inv.Status.ValidUntil.Before(&now) {
-			log.V(4).Info("Invitation expired - deleting")
-			return r.DeleteInvitation(ctx, inv)
-		}
 	}
+
+	if inv.Status.ValidUntil.Before(&now) {
+		log.V(4).Info("Invitation expired - deleting")
+		return ctrl.Result{}, r.Delete(ctx, &inv)
+	}
+
 	return ctrl.Result{RequeueAfter: inv.Status.ValidUntil.Sub(now.Add(-time.Minute))}, nil
 }
 
@@ -73,11 +74,4 @@ func (r *InvitationCleanupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&userv1.Invitation{}).
 		Complete(r)
-}
-
-func (r *InvitationCleanupReconciler) DeleteInvitation(ctx context.Context, inv userv1.Invitation) (ctrl.Result, error) {
-	if err := r.Delete(ctx, &inv); err != nil {
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{}, nil
 }
