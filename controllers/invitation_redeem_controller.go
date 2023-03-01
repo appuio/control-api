@@ -57,11 +57,13 @@ func (r *InvitationRedeemReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	var errors []error
+	statusHasChanged := false
 	for i := range inv.Status.TargetStatuses {
 		if inv.Status.TargetStatuses[i].Condition.Status == metav1.ConditionTrue {
 			continue
 		}
 
+		statusHasChanged = true
 		err := addUserToTarget(ctx, r.Client, inv.Status.RedeemedBy, inv.Status.TargetStatuses[i].TargetRef)
 		if err != nil {
 			errors = append(errors, err)
@@ -77,8 +79,11 @@ func (r *InvitationRedeemReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		inv.Status.TargetStatuses[i].Condition.Status = metav1.ConditionTrue
 	}
 
-	err := r.Client.Status().Update(ctx, &inv)
-	return ctrl.Result{}, multierr.Append(err, multierr.Combine(errors...))
+	if statusHasChanged {
+		err := r.Client.Status().Update(ctx, &inv)
+		return ctrl.Result{}, multierr.Append(err, multierr.Combine(errors...))
+	}
+	return ctrl.Result{}, multierr.Combine(errors...)
 }
 
 // SetupWithManager sets up the controller with the Manager.
