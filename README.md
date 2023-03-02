@@ -164,6 +164,16 @@ kubectl patch validatingwebhookconfiguration validating-webhook-configuration \
   -p '{
     "webhooks": [
       {
+        "name": "validate-invitations.user.appuio.io",
+        "clientConfig": {
+          "caBundle": "'"$(base64 -w0 "./local-env/webhook-certs/tls.crt)"'",
+          "service": {
+            "namespace": "default",
+            "port": 9444
+          }
+        }
+      },
+      {
         "name": "validate-users.appuio.io",
         "clientConfig": {
           "caBundle": "'"$(base64 -w0 "./local-env/webhook-certs/tls.crt)"'",
