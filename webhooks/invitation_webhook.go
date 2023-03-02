@@ -6,13 +6,12 @@ import (
 	"net/http"
 
 	"go.uber.org/multierr"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	userv1 "github.com/appuio/control-api/apis/user/v1"
-	controlv1 "github.com/appuio/control-api/apis/v1"
+	"github.com/appuio/control-api/controllers/targetref"
 )
 
 // +kubebuilder:webhook:path=/validate-user-appuio-io-v1-invitation,mutating=false,failurePolicy=fail,groups="user.appuio.io",resources=invitations,verbs=create;update,versions=v1,name=validate-invitations.user.appuio.io,admissionReviewVersions=v1,sideEffects=None
@@ -58,57 +57,19 @@ func (v *InvitationValidator) InjectClient(c client.Client) error {
 }
 
 func authorizeTarget(ctx context.Context, c client.Client, user string, target userv1.TargetRef) error {
-	switch {
-	case target.APIGroup == "appuio.io" && target.Kind == "OrganizationMembers":
-		om := controlv1.OrganizationMembers{}
-		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &om); err != nil {
-			return err
-		}
-		if isInSlice(om.Spec.UserRefs, controlv1.UserRef{Name: user}) {
-			return nil
-		}
-	case target.APIGroup == "appuio.io" && target.Kind == "Team":
-		te := controlv1.Team{}
-		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &te); err != nil {
-			return err
-		}
-		if isInSlice(te.Spec.UserRefs, controlv1.UserRef{Name: user}) {
-			return nil
-		}
-	case target.APIGroup == rbacv1.GroupName && target.Kind == "ClusterRoleBinding":
-		crb := rbacv1.ClusterRoleBinding{}
-		if err := c.Get(ctx, client.ObjectKey{Name: target.Name}, &crb); err != nil {
-			return err
-		}
-		if isInSlice(crb.Subjects, newSubject(user)) {
-			return nil
-		}
-	case target.APIGroup == rbacv1.GroupName && target.Kind == "RoleBinding":
-		rb := rbacv1.RoleBinding{}
-		if err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, &rb); err != nil {
-			return err
-		}
-		if isInSlice(rb.Subjects, newSubject(user)) {
-			return nil
-		}
+	o, err := targetref.GetTarget(ctx, c, target)
+	if err != nil {
+		return err
+	}
+
+	a, err := targetref.NewUserAccessor(o)
+	if err != nil {
+		return err
+	}
+
+	if a.HasUser(user) {
+		return nil
 	}
 
 	return fmt.Errorf("target %q.%q/%q in namespace %q is not allowed", target.APIGroup, target.Kind, target.Name, target.Namespace)
-}
-
-func isInSlice[T comparable](s []T, e T) (found bool) {
-	for _, v := range s {
-		if v == e {
-			return true
-		}
-	}
-	return false
-}
-
-func newSubject(user string) rbacv1.Subject {
-	return rbacv1.Subject{
-		Kind:     rbacv1.UserKind,
-		APIGroup: rbacv1.GroupName,
-		Name:     user,
-	}
 }
