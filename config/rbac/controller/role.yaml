@@ -114,6 +114,7 @@ rules:
   resources:
   - invitations
   verbs:
+  - delete
   - get
   - list
   - watch
@@ -187,6 +188,7 @@ rules:
   resources:
   - invitations
   verbs:
+  - delete
   - get
   - list
   - watch
