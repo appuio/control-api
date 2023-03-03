@@ -41,7 +41,7 @@ type OrganizationMembersReconciler struct {
 // Reconcile reacts on changes of users and mirrors these changes to Keycloak
 func (r *OrganizationMembersReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.V(4).WithValues("request", req).Info("Reconciling")
+	log.V(1).WithValues("request", req).Info("Reconciling")
 
 	memb := controlv1.OrganizationMembers{}
 	if err := r.Get(ctx, req.NamespacedName, &memb); err != nil {
@@ -88,7 +88,7 @@ func (r *OrganizationMembersReconciler) putRoleBinding(ctx context.Context, memb
 		}
 		return ctrl.SetControllerReference(&memb, &rb, r.Scheme)
 	})
-	log.FromContext(ctx).V(4).Info("reconcile RoleBinding", "operation", op)
+	log.FromContext(ctx).V(1).Info("reconcile RoleBinding", "operation", op)
 	return err
 }
 

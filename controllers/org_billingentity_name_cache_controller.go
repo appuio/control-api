@@ -36,7 +36,7 @@ type OrgBillingEntityNameCacheController struct {
 // Reconcile periodically updates the organizations .status.billingEntityName field.
 func (r *OrgBillingEntityNameCacheController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.V(4).WithValues("request", req).Info("Reconciling")
+	log.V(1).WithValues("request", req).Info("Reconciling")
 
 	var org orgv1.Organization
 	if err := r.Get(ctx, req.NamespacedName, &org); err != nil {

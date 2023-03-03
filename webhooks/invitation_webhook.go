@@ -30,7 +30,7 @@ func (v *InvitationValidator) Handle(ctx context.Context, req admission.Request)
 	if err := v.decoder.Decode(req, inv); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-	log.V(4).WithValues("invitation", inv).Info("Validating")
+	log.V(1).WithValues("invitation", inv).Info("Validating")
 
 	username := req.UserInfo.Username
 	authErrors := make([]error, 0, len(inv.Spec.TargetRefs))

@@ -33,9 +33,9 @@ type InvitationTokenReconciler struct {
 // Reconcile reacts on invitations and adds a token to the status if required.
 func (r *InvitationTokenReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.V(4).WithValues("request", req).Info("Reconciling")
+	log.V(1).WithValues("request", req).Info("Reconciling")
 
-	log.V(4).Info("Getting the User...")
+	log.V(1).Info("Getting the User...")
 	inv := userv1.Invitation{}
 	if err := r.Get(ctx, req.NamespacedName, &inv); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
