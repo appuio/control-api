@@ -37,7 +37,7 @@ type InvitationEmailReconciler struct {
 // Reconcile reacts to redeemed invitations and sends invitation emails to the user if needed.
 func (r *InvitationEmailReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.V(2).WithValues("request", req).Info("Reconciling")
+	log.V(1).WithValues("request", req).Info("Reconciling")
 
 	inv := userv1.Invitation{}
 	if err := r.Get(ctx, req.NamespacedName, &inv); err != nil {

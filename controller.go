@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"time"
 
@@ -71,8 +70,6 @@ func ControllerCommand() *cobra.Command {
 	invEmailMailgunUrl := cmd.Flags().String("mailgun-url", "https://api.eu.mailgun.net/v3", "API base URL for your Mailgun account")
 	invEmailMailgunDebug := cmd.Flags().Bool("mailgun-debug", false, "If set, do not actually send e-mails")
 
-	fmt.Sprintln(invEmailMailgunToken)
-	fmt.Sprintln(invEmailMailgunDomain)
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
 		setupLog := ctrl.Log.WithName("setup")
