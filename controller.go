@@ -19,7 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/mailgun/mailgun-go/v4"
 	"github.com/spf13/cobra"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
@@ -90,15 +89,16 @@ func ControllerCommand() *cobra.Command {
 
 		var mailBackend mailbackends.MailSender
 		if *invEmailBackend == "mailgun" {
-			mailBackend = &mailbackends.MailgunBackend{
-				Mailgun:        mailgun.NewMailgun(*invEmailMailgunDomain, *invEmailMailgunToken),
-				MailgunBaseUrl: *invEmailMailgunUrl,
-				SenderAddress:  *invEmailSender,
-				TemplateName:   *invEmailMailgunTemplate,
-				UseTestMode:    *invEmailMailgunDebug,
-				Subject:        *invEmailSubject,
-			}
-
+			b := mailbackends.NewMailgunBackend(
+				*invEmailMailgunDomain,
+				*invEmailMailgunToken,
+				*invEmailMailgunUrl,
+				*invEmailSender,
+				*invEmailMailgunTemplate,
+				*invEmailSubject,
+				*invEmailMailgunDebug,
+			)
+			mailBackend = &b
 		} else {
 			mailBackend = &mailbackends.PrintBackend{}
 		}

@@ -28,6 +28,18 @@ func (p *PrintBackend) Send(ctx context.Context, recipient string, invitation st
 	return "", nil
 }
 
+func NewMailgunBackend(domain string, token string, baseUrl string, senderAddress string, templateName string, subject string, useTestMode bool) MailgunBackend {
+	mg := mailgun.NewMailgun(domain, token)
+	mg.SetAPIBase(baseUrl)
+	return MailgunBackend{
+		Mailgun:       mg,
+		SenderAddress: senderAddress,
+		TemplateName:  templateName,
+		UseTestMode:   useTestMode,
+		Subject:       subject,
+	}
+}
+
 func (m *MailgunBackend) Send(ctx context.Context, recipient string, invitation string, token string) (string, error) {
 	message := m.Mailgun.NewMessage(
 		m.SenderAddress,
