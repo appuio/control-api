@@ -1,4 +1,4 @@
-package mailbackends
+package mailsenders
 
 import (
 	"context"
@@ -11,7 +11,7 @@ type MailSender interface {
 	Send(ctx context.Context, recipient string, invitation string, token string) (string, error)
 }
 
-type MailgunBackend struct {
+type MailgunSender struct {
 	Mailgun        *mailgun.MailgunImpl
 	MailgunBaseUrl string
 	SenderAddress  string
@@ -20,18 +20,18 @@ type MailgunBackend struct {
 	Subject        string
 }
 
-type PrintBackend struct{}
+type LogSender struct{}
 
-func (p *PrintBackend) Send(ctx context.Context, recipient string, invitation string, token string) (string, error) {
+func (s *LogSender) Send(ctx context.Context, recipient string, invitation string, token string) (string, error) {
 	log := log.FromContext(ctx)
 	log.V(0).Info("E-mail backend is 'stdout'; invitation e-mail was not sent", "recipient", recipient, "invitation", invitation)
 	return "", nil
 }
 
-func NewMailgunBackend(domain string, token string, baseUrl string, senderAddress string, templateName string, subject string, useTestMode bool) MailgunBackend {
+func NewMailgunSender(domain string, token string, baseUrl string, senderAddress string, templateName string, subject string, useTestMode bool) MailgunSender {
 	mg := mailgun.NewMailgun(domain, token)
 	mg.SetAPIBase(baseUrl)
-	return MailgunBackend{
+	return MailgunSender{
 		Mailgun:       mg,
 		SenderAddress: senderAddress,
 		TemplateName:  templateName,
@@ -40,11 +40,11 @@ func NewMailgunBackend(domain string, token string, baseUrl string, senderAddres
 	}
 }
 
-func (m *MailgunBackend) Send(ctx context.Context, recipient string, invitation string, token string) (string, error) {
+func (m *MailgunSender) Send(ctx context.Context, recipient string, invitation string, token string) (string, error) {
 	message := m.Mailgun.NewMessage(
 		m.SenderAddress,
 		m.Subject,
-		"",
+		"", // Message body will be rendered from template
 		recipient,
 	)
 	message.SetTemplate(m.TemplateName)

@@ -25,7 +25,7 @@ import (
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	userv1 "github.com/appuio/control-api/apis/user/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
-	"github.com/appuio/control-api/mailbackends"
+	"github.com/appuio/control-api/mailsenders"
 
 	"github.com/appuio/control-api/controllers"
 	"github.com/appuio/control-api/webhooks"
@@ -87,9 +87,9 @@ func ControllerCommand() *cobra.Command {
 		ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 		ctx := ctrl.SetupSignalHandler()
 
-		var mailBackend mailbackends.MailSender
+		var mailSender mailsenders.MailSender
 		if *invEmailBackend == "mailgun" {
-			b := mailbackends.NewMailgunBackend(
+			b := mailsenders.NewMailgunSender(
 				*invEmailMailgunDomain,
 				*invEmailMailgunToken,
 				*invEmailMailgunUrl,
@@ -98,9 +98,9 @@ func ControllerCommand() *cobra.Command {
 				*invEmailSubject,
 				*invEmailMailgunDebug,
 			)
-			mailBackend = &b
+			mailSender = &b
 		} else {
-			mailBackend = &mailbackends.PrintBackend{}
+			mailSender = &mailsenders.LogSender{}
 		}
 
 		mgr, err := setupManager(
@@ -112,7 +112,7 @@ func ControllerCommand() *cobra.Command {
 			*invTokenValidFor,
 			*redeemedInvitationTTL,
 			*invEmailRetryInterval,
-			mailBackend,
+			mailSender,
 			ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     *metricsAddr,
@@ -146,7 +146,7 @@ func setupManager(
 	invTokenValidFor time.Duration,
 	redeemedInvitationTTL time.Duration,
 	invEmailRetryInterval time.Duration,
-	mailBackend mailbackends.MailSender,
+	mailSender mailsenders.MailSender,
 	opt ctrl.Options,
 ) (ctrl.Manager, error) {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opt)
@@ -226,7 +226,7 @@ func setupManager(
 		Scheme:        mgr.GetScheme(),
 		Recorder:      mgr.GetEventRecorderFor("invitation-cleanup-controller"),
 		RetryInterval: invEmailRetryInterval,
-		MailSender:    mailBackend,
+		MailSender:    mailSender,
 	}
 	if err = invmail.SetupWithManager(mgr); err != nil {
 		return nil, err

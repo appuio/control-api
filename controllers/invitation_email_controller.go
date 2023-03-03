@@ -5,12 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	//"errors"
-	//"time"
-
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
-	//"go.uber.org/multierr"
-	//rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -18,10 +13,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	mailbackends "github.com/appuio/control-api/mailbackends"
+	"github.com/appuio/control-api/mailsenders"
 
 	userv1 "github.com/appuio/control-api/apis/user/v1"
-	//controlv1 "github.com/appuio/control-api/apis/v1"
 )
 
 // InvitationEmailReconciler reconciles invitations and sends invitation emails if appropriate
@@ -31,7 +25,7 @@ type InvitationEmailReconciler struct {
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
 
-	MailSender    mailbackends.MailSender
+	MailSender    mailsenders.MailSender
 	RetryInterval time.Duration
 }
 
@@ -43,7 +37,7 @@ type InvitationEmailReconciler struct {
 // Reconcile reacts to redeemed invitations and sends invitation emails to the user if needed.
 func (r *InvitationEmailReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.V(4).WithValues("request", req).Info("Reconciling")
+	log.V(2).WithValues("request", req).Info("Reconciling")
 
 	inv := userv1.Invitation{}
 	if err := r.Get(ctx, req.NamespacedName, &inv); err != nil {
@@ -58,30 +52,23 @@ func (r *InvitationEmailReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
-	status := apimeta.FindStatusCondition(inv.Status.Conditions, userv1.ConditionEmailSent)
-
-	if status == nil {
-		// TODO remove after testing
-		log.V(0).Info("Adding false email status to invite!")
-		apimeta.SetStatusCondition(&inv.Status.Conditions, metav1.Condition{
-			Type:   userv1.ConditionEmailSent,
-			Status: metav1.ConditionFalse,
-		})
-		return ctrl.Result{}, r.Client.Status().Update(ctx, &inv)
-	}
-
 	if apimeta.IsStatusConditionTrue(inv.Status.Conditions, userv1.ConditionEmailSent) {
 		return ctrl.Result{}, nil
 	}
 	condition := apimeta.FindStatusCondition(inv.Status.Conditions, userv1.ConditionEmailSent)
+
+	if condition == nil {
+		return ctrl.Result{}, nil
+	}
 
 	email := inv.Spec.Email
 	id, err := r.MailSender.Send(ctx, email, inv.Name, inv.Status.Token)
 
 	if err != nil {
 		log.V(0).Error(err, "Error in e-mail backend")
+
+		// Only update status if the error changes
 		if condition.Reason != err.Error() {
-			// Only update status if the error changes
 			apimeta.SetStatusCondition(&inv.Status.Conditions, metav1.Condition{
 				Type:   userv1.ConditionEmailSent,
 				Status: metav1.ConditionFalse,
