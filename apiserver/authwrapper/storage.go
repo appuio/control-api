@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -255,7 +256,7 @@ func (s *authorizedStorage) NewConnectOptions() (runtime.Object, bool, string) {
 func (s *authorizedStorage) Connect(ctx context.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
 	if c, ok := s.storage.(rest.Connecter); ok {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if err := s.authorizer.AuthorizeContext(ctx); err != nil {
+			if err := s.authorizer.AuthorizeVerb(ctx, strings.ToLower(req.Method), name); err != nil {
 				responder.Error(err)
 				return
 			}
