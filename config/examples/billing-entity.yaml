@@ -2,6 +2,7 @@ apiVersion: billing.appuio.io/v1
 kind: BillingEntity
 metadata:
   creationTimestamp: null
+  name: generated
   # The name is generated in the underlying ERP
 spec:
   accountingContact:

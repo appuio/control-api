@@ -25,3 +25,14 @@ Since the setup script requires a few arguments, we provide a make target to run
 ```
 make setup
 ```
+
+## Billing Entities
+
+The control-api serves `BillingEntities` normally from Odoo directly as an aggregated API.
+For local development, this is hard to set up, so the API server has an in-memory fake store if Odoo isn't connected.
+
+Thus, to create some fake entries, you can manually create them as normal resources.
+There's an example in `config/examples/billing-entity.yaml`.
+
+Note that the data is lost when the control-api Pod is shut down.
+When this case happens, delete the `be-####-viewer` cluster role and -binding before recreating the objects.
