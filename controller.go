@@ -68,7 +68,7 @@ func ControllerCommand() *cobra.Command {
 	invEmailMailgunDomain := cmd.Flags().String("mailgun-domain", "example.com", "Mailgun Domain to use")
 	invEmailMailgunTemplate := cmd.Flags().String("mailgun-template", "appuio-cloud-invitation", "Name of the Mailgun template")
 	invEmailMailgunUrl := cmd.Flags().String("mailgun-url", "https://api.eu.mailgun.net/v3", "API base URL for your Mailgun account")
-	invEmailMailgunDebug := cmd.Flags().Bool("mailgun-debug", false, "If set, do not actually send e-mails")
+	invEmailMailgunTestMode := cmd.Flags().Bool("mailgun-test-mode", false, "If set, do not actually send e-mails")
 
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
@@ -93,7 +93,7 @@ func ControllerCommand() *cobra.Command {
 				*invEmailSender,
 				*invEmailMailgunTemplate,
 				*invEmailSubject,
-				*invEmailMailgunDebug,
+				*invEmailMailgunTestMode,
 			)
 			mailSender = &b
 		} else {

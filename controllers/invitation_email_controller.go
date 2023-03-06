@@ -79,18 +79,15 @@ func (r *InvitationEmailReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: r.RetryInterval}, nil
 	}
 
+	var message string
 	if id != "" {
-		apimeta.SetStatusCondition(&inv.Status.Conditions, metav1.Condition{
-			Type:    userv1.ConditionEmailSent,
-			Status:  metav1.ConditionTrue,
-			Message: fmt.Sprintf("Message ID: %s", id),
-		})
-	} else {
-		apimeta.SetStatusCondition(&inv.Status.Conditions, metav1.Condition{
-			Type:   userv1.ConditionEmailSent,
-			Status: metav1.ConditionTrue,
-		})
+		message = fmt.Sprintf("Message ID: %s", id)
 	}
+	apimeta.SetStatusCondition(&inv.Status.Conditions, metav1.Condition{
+		Type:    userv1.ConditionEmailSent,
+		Status:  metav1.ConditionTrue,
+		Message: message,
+	})
 
 	return ctrl.Result{}, r.Client.Status().Update(ctx, &inv)
 }
