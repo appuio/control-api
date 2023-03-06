@@ -24,6 +24,7 @@ import (
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	userv1 "github.com/appuio/control-api/apis/user/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
+	"github.com/appuio/control-api/mailsenders"
 
 	"github.com/appuio/control-api/controllers"
 	"github.com/appuio/control-api/webhooks"
@@ -58,6 +59,17 @@ func ControllerCommand() *cobra.Command {
 	invTokenValidFor := cmd.Flags().Duration("invitation-valid-for", 30*24*time.Hour, "The duration an invitation token is valid for")
 	redeemedInvitationTTL := cmd.Flags().Duration("redeemed-invitation-ttl", 30*24*time.Hour, "The duration for which a redeemed invitation is kept before deleting it")
 
+	invEmailBackend := cmd.Flags().String("email-backend", "stdout", "Backend to use for sending invitation mails (one of stdout, mailgun)")
+	invEmailSender := cmd.Flags().String("email-sender", "noreply@appuio.cloud", "Sender address for invitation mails")
+	invEmailSubject := cmd.Flags().String("email-subject", "You have been invited to APPUiO Cloud", "Subject for invitation mails")
+	invEmailRetryInterval := cmd.Flags().Duration("email-retry-interval", 5*time.Minute, "Retry interval for sending e-mail messages")
+
+	invEmailMailgunToken := cmd.Flags().String("mailgun-token", "CHANGEME", "Token used to access Mailgun API")
+	invEmailMailgunDomain := cmd.Flags().String("mailgun-domain", "example.com", "Mailgun Domain to use")
+	invEmailMailgunTemplate := cmd.Flags().String("mailgun-template", "appuio-cloud-invitation", "Name of the Mailgun template")
+	invEmailMailgunUrl := cmd.Flags().String("mailgun-url", "https://api.eu.mailgun.net/v3", "API base URL for your Mailgun account")
+	invEmailMailgunTestMode := cmd.Flags().Bool("mailgun-test-mode", false, "If set, do not actually send e-mails")
+
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
 		setupLog := ctrl.Log.WithName("setup")
@@ -72,6 +84,22 @@ func ControllerCommand() *cobra.Command {
 		ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 		ctx := ctrl.SetupSignalHandler()
 
+		var mailSender mailsenders.MailSender
+		if *invEmailBackend == "mailgun" {
+			b := mailsenders.NewMailgunSender(
+				*invEmailMailgunDomain,
+				*invEmailMailgunToken,
+				*invEmailMailgunUrl,
+				*invEmailSender,
+				*invEmailMailgunTemplate,
+				*invEmailSubject,
+				*invEmailMailgunTestMode,
+			)
+			mailSender = &b
+		} else {
+			mailSender = &mailsenders.LogSender{}
+		}
+
 		mgr, err := setupManager(
 			*usernamePrefix,
 			*rolePrefix,
@@ -80,6 +108,8 @@ func ControllerCommand() *cobra.Command {
 			*beRefreshJitter,
 			*invTokenValidFor,
 			*redeemedInvitationTTL,
+			*invEmailRetryInterval,
+			mailSender,
 			ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     *metricsAddr,
@@ -104,7 +134,18 @@ func ControllerCommand() *cobra.Command {
 	return cmd
 }
 
-func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, beRefreshInterval, beRefreshJitter, invTokenValidFor time.Duration, redeemedInvitationTTL time.Duration, opt ctrl.Options) (ctrl.Manager, error) {
+func setupManager(
+	usernamePrefix,
+	rolePrefix string,
+	memberRoles []string,
+	beRefreshInterval,
+	beRefreshJitter,
+	invTokenValidFor time.Duration,
+	redeemedInvitationTTL time.Duration,
+	invEmailRetryInterval time.Duration,
+	mailSender mailsenders.MailSender,
+	opt ctrl.Options,
+) (ctrl.Manager, error) {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opt)
 	if err != nil {
 		return nil, err
@@ -175,6 +216,16 @@ func setupManager(usernamePrefix, rolePrefix string, memberRoles []string, beRef
 		RedeemedInvitationTTL: redeemedInvitationTTL,
 	}
 	if err = invclean.SetupWithManager(mgr); err != nil {
+		return nil, err
+	}
+	invmail := &controllers.InvitationEmailReconciler{
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		Recorder:      mgr.GetEventRecorderFor("invitation-cleanup-controller"),
+		RetryInterval: invEmailRetryInterval,
+		MailSender:    mailSender,
+	}
+	if err = invmail.SetupWithManager(mgr); err != nil {
 		return nil, err
 	}
 
