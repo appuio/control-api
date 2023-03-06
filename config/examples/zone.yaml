@@ -1,0 +1,22 @@
+apiVersion: appuio.io/v1
+kind: Zone
+metadata:
+  name: demo-2
+data:
+  displayName: Demo Zone 2
+  features:
+    console: "yes"
+    storage: "rook"
+  urls:
+    console: https://console.demo.zone.example.org
+    dashboard: https://dashboard.demo.zone.example.org
+  cname: demo.zone.example.org
+  defaultAppDomain: app.demo.zone.example.org
+  gatewayIPs:
+    - 10.10.10.10
+  cloudProvider:
+    name: Cloudy
+    zones:
+      - east
+      - west
+    region: continent

@@ -35,9 +35,9 @@ type UserReconciler struct {
 // Reconcile reacts on changes of users and mirrors these changes to Keycloak
 func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.V(4).WithValues("request", req).Info("Reconciling")
+	log.V(1).WithValues("request", req).Info("Reconciling")
 
-	log.V(4).Info("Getting the User...")
+	log.V(1).Info("Getting the User...")
 	user := controlv1.User{}
 	if err := r.Get(ctx, req.NamespacedName, &user); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -47,7 +47,7 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	log.V(4).Info("Updating RBAC..")
+	log.V(1).Info("Updating RBAC..")
 	if err := r.setRBAC(ctx, user); err != nil {
 		r.Recorder.Event(&user, "Warning", "UpdateFailed", "Failed to set RBAC")
 		return ctrl.Result{}, err
@@ -81,7 +81,7 @@ func (r *UserReconciler) updateClusterRole(ctx context.Context, user controlv1.U
 		}
 		return ctrl.SetControllerReference(&user, &cr, r.Scheme)
 	})
-	log.FromContext(ctx).V(4).Info("reconcile ClusterRole", "operation", op)
+	log.FromContext(ctx).V(1).Info("reconcile ClusterRole", "operation", op)
 	return err
 }
 
@@ -106,7 +106,7 @@ func (r *UserReconciler) updateClusterRoleBinding(ctx context.Context, user cont
 		}
 		return ctrl.SetControllerReference(&user, &crb, r.Scheme)
 	})
-	log.FromContext(ctx).V(4).Info("reconcile ClusterRoleBinding", "operation", op)
+	log.FromContext(ctx).V(1).Info("reconcile ClusterRoleBinding", "operation", op)
 	return err
 }
 

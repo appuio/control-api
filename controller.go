@@ -232,6 +232,9 @@ func setupManager(
 	mgr.GetWebhookServer().Register("/validate-appuio-io-v1-user", &webhook.Admission{
 		Handler: &webhooks.UserValidator{},
 	})
+	mgr.GetWebhookServer().Register("/validate-user-appuio-io-v1-invitation", &webhook.Admission{
+		Handler: &webhooks.InvitationValidator{},
+	})
 
 	//+kubebuilder:scaffold:builder
 

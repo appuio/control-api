@@ -61,9 +61,9 @@ type InvitationStatus struct {
 	// ValidUntil is the time when the invitation expires
 	ValidUntil metav1.Time `json:"validUntil"`
 	// Conditions is a list of conditions for the invitation
-	Conditions []metav1.Condition `json:"conditions"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// TargetStatuses is a list of statuses for the target resources
-	TargetStatuses []TargetStatus `json:"targetStatuses"`
+	TargetStatuses []TargetStatus `json:"targetStatuses,omitempty"`
 	// RedeemedBy is the user who redeemed the invitation
 	RedeemedBy string `json:"redeemedBy,omitempty"`
 }

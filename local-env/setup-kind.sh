@@ -137,6 +137,12 @@ kubectl patch validatingwebhookconfiguration validating-webhook-configuration \
         "clientConfig": {
           "caBundle": "'"$(eval $base64_no_wrap < "${script_dir}"/webhook-certs/tls.crt)"'"
         }
+      },
+      {
+        "name": "validate-invitations.user.appuio.io",
+        "clientConfig": {
+          "caBundle": "'"$(eval $base64_no_wrap < "${script_dir}"/webhook-certs/tls.crt)"'"
+        }
       }
     ]
   }'

@@ -36,7 +36,6 @@ spec:
   groupPriorityMinimum: 1000
   versionPriority: 15
   service:
-    name: apiserver
-    namespace: default
-    port: 9443
+    name: control-api-apiserver
+    namespace: control-api
   version: v1

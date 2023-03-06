@@ -72,7 +72,7 @@ run-api: build ## Starts control api apiserver against the current Kubernetes cl
 .PHONY: run-controller
 run-controller: build ## Starts control api controller against the current Kubernetes cluster (based  on your local config)
 	$(localenv_make) webhook-certs/tls.key
-	$(BIN_FILENAME) controller --username-prefix "appuio#" --webhook-cert-dir=./local-env/webhook-certs --webhook-port=9444
+	$(BIN_FILENAME) controller --username-prefix "appuio#" --webhook-cert-dir=./local-env/webhook-certs --webhook-port=9444 --zap-log-level debug
 
 .PHONY: local-env
 local-env-setup: ## Setup local kind-based dev environment

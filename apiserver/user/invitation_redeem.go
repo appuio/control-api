@@ -41,8 +41,7 @@ func (ir *invitationRedeemer) ConnectMethods() []string {
 }
 
 func (ir *invitationRedeemer) NewConnectOptions() (runtime.Object, bool, string) {
-	// Adds the token from the path to the options under the field "token"
-	return &userv1.RedeemOptions{}, true, "token"
+	return &userv1.RedeemOptions{}, false, ""
 }
 
 // Connect implements the REDEEM method for invitations.
