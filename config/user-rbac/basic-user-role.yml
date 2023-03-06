@@ -27,4 +27,5 @@ rules:
   verbs: ["watch", "list", "redeem"]
 - apiGroups: ["user.appuio.io"]
   resources: ["invitations"]
-  verbs: ["get", "watch", "list", "redeem"]
+  # empty verb to allow upstream server to pass custom verbs to our aggregated API server
+  verbs: ["get", "watch", "list", "redeem", ""]
