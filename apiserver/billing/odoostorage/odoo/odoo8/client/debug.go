@@ -35,7 +35,7 @@ func (t *debugTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 		defer reqBody.Close()
 		buf, _ := ioutil.ReadAll(reqBody)
 		buf = t.pwRe.ReplaceAll(buf, []byte(`$1[confidential]$2`))
-		logger.V(2).Info(fmt.Sprintf("%s %s ---> %s", r.Method, r.URL.Path, string(buf)))
+		logger.V(1).Info(fmt.Sprintf("%s %s ---> %s", r.Method, r.URL.Path, string(buf)))
 	}
 
 	res, err := http.DefaultTransport.RoundTrip(r)
@@ -46,7 +46,7 @@ func (t *debugTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	if res.Body != nil {
 		defer res.Body.Close()
 		buf, _ := ioutil.ReadAll(res.Body)
-		logger.V(2).Info(fmt.Sprintf("%s %s <--- %s", r.Method, r.URL.Path, string(buf)))
+		logger.V(1).Info(fmt.Sprintf("%s %s <--- %s", r.Method, r.URL.Path, string(buf)))
 		res.Body = io.NopCloser(bytes.NewReader(buf))
 	}
 

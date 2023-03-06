@@ -33,9 +33,9 @@ type InvitationCleanupReconciler struct {
 // Reconcile reacts on invitations and removes them if required
 func (r *InvitationCleanupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.V(4).WithValues("request", req).Info("Reconciling")
+	log.V(1).WithValues("request", req).Info("Reconciling")
 
-	log.V(4).Info("Getting the Invitation...")
+	log.V(1).Info("Getting the Invitation...")
 	inv := userv1.Invitation{}
 	if err := r.Get(ctx, req.NamespacedName, &inv); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -55,14 +55,14 @@ func (r *InvitationCleanupReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		cond := apimeta.FindStatusCondition(inv.Status.Conditions, userv1.ConditionRedeemed)
 		ttlExpirationTime := cond.LastTransitionTime.Add(r.RedeemedInvitationTTL)
 		if ttlExpirationTime.Before(now.Time) {
-			log.V(4).Info("Redeemed Invitation TTL expired - deleting", "ttlExpirationTime", ttlExpirationTime)
+			log.V(1).Info("Redeemed Invitation TTL expired - deleting", "ttlExpirationTime", ttlExpirationTime)
 			return ctrl.Result{}, r.Delete(ctx, &inv)
 		}
 		return ctrl.Result{RequeueAfter: ttlExpirationTime.Sub(now.Add(-time.Minute))}, nil
 	}
 
 	if inv.Status.ValidUntil.Before(&now) {
-		log.V(4).Info("Invitation expired - deleting")
+		log.V(1).Info("Invitation expired - deleting")
 		return ctrl.Result{}, r.Delete(ctx, &inv)
 	}
 

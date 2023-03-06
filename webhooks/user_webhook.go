@@ -31,7 +31,7 @@ func (v *UserValidator) Handle(ctx context.Context, req admission.Request) admis
 	if err := v.decoder.Decode(req, user); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-	log.V(4).WithValues("user", user).Info("Validating")
+	log.V(1).WithValues("user", user).Info("Validating")
 
 	orgref := user.Spec.Preferences.DefaultOrganizationRef
 	if orgref == "" {
@@ -47,7 +47,7 @@ func (v *UserValidator) Handle(ctx context.Context, req admission.Request) admis
 		return admission.Denied(fmt.Sprintf("Unable to load members for organization %s", orgref))
 	}
 
-	log.V(4).WithValues("orgref", orgref, "orgmemb", orgmemb).Info("organizationmembers of requested default organization")
+	log.V(1).WithValues("orgref", orgref, "orgmemb", orgmemb).Info("organizationmembers of requested default organization")
 
 	for _, orguser := range orgmemb.Spec.UserRefs {
 		if user.Name == orguser.Name {

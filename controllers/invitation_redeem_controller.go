@@ -35,7 +35,7 @@ type InvitationRedeemReconciler struct {
 // Reconcile reacts to redeemed invitations and adds the user to the targets listed in the invitation status.
 func (r *InvitationRedeemReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.V(4).WithValues("request", req).Info("Reconciling")
+	log.V(1).WithValues("request", req).Info("Reconciling")
 
 	inv := userv1.Invitation{}
 	if err := r.Get(ctx, req.NamespacedName, &inv); err != nil {
