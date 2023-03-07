@@ -147,6 +147,17 @@ rules:
   - update
   - watch
 - apiGroups:
+  - rbac.appuio.io
+  - user.appuio.io
+  resources:
+  - invitations
+  verbs:
+  - delete
+  - edit
+  - get
+  - patch
+  - update
+- apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
