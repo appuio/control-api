@@ -1,6 +1,7 @@
 package user
 
 import (
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
@@ -26,6 +27,10 @@ func NewInvitationStorage(backingNS, usernamePrefix string) restbuilder.Resource
 		if err != nil {
 			return nil, err
 		}
+		err = rbacv1.AddToScheme(c.Scheme())
+		if err != nil {
+			return nil, err
+		}
 		stor, err := secretstorage.NewStorage(&userv1.Invitation{}, c, backingNS)
 		if err != nil {
 			return nil, err
@@ -35,6 +40,11 @@ func NewInvitationStorage(backingNS, usernamePrefix string) restbuilder.Resource
 			ScopedStandardStorage: stor,
 			client:                c,
 			usernamePrefix:        usernamePrefix,
+		}
+
+		stor = &rbacCreatorIsOwner{
+			ScopedStandardStorage: stor,
+			client:                c,
 		}
 
 		astor, err := authwrapper.NewAuthorizedStorage(stor, metav1.GroupVersionResource{
