@@ -30,14 +30,7 @@ func (s *SenderWithConstantId) Send(context.Context, string, string, string) (st
 func Test_InvitationEmailReconciler_Reconcile_Success(t *testing.T) {
 	ctx := context.Background()
 
-	subject := &userv1.Invitation{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "subject",
-		},
-		Status: userv1.InvitationStatus{
-			Token: "abc",
-		},
-	}
+	subject := baseInvitation()
 	apimeta.SetStatusCondition(&subject.Status.Conditions, metav1.Condition{
 		Type:   userv1.ConditionEmailSent,
 		Status: metav1.ConditionFalse,
@@ -58,14 +51,7 @@ func Test_InvitationEmailReconciler_Reconcile_Success(t *testing.T) {
 func Test_InvitationEmailReconciler_Reconcile_WithSendingFailure_Success(t *testing.T) {
 	ctx := context.Background()
 
-	subject := &userv1.Invitation{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "subject",
-		},
-		Status: userv1.InvitationStatus{
-			Token: "abc",
-		},
-	}
+	subject := baseInvitation()
 	apimeta.SetStatusCondition(&subject.Status.Conditions, metav1.Condition{
 		Type:   userv1.ConditionEmailSent,
 		Status: metav1.ConditionFalse,
@@ -75,26 +61,20 @@ func Test_InvitationEmailReconciler_Reconcile_WithSendingFailure_Success(t *test
 
 	r := invitationEmailReconcilerWithFailingSender(c)
 	_, err := r.Reconcile(ctx, requestFor(subject))
-	require.NoError(t, err)
+	require.Error(t, err)
 
 	require.NoError(t, c.Get(ctx, client.ObjectKeyFromObject(subject), subject))
 	require.False(t, apimeta.IsStatusConditionTrue(subject.Status.Conditions, userv1.ConditionEmailSent))
 	condition := apimeta.FindStatusCondition(subject.Status.Conditions, userv1.ConditionEmailSent)
 	require.NotNil(t, condition)
-	require.Equal(t, "Err0r", condition.Reason)
+	require.Equal(t, ReasonSendFailed, condition.Reason)
 }
 
 func Test_InvitationEmailReconciler_Reconcile_NoEmail_Success(t *testing.T) {
 	ctx := context.Background()
 
-	subject := &userv1.Invitation{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "subject",
-		},
-		Status: userv1.InvitationStatus{
-			Token: "abc",
-		},
-	}
+	subject := baseInvitation()
+	subject.Spec.Email = ""
 
 	c := prepareTest(t, subject)
 
@@ -108,20 +88,34 @@ func Test_InvitationEmailReconciler_Reconcile_NoEmail_Success(t *testing.T) {
 
 func invitationEmailReconciler(c client.WithWatch) *InvitationEmailReconciler {
 	return &InvitationEmailReconciler{
-		Client:        c,
-		Scheme:        c.Scheme(),
-		Recorder:      record.NewFakeRecorder(3),
-		MailSender:    &SenderWithConstantId{},
-		RetryInterval: time.Minute,
+		Client:         c,
+		Scheme:         c.Scheme(),
+		Recorder:       record.NewFakeRecorder(3),
+		MailSender:     &SenderWithConstantId{},
+		BaseRetryDelay: time.Minute,
 	}
 }
 
 func invitationEmailReconcilerWithFailingSender(c client.WithWatch) *InvitationEmailReconciler {
 	return &InvitationEmailReconciler{
-		Client:        c,
-		Scheme:        c.Scheme(),
-		Recorder:      record.NewFakeRecorder(3),
-		MailSender:    &FailingSender{},
-		RetryInterval: time.Minute,
+		Client:         c,
+		Scheme:         c.Scheme(),
+		Recorder:       record.NewFakeRecorder(3),
+		MailSender:     &FailingSender{},
+		BaseRetryDelay: time.Minute,
+	}
+}
+
+func baseInvitation() *userv1.Invitation {
+	return &userv1.Invitation{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "subject",
+		},
+		Spec: userv1.InvitationSpec{
+			Email: "subject@example.com",
+		},
+		Status: userv1.InvitationStatus{
+			Token: "abc",
+		},
 	}
 }

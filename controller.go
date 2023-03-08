@@ -62,7 +62,7 @@ func ControllerCommand() *cobra.Command {
 	invEmailBackend := cmd.Flags().String("email-backend", "stdout", "Backend to use for sending invitation mails (one of stdout, mailgun)")
 	invEmailSender := cmd.Flags().String("email-sender", "noreply@appuio.cloud", "Sender address for invitation mails")
 	invEmailSubject := cmd.Flags().String("email-subject", "You have been invited to APPUiO Cloud", "Subject for invitation mails")
-	invEmailRetryInterval := cmd.Flags().Duration("email-retry-interval", 5*time.Minute, "Retry interval for sending e-mail messages")
+	invEmailBaseRetryDelay := cmd.Flags().Duration("email-base-retry-interval", 15*time.Second, "Retry interval for sending e-mail messages. There is also an exponential back-off applied by the controller.")
 
 	invEmailMailgunToken := cmd.Flags().String("mailgun-token", "CHANGEME", "Token used to access Mailgun API")
 	invEmailMailgunDomain := cmd.Flags().String("mailgun-domain", "example.com", "Mailgun Domain to use")
@@ -108,7 +108,7 @@ func ControllerCommand() *cobra.Command {
 			*beRefreshJitter,
 			*invTokenValidFor,
 			*redeemedInvitationTTL,
-			*invEmailRetryInterval,
+			*invEmailBaseRetryDelay,
 			mailSender,
 			ctrl.Options{
 				Scheme:                 scheme,
@@ -142,7 +142,7 @@ func setupManager(
 	beRefreshJitter,
 	invTokenValidFor time.Duration,
 	redeemedInvitationTTL time.Duration,
-	invEmailRetryInterval time.Duration,
+	invEmailBaseRetryDelay time.Duration,
 	mailSender mailsenders.MailSender,
 	opt ctrl.Options,
 ) (ctrl.Manager, error) {
@@ -219,11 +219,11 @@ func setupManager(
 		return nil, err
 	}
 	invmail := &controllers.InvitationEmailReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		Recorder:      mgr.GetEventRecorderFor("invitation-cleanup-controller"),
-		RetryInterval: invEmailRetryInterval,
-		MailSender:    mailSender,
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
+		Recorder:       mgr.GetEventRecorderFor("invitation-email-controller"),
+		BaseRetryDelay: invEmailBaseRetryDelay,
+		MailSender:     mailSender,
 	}
 	if err = invmail.SetupWithManager(mgr); err != nil {
 		return nil, err
