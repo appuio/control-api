@@ -9,7 +9,7 @@ import (
 	// This is basically KubeBuilder
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 	// To have Kustomize updated via Renovate.
-	_ "sigs.k8s.io/kustomize/kustomize/v4"
+	_ "sigs.k8s.io/kustomize/kustomize/v5"
 	// To generate mocks
 	_ "github.com/golang/mock/mockgen"
 	// To have Kind updated via Renovate
