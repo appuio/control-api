@@ -2,9 +2,10 @@ package mailsenders
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/mailgun/mailgun-go/v4"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	userv1 "github.com/appuio/control-api/apis/user/v1"
 )
@@ -26,23 +27,22 @@ type MailgunSender struct {
 	Body *InvitationRenderer
 }
 
-var _ MailSender = &LogSender{}
+var _ MailSender = &StdoutSender{}
 
-// LogSender is a MailSender that logs the e-mail to stdout.
-type LogSender struct {
-	Body *InvitationRenderer
+// StdoutSender is a MailSender that logs the e-mail to stdout.
+type StdoutSender struct {
+	Subject string
+	Body    *InvitationRenderer
 }
 
-func (s *LogSender) Send(ctx context.Context, recipient string, inv userv1.Invitation) (string, error) {
-	log := log.FromContext(ctx)
-
+func (s *StdoutSender) Send(ctx context.Context, recipient string, inv userv1.Invitation) (string, error) {
 	body, err := s.Body.Render(inv)
 	if err != nil {
 		return "", err
 	}
 
-	log.V(0).Info("E-mail body", "body", body)
-	log.V(0).Info("E-mail backend is 'stdout'; invitation e-mail was not sent", "recipient", recipient)
+	border := strings.Repeat("=", 80)
+	fmt.Printf("\n%s\nRecipient: %s\nSubject: %s\n\n%s\n%s\n", border, recipient, s.Subject, body, border)
 
 	return "", nil
 }

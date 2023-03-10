@@ -35,7 +35,7 @@ import (
 const (
 	defaultInvitationEmailTemplate = `Hi,
 
-You've been invited to join on a new group on APPUiO Cloud https://portal.dev/invitations/{{.Invitation.Metadata.Name}}?token={{.Invitation.Status.Token}}.
+You've been invited to join on a new group on APPUiO Cloud https://portal.dev/invitations/{{.Invitation.ObjectMeta.Name}}?token={{.Invitation.Status.Token}}.
 
 Best regards,
 APPUiO Cloud Team`
@@ -114,7 +114,10 @@ func ControllerCommand() *cobra.Command {
 			)
 			mailSender = &b
 		} else {
-			mailSender = &mailsenders.LogSender{Body: bodyRenderer}
+			mailSender = &mailsenders.StdoutSender{
+				Subject: *invEmailSubject,
+				Body:    bodyRenderer,
+			}
 		}
 
 		mgr, err := setupManager(
