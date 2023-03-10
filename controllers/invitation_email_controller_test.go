@@ -19,11 +19,11 @@ import (
 type FailingSender struct{}
 type SenderWithConstantId struct{}
 
-func (f *FailingSender) Send(context.Context, string, string, string) (string, error) {
+func (f *FailingSender) Send(context.Context, string, userv1.Invitation) (string, error) {
 	return "", errors.New("Err0r")
 }
 
-func (s *SenderWithConstantId) Send(context.Context, string, string, string) (string, error) {
+func (s *SenderWithConstantId) Send(context.Context, string, userv1.Invitation) (string, error) {
 	return "ID10", nil
 }
 
