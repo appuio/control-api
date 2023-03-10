@@ -63,7 +63,7 @@ func (r *InvitationEmailReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	email := inv.Spec.Email
-	id, err := r.MailSender.Send(ctx, email, inv.Name, inv.Status.Token)
+	id, err := r.MailSender.Send(ctx, email, inv)
 	if err != nil {
 		log.V(0).Error(err, "Error in e-mail backend")
 

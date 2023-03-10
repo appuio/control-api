@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"os"
+	"text/template"
 	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -29,6 +30,15 @@ import (
 	"github.com/appuio/control-api/controllers"
 	"github.com/appuio/control-api/webhooks"
 	//+kubebuilder:scaffold:imports
+)
+
+const (
+	defaultInvitationEmailTemplate = `Hi,
+
+You've been invited to join on a new group on APPUiO Cloud https://portal.dev/invitations/{{.Invitation.Metadata.Name}}?token={{.Invitation.Status.Token}}.
+
+Best regards,
+APPUiO Cloud Team`
 )
 
 // ControllerCommand creates a new command allowing to start the controller
@@ -62,11 +72,11 @@ func ControllerCommand() *cobra.Command {
 	invEmailBackend := cmd.Flags().String("email-backend", "stdout", "Backend to use for sending invitation mails (one of stdout, mailgun)")
 	invEmailSender := cmd.Flags().String("email-sender", "noreply@appuio.cloud", "Sender address for invitation mails")
 	invEmailSubject := cmd.Flags().String("email-subject", "You have been invited to APPUiO Cloud", "Subject for invitation mails")
+	emailBodyTemplate := cmd.Flags().String("email-body-template", defaultInvitationEmailTemplate, "Body for invitation mails")
 	invEmailBaseRetryDelay := cmd.Flags().Duration("email-base-retry-interval", 15*time.Second, "Retry interval for sending e-mail messages. There is also an exponential back-off applied by the controller.")
 
 	invEmailMailgunToken := cmd.Flags().String("mailgun-token", "CHANGEME", "Token used to access Mailgun API")
 	invEmailMailgunDomain := cmd.Flags().String("mailgun-domain", "example.com", "Mailgun Domain to use")
-	invEmailMailgunTemplate := cmd.Flags().String("mailgun-template", "appuio-cloud-invitation", "Name of the Mailgun template")
 	invEmailMailgunUrl := cmd.Flags().String("mailgun-url", "https://api.eu.mailgun.net/v3", "API base URL for your Mailgun account")
 	invEmailMailgunTestMode := cmd.Flags().Bool("mailgun-test-mode", false, "If set, do not actually send e-mails")
 
@@ -84,6 +94,13 @@ func ControllerCommand() *cobra.Command {
 		ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 		ctx := ctrl.SetupSignalHandler()
 
+		bt, err := template.New("emailBody").Parse(*emailBodyTemplate)
+		if err != nil {
+			setupLog.Error(err, "Failed to parse email body template")
+			os.Exit(1)
+		}
+		bodyRenderer := &mailsenders.InvitationRenderer{Template: bt}
+
 		var mailSender mailsenders.MailSender
 		if *invEmailBackend == "mailgun" {
 			b := mailsenders.NewMailgunSender(
@@ -91,13 +108,13 @@ func ControllerCommand() *cobra.Command {
 				*invEmailMailgunToken,
 				*invEmailMailgunUrl,
 				*invEmailSender,
-				*invEmailMailgunTemplate,
+				bodyRenderer,
 				*invEmailSubject,
 				*invEmailMailgunTestMode,
 			)
 			mailSender = &b
 		} else {
-			mailSender = &mailsenders.LogSender{}
+			mailSender = &mailsenders.LogSender{Body: bodyRenderer}
 		}
 
 		mgr, err := setupManager(

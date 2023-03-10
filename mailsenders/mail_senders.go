@@ -5,57 +5,72 @@ import (
 
 	"github.com/mailgun/mailgun-go/v4"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	userv1 "github.com/appuio/control-api/apis/user/v1"
 )
 
 type MailSender interface {
-	Send(ctx context.Context, recipient string, invitation string, token string) (string, error)
+	Send(ctx context.Context, recipient string, inv userv1.Invitation) (id string, err error)
 }
 
+var _ MailSender = &MailgunSender{}
+
+// MailgunSender is a MailSender that sends e-mails via Mailgun.
 type MailgunSender struct {
-	Mailgun        *mailgun.MailgunImpl
+	Mailgun        mailgun.Mailgun
 	MailgunBaseUrl string
 	SenderAddress  string
-	TemplateName   string
 	UseTestMode    bool
 	Subject        string
+
+	Body *InvitationRenderer
 }
 
-type LogSender struct{}
+var _ MailSender = &LogSender{}
 
-func (s *LogSender) Send(ctx context.Context, recipient string, invitation string, token string) (string, error) {
+// LogSender is a MailSender that logs the e-mail to stdout.
+type LogSender struct {
+	Body *InvitationRenderer
+}
+
+func (s *LogSender) Send(ctx context.Context, recipient string, inv userv1.Invitation) (string, error) {
 	log := log.FromContext(ctx)
-	log.V(0).Info("E-mail backend is 'stdout'; invitation e-mail was not sent", "recipient", recipient, "invitation", invitation)
+
+	body, err := s.Body.Render(inv)
+	if err != nil {
+		return "", err
+	}
+
+	log.V(0).Info("E-mail body", "body", body)
+	log.V(0).Info("E-mail backend is 'stdout'; invitation e-mail was not sent", "recipient", recipient)
+
 	return "", nil
 }
 
-func NewMailgunSender(domain string, token string, baseUrl string, senderAddress string, templateName string, subject string, useTestMode bool) MailgunSender {
+func NewMailgunSender(domain string, token string, baseUrl string, senderAddress string, body *InvitationRenderer, subject string, useTestMode bool) MailgunSender {
 	mg := mailgun.NewMailgun(domain, token)
 	mg.SetAPIBase(baseUrl)
 	return MailgunSender{
 		Mailgun:       mg,
+		Body:          body,
 		SenderAddress: senderAddress,
-		TemplateName:  templateName,
 		UseTestMode:   useTestMode,
 		Subject:       subject,
 	}
 }
 
-func (m *MailgunSender) Send(ctx context.Context, recipient string, invitation string, token string) (string, error) {
+func (m *MailgunSender) Send(ctx context.Context, recipient string, inv userv1.Invitation) (string, error) {
+	body, err := m.Body.Render(inv)
+	if err != nil {
+		return "", err
+	}
+
 	message := m.Mailgun.NewMessage(
 		m.SenderAddress,
 		m.Subject,
-		"", // Message body will be rendered from template
+		body,
 		recipient,
 	)
-	message.SetTemplate(m.TemplateName)
-	err := message.AddTemplateVariable("invitation", invitation)
-	if err != nil {
-		return "", err
-	}
-	err = message.AddTemplateVariable("token", token)
-	if err != nil {
-		return "", err
-	}
 
 	if m.UseTestMode {
 		message.EnableTestMode()
