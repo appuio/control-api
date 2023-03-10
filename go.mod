@@ -9,7 +9,7 @@ require (
 	github.com/prometheus/client_golang v1.14.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.2
-	go.uber.org/multierr v1.9.0
+	go.uber.org/multierr v1.10.0
 	go.uber.org/zap v1.24.0
 	golang.org/x/exp v0.0.0-20230307190834-24139beb5833
 	k8s.io/api v0.26.2
