@@ -36,15 +36,16 @@ func NewInvitationStorage(backingNS, usernamePrefix string) restbuilder.Resource
 			return nil, err
 		}
 
+		stor = &rbacCreatorIsOwner{
+			ScopedStandardStorage: stor,
+			client:                c,
+		}
+
+		// Warning: Should be the last storage layer before authorization since it expands the interface with the Connecter interface
 		stor = &invitationRedeemer{
 			ScopedStandardStorage: stor,
 			client:                c,
 			usernamePrefix:        usernamePrefix,
-		}
-
-		stor = &rbacCreatorIsOwner{
-			ScopedStandardStorage: stor,
-			client:                c,
 		}
 
 		astor, err := authwrapper.NewAuthorizedStorage(stor, metav1.GroupVersionResource{
