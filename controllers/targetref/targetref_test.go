@@ -75,13 +75,14 @@ func Test_GetTarget_UnsupportedType(t *testing.T) {
 }
 
 func Test_UserAccessor_AccessUser(t *testing.T) {
+	usernamePrefix := "appuio#"
 	tt := []client.Object{
 		&rbacv1.ClusterRoleBinding{
 			Subjects: []rbacv1.Subject{
 				{
 					Kind:     rbacv1.UserKind,
 					APIGroup: rbacv1.GroupName,
-					Name:     "user1",
+					Name:     usernamePrefix + "user1",
 				},
 			},
 		},
@@ -90,7 +91,7 @@ func Test_UserAccessor_AccessUser(t *testing.T) {
 				{
 					Kind:     rbacv1.UserKind,
 					APIGroup: rbacv1.GroupName,
-					Name:     "user1",
+					Name:     usernamePrefix + "user1",
 				},
 			},
 		},
@@ -115,11 +116,11 @@ func Test_UserAccessor_AccessUser(t *testing.T) {
 			a, err := targetref.NewUserAccessor(obj)
 			require.NoError(t, err)
 
-			require.False(t, a.HasUser("user2"))
-			require.True(t, a.EnsureUser("user2"))
-			require.True(t, a.HasUser("user2"))
-			require.False(t, a.EnsureUser("user2"))
-			require.True(t, a.HasUser("user2"))
+			require.False(t, a.HasUser(usernamePrefix, "user2"))
+			require.True(t, a.EnsureUser(usernamePrefix, "user2"))
+			require.True(t, a.HasUser(usernamePrefix, "user2"))
+			require.False(t, a.EnsureUser(usernamePrefix, "user2"))
+			require.True(t, a.HasUser(usernamePrefix, "user2"))
 		})
 	}
 }

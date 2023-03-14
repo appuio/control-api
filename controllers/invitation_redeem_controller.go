@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"go.uber.org/multierr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,6 +23,8 @@ type InvitationRedeemReconciler struct {
 
 	Recorder record.EventRecorder
 	Scheme   *runtime.Scheme
+
+	UsernamePrefix string
 }
 
 //+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations,verbs=get;list;watch
@@ -62,7 +65,8 @@ func (r *InvitationRedeemReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 
 		statusHasChanged = true
-		err := addUserToTarget(ctx, r.Client, inv.Status.RedeemedBy, inv.Status.TargetStatuses[i].TargetRef)
+		username := strings.TrimPrefix(inv.Status.RedeemedBy, r.UsernamePrefix)
+		err := addUserToTarget(ctx, r.Client, username, r.UsernamePrefix, inv.Status.TargetStatuses[i].TargetRef)
 		if err != nil {
 			errors = append(errors, err)
 			inv.Status.TargetStatuses[i].Condition.LastTransitionTime = metav1.Now()
@@ -91,7 +95,7 @@ func (r *InvitationRedeemReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func addUserToTarget(ctx context.Context, c client.Client, user string, target userv1.TargetRef) error {
+func addUserToTarget(ctx context.Context, c client.Client, user, prefix string, target userv1.TargetRef) error {
 	o, err := targetref.GetTarget(ctx, c, target)
 	if err != nil {
 		return err
@@ -102,7 +106,7 @@ func addUserToTarget(ctx context.Context, c client.Client, user string, target u
 		return err
 	}
 
-	added := a.EnsureUser(user)
+	added := a.EnsureUser(prefix, user)
 	if added {
 		return c.Update(ctx, o)
 	}
