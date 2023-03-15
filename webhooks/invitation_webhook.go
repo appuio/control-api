@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"go.uber.org/multierr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,6 +21,8 @@ import (
 type InvitationValidator struct {
 	client  client.Client
 	decoder *admission.Decoder
+
+	UsernamePrefix string
 }
 
 // Handle handles the users.appuio.io admission requests
@@ -33,9 +36,14 @@ func (v *InvitationValidator) Handle(ctx context.Context, req admission.Request)
 	log.V(1).WithValues("invitation", inv).Info("Validating")
 
 	username := req.UserInfo.Username
+	if !strings.HasPrefix(username, v.UsernamePrefix) {
+		return admission.Denied(fmt.Sprintf("Invalid username: only usernames with prefix %q are accepted, got username %q", v.UsernamePrefix, username))
+	}
+	username = strings.TrimPrefix(username, v.UsernamePrefix)
+
 	authErrors := make([]error, 0, len(inv.Spec.TargetRefs))
 	for _, target := range inv.Spec.TargetRefs {
-		authErrors = append(authErrors, authorizeTarget(ctx, v.client, username, target))
+		authErrors = append(authErrors, authorizeTarget(ctx, v.client, username, v.UsernamePrefix, target))
 	}
 	if err := multierr.Combine(authErrors...); err != nil {
 		return admission.Denied(fmt.Sprintf("user %q is not allowed to invite to the targets: %s", username, err))
@@ -56,7 +64,7 @@ func (v *InvitationValidator) InjectClient(c client.Client) error {
 	return nil
 }
 
-func authorizeTarget(ctx context.Context, c client.Client, user string, target userv1.TargetRef) error {
+func authorizeTarget(ctx context.Context, c client.Client, user, prefix string, target userv1.TargetRef) error {
 	o, err := targetref.GetTarget(ctx, c, target)
 	if err != nil {
 		return err
@@ -67,7 +75,7 @@ func authorizeTarget(ctx context.Context, c client.Client, user string, target u
 		return err
 	}
 
-	if a.HasUser(user) {
+	if a.HasUser(prefix, user) {
 		return nil
 	}
 

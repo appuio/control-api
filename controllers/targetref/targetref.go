@@ -36,9 +36,11 @@ func GetTarget(ctx context.Context, c client.Client, target userv1.TargetRef) (c
 type UserAccessor interface {
 	// EnsureUser adds the user to the object if it is not already present.
 	// Returns true if the user was added.
-	EnsureUser(user string) (added bool)
+	// Uses the prefix where applicable.
+	EnsureUser(prefix, user string) (added bool)
 	// HasUser returns true if the user is present in the object.
-	HasUser(user string) bool
+	// Uses the prefix where applicable.
+	HasUser(prefix, user string) bool
 }
 
 // NewUserAccessor returns a UserAccessor for the given object or an error if the object is not supported.
@@ -63,11 +65,13 @@ type controlv1UserRefAccessor struct {
 
 var _ UserAccessor = &controlv1UserRefAccessor{}
 
-func (s *controlv1UserRefAccessor) HasUser(user string) bool {
+func (s *controlv1UserRefAccessor) HasUser(_, user string) bool {
+	// Prefix is not used for UserRef
 	return isInSlice(*s.userRefs, controlv1.UserRef{Name: user})
 }
 
-func (s *controlv1UserRefAccessor) EnsureUser(user string) (added bool) {
+func (s *controlv1UserRefAccessor) EnsureUser(_, user string) (added bool) {
+	// Prefix is not used for UserRef
 	*s.userRefs, added = ensure(*s.userRefs, controlv1.UserRef{Name: user})
 	return
 }
@@ -78,12 +82,12 @@ type rbacv1SubjectAccessor struct {
 
 var _ UserAccessor = &rbacv1SubjectAccessor{}
 
-func (s *rbacv1SubjectAccessor) HasUser(user string) bool {
-	return isInSlice(*s.subjects, newSubject(user))
+func (s *rbacv1SubjectAccessor) HasUser(prefix, user string) bool {
+	return isInSlice(*s.subjects, newSubject(prefix+user))
 }
 
-func (s *rbacv1SubjectAccessor) EnsureUser(user string) (added bool) {
-	*s.subjects, added = ensure(*s.subjects, newSubject(user))
+func (s *rbacv1SubjectAccessor) EnsureUser(prefix, user string) (added bool) {
+	*s.subjects, added = ensure(*s.subjects, newSubject(prefix+user))
 	return
 }
 

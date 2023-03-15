@@ -225,6 +225,8 @@ func setupManager(
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("invitation-redeem-controller"),
+
+		UsernamePrefix: usernamePrefix,
 	}
 	if err = invred.SetupWithManager(mgr); err != nil {
 		return nil, err
@@ -253,7 +255,9 @@ func setupManager(
 		Handler: &webhooks.UserValidator{},
 	})
 	mgr.GetWebhookServer().Register("/validate-user-appuio-io-v1-invitation", &webhook.Admission{
-		Handler: &webhooks.InvitationValidator{},
+		Handler: &webhooks.InvitationValidator{
+			UsernamePrefix: usernamePrefix,
+		},
 	})
 
 	//+kubebuilder:scaffold:builder
