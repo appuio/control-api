@@ -4,9 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
+	"github.com/google/uuid"
 	"go.uber.org/multierr"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -16,6 +20,8 @@ import (
 )
 
 // +kubebuilder:webhook:path=/validate-user-appuio-io-v1-invitation,mutating=false,failurePolicy=fail,groups="user.appuio.io",resources=invitations,verbs=create;update,versions=v1,name=validate-invitations.user.appuio.io,admissionReviewVersions=v1,sideEffects=None
+
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 // InvitationValidator holds context for the validating admission webhook for users.appuio.io
 type InvitationValidator struct {
@@ -35,18 +41,12 @@ func (v *InvitationValidator) Handle(ctx context.Context, req admission.Request)
 	}
 	log.V(1).WithValues("invitation", inv).Info("Validating")
 
-	username := req.UserInfo.Username
-	if !strings.HasPrefix(username, v.UsernamePrefix) {
-		return admission.Denied(fmt.Sprintf("Invalid username: only usernames with prefix %q are accepted, got username %q", v.UsernamePrefix, username))
-	}
-	username = strings.TrimPrefix(username, v.UsernamePrefix)
-
 	authErrors := make([]error, 0, len(inv.Spec.TargetRefs))
 	for _, target := range inv.Spec.TargetRefs {
-		authErrors = append(authErrors, authorizeTarget(ctx, v.client, username, v.UsernamePrefix, target))
+		authErrors = append(authErrors, authorizeTarget(ctx, v.client, req.UserInfo, target))
 	}
 	if err := multierr.Combine(authErrors...); err != nil {
-		return admission.Denied(fmt.Sprintf("user %q is not allowed to invite to the targets: %s", username, err))
+		return admission.Denied(fmt.Sprintf("user %q is not allowed to invite to the targets: %s", req.UserInfo.Username, err))
 	}
 
 	return admission.Allowed("target refs are valid")
@@ -64,20 +64,65 @@ func (v *InvitationValidator) InjectClient(c client.Client) error {
 	return nil
 }
 
-func authorizeTarget(ctx context.Context, c client.Client, user, prefix string, target userv1.TargetRef) error {
-	o, err := targetref.GetTarget(ctx, c, target)
+func authorizeTarget(ctx context.Context, c client.Client, user authenticationv1.UserInfo, target userv1.TargetRef) error {
+	// Check if the target references a supported resource
+	_, err := targetref.NewObjectFromRef(target)
 	if err != nil {
 		return err
 	}
 
-	a, err := targetref.NewUserAccessor(o)
+	return canEditTarget(ctx, c, user, target)
+}
+
+// canEditTarget checks if the user is allowed to edit the target.
+// it does so by creating a SubjectAccessReview to `update` the resource and checking the response.
+func canEditTarget(ctx context.Context, c client.Client, user authenticationv1.UserInfo, target userv1.TargetRef) error {
+	const verb = "update"
+
+	ra, err := mapTargetRefToResourceAttribute(c, target)
 	if err != nil {
 		return err
 	}
+	ra.Verb = verb
 
-	if a.HasUser(prefix, user) {
-		return nil
+	rw := authorization.SubjectAccessReview{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: uuid.New().String(),
+		},
+		Spec: authorization.SubjectAccessReviewSpec{
+			ResourceAttributes: ra,
+			User:               user.Username,
+			Groups:             user.Groups,
+			UID:                user.UID,
+		},
 	}
 
-	return fmt.Errorf("target %q.%q/%q in namespace %q is not allowed", target.APIGroup, target.Kind, target.Name, target.Namespace)
+	if err := c.Create(ctx, &rw); err != nil {
+		return fmt.Errorf("failed to create SubjectAccessReview: %w", err)
+	}
+
+	if !rw.Status.Allowed {
+		return fmt.Errorf("%q on target %q.%q/%q in namespace %q is not allowed", verb, target.APIGroup, target.Kind, target.Name, target.Namespace)
+	}
+
+	return nil
+}
+
+func mapTargetRefToResourceAttribute(c client.Client, target userv1.TargetRef) (*authorization.ResourceAttributes, error) {
+	rm, err := c.RESTMapper().RESTMapping(schema.GroupKind{
+		Group: target.APIGroup,
+		Kind:  target.Kind,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get REST mapping for %q.%q: %w", target.APIGroup, target.Kind, err)
+	}
+
+	return &authorization.ResourceAttributes{
+		Namespace: target.Namespace,
+		Group:     target.APIGroup,
+		Version:   rm.Resource.Version,
+		Resource:  rm.Resource.Resource,
+		Name:      target.Name,
+	}, nil
 }

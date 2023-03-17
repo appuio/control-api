@@ -8,14 +8,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	admissionv1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ktesting "k8s.io/client-go/testing"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -100,20 +102,6 @@ func TestInvitationValidator_Handle(t *testing.T) {
 			errcode: http.StatusForbidden,
 		},
 
-		"OrganizationMembers not found, denied": {
-			requestUser: allowedUser,
-			targets: []userv1.TargetRef{
-				{
-					APIGroup:  "appuio.io",
-					Kind:      "OrganizationMembers",
-					Namespace: testOrg,
-					Name:      "members" + "-not-found",
-				},
-			},
-			allowed: false,
-			errcode: http.StatusForbidden,
-		},
-
 		"Team allowed": {
 			requestUser: allowedUser,
 			targets: []userv1.TargetRef{
@@ -136,20 +124,6 @@ func TestInvitationValidator_Handle(t *testing.T) {
 					Kind:      "Team",
 					Namespace: testOrg,
 					Name:      testTeam,
-				},
-			},
-			allowed: false,
-			errcode: http.StatusForbidden,
-		},
-
-		"Team not found, denied": {
-			requestUser: allowedUser,
-			targets: []userv1.TargetRef{
-				{
-					APIGroup:  "appuio.io",
-					Kind:      "Team",
-					Namespace: testOrg,
-					Name:      testTeam + "-not-found",
 				},
 			},
 			allowed: false,
@@ -182,19 +156,6 @@ func TestInvitationValidator_Handle(t *testing.T) {
 			errcode: http.StatusForbidden,
 		},
 
-		"ClusterRoleBinding not found, denied": {
-			requestUser: allowedUser,
-			targets: []userv1.TargetRef{
-				{
-					APIGroup: rbacv1.GroupName,
-					Kind:     "ClusterRoleBinding",
-					Name:     testRoleName + "-not-found",
-				},
-			},
-			allowed: false,
-			errcode: http.StatusForbidden,
-		},
-
 		"RoleBinding allowed": {
 			requestUser: allowedUser,
 			targets: []userv1.TargetRef{
@@ -217,20 +178,6 @@ func TestInvitationValidator_Handle(t *testing.T) {
 					Kind:      "RoleBinding",
 					Namespace: testOrg,
 					Name:      testRoleName,
-				},
-			},
-			allowed: false,
-			errcode: http.StatusForbidden,
-		},
-
-		"RoleBinding not found, denied": {
-			requestUser: allowedUser,
-			targets: []userv1.TargetRef{
-				{
-					APIGroup:  rbacv1.GroupName,
-					Kind:      "RoleBinding",
-					Namespace: testOrg,
-					Name:      testRoleName + "-not-found",
 				},
 			},
 			allowed: false,
@@ -293,7 +240,7 @@ func TestInvitationValidator_Handle(t *testing.T) {
 				},
 			}
 
-			iv := prepareInvitationValidatorTest(t, &invitation, &org, &team, &rb, &crb)
+			iv := prepareInvitationValidatorTest(t, allowedUser, &invitation, &org, &team, &rb, &crb)
 
 			invJson, err := json.Marshal(invitation)
 			require.NoError(t, err)
@@ -336,19 +283,64 @@ func TestInvitationValidator_Handle(t *testing.T) {
 	}
 }
 
-func prepareInvitationValidatorTest(t *testing.T, initObjs ...client.Object) *InvitationValidator {
+func prepareInvitationValidatorTest(t *testing.T, sarAllowedUser string, initObjs ...client.Object) *InvitationValidator {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(orgv1.AddToScheme(scheme))
-	utilruntime.Must(controlv1.AddToScheme(scheme))
-	utilruntime.Must(userv1.AddToScheme(scheme))
+	require.NoError(t, clientgoscheme.AddToScheme(scheme))
+	require.NoError(t, orgv1.AddToScheme(scheme))
+	require.NoError(t, controlv1.AddToScheme(scheme))
+	require.NoError(t, userv1.AddToScheme(scheme))
+	require.NoError(t, authorization.AddToScheme(scheme))
 
 	decoder, err := admission.NewDecoder(scheme)
 	require.NoError(t, err)
 
+	// This would be auto-discovered by the real client
+	drm := meta.NewDefaultRESTMapper(
+		[]schema.GroupVersion{
+			{Group: "appuio.io", Version: "v1"},
+			{Group: "rbac.authorization.k8s.io", Version: "v1"},
+		},
+	)
+	drm.AddSpecific(schema.GroupVersionKind{
+		Group:   "appuio.io",
+		Version: "v1",
+		Kind:    "OrganizationMembers",
+	}, schema.GroupVersionResource{
+		Group:    "appuio.io",
+		Version:  "v1",
+		Resource: "organizationmembers",
+	}, schema.GroupVersionResource{
+		Group:    "appuio.io",
+		Version:  "v1",
+		Resource: "organizationmembers",
+	}, meta.RESTScopeNamespace)
+
+	drm.Add(schema.GroupVersionKind{
+		Group:   "appuio.io",
+		Version: "v1",
+		Kind:    "Team",
+	}, meta.RESTScopeNamespace)
+	drm.Add(schema.GroupVersionKind{
+		Group:   "rbac.authorization.k8s.io",
+		Version: "v1",
+		Kind:    "ClusterRoleBinding",
+	}, meta.RESTScopeRoot)
+	drm.Add(schema.GroupVersionKind{
+		Group:   "rbac.authorization.k8s.io",
+		Version: "v1",
+		Kind:    "RoleBinding",
+	}, meta.RESTScopeNamespace)
+
+	tr := subjectAccessReviewResponder{
+		ktesting.NewObjectTracker(scheme, clientgoscheme.Codecs.UniversalDecoder()),
+		sarAllowedUser,
+	}
+
 	client := fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(initObjs...).
+		WithRESTMapper(drm).
+		WithObjectTracker(tr).
 		Build()
 
 	iv := &InvitationValidator{}
@@ -356,4 +348,20 @@ func prepareInvitationValidatorTest(t *testing.T, initObjs ...client.Object) *In
 	iv.InjectDecoder(decoder)
 
 	return iv
+}
+
+// subjectAccessReviewResponder is a wrapper for testing.ObjectTracker that responds to SubjectAccessReview create requests
+// and allows or denies the request based on the allowedUser name.
+type subjectAccessReviewResponder struct {
+	ktesting.ObjectTracker
+
+	allowedUser string
+}
+
+func (r subjectAccessReviewResponder) Create(gvr schema.GroupVersionResource, obj runtime.Object, ns string) error {
+	if sar, ok := obj.(*authorization.SubjectAccessReview); ok {
+		sar.Status.Allowed = sar.Spec.User == r.allowedUser
+		return nil
+	}
+	return r.ObjectTracker.Create(gvr, obj, ns)
 }
