@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ktesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -331,17 +330,18 @@ func prepareInvitationValidatorTest(t *testing.T, sarAllowedUser string, initObj
 		Kind:    "RoleBinding",
 	}, meta.RESTScopeNamespace)
 
-	tr := subjectAccessReviewResponder{
-		ktesting.NewObjectTracker(scheme, clientgoscheme.Codecs.UniversalDecoder()),
-		sarAllowedUser,
-	}
+	var client client.WithWatch
 
-	client := fake.NewClientBuilder().
+	client = fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(initObjs...).
 		WithRESTMapper(drm).
-		WithObjectTracker(tr).
 		Build()
+
+	client = subjectAccessReviewResponder{
+		client,
+		sarAllowedUser,
+	}
 
 	iv := &InvitationValidator{}
 	iv.InjectClient(client)
@@ -350,18 +350,18 @@ func prepareInvitationValidatorTest(t *testing.T, sarAllowedUser string, initObj
 	return iv
 }
 
-// subjectAccessReviewResponder is a wrapper for testing.ObjectTracker that responds to SubjectAccessReview create requests
+// subjectAccessReviewResponder is a wrapper for client.WithWatch that responds to SubjectAccessReview create requests
 // and allows or denies the request based on the allowedUser name.
 type subjectAccessReviewResponder struct {
-	ktesting.ObjectTracker
+	client.WithWatch
 
 	allowedUser string
 }
 
-func (r subjectAccessReviewResponder) Create(gvr schema.GroupVersionResource, obj runtime.Object, ns string) error {
+func (r subjectAccessReviewResponder) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	if sar, ok := obj.(*authorization.SubjectAccessReview); ok {
 		sar.Status.Allowed = sar.Spec.User == r.allowedUser
 		return nil
 	}
-	return r.ObjectTracker.Create(gvr, obj, ns)
+	return r.WithWatch.Create(ctx, obj, opts...)
 }

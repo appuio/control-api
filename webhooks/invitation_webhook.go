@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/uuid"
 	"go.uber.org/multierr"
 	authenticationv1 "k8s.io/api/authentication/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -86,9 +84,6 @@ func canEditTarget(ctx context.Context, c client.Client, user authenticationv1.U
 	ra.Verb = verb
 
 	rw := authorization.SubjectAccessReview{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: uuid.New().String(),
-		},
 		Spec: authorization.SubjectAccessReviewSpec{
 			ResourceAttributes: ra,
 			User:               user.Username,
