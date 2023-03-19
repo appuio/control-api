@@ -3,6 +3,7 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -359,9 +361,18 @@ type subjectAccessReviewResponder struct {
 }
 
 func (r subjectAccessReviewResponder) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	if sar, ok := obj.(*authorization.SubjectAccessReview); ok {
-		sar.Status.Allowed = sar.Spec.User == r.allowedUser
-		return nil
+	if sar, ok := obj.(*unstructured.Unstructured); ok {
+		if sar.GetKind() == "SubjectAccessReview" {
+			u, p, err := unstructured.NestedString(sar.Object, "spec", "user")
+			if err != nil {
+				return err
+			}
+			if !p {
+				return errors.New("spec.user not found")
+			}
+			unstructured.SetNestedField(sar.Object, u == r.allowedUser, "status", "allowed")
+			return nil
+		}
 	}
 	return r.WithWatch.Create(ctx, obj, opts...)
 }

@@ -7,8 +7,9 @@ import (
 
 	"go.uber.org/multierr"
 	authenticationv1 "k8s.io/api/authentication/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/apis/authorization"
+	authorizationv1 "k8s.io/kubernetes/pkg/apis/authorization/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -59,7 +60,7 @@ func (v *InvitationValidator) InjectDecoder(d *admission.Decoder) error {
 // InjectClient injects a Kubernetes client into the InvitationValidator
 func (v *InvitationValidator) InjectClient(c client.Client) error {
 	v.client = c
-	return authorization.AddToScheme(c.Scheme())
+	return nil
 }
 
 func authorizeTarget(ctx context.Context, c client.Client, user authenticationv1.UserInfo, target userv1.TargetRef) error {
@@ -81,29 +82,40 @@ func canEditTarget(ctx context.Context, c client.Client, user authenticationv1.U
 	if err != nil {
 		return err
 	}
-	ra.Verb = verb
+	ra["verb"] = verb
 
-	rw := authorization.SubjectAccessReview{
-		Spec: authorization.SubjectAccessReviewSpec{
-			ResourceAttributes: ra,
-			User:               user.Username,
-			Groups:             user.Groups,
-			UID:                user.UID,
-		},
-	}
+	// I could not find a way to create a SubjectAccessReview object with the client.
+	// `no kind "CreateOptions" is registered for the internal version of group "authorization.k8s.io" in scheme`
+	// even after installing the authorization scheme.
+	rawSAR := &unstructured.Unstructured{
+		Object: map[string]any{
+			"spec": map[string]any{
+				"resourceAttributes": ra,
 
-	if err := c.Create(ctx, &rw); err != nil {
+				"user":   user.Username,
+				"groups": user.Groups,
+				"uid":    user.UID,
+			},
+		}}
+	rawSAR.SetGroupVersionKind(authorizationv1.SchemeGroupVersion.WithKind("SubjectAccessReview"))
+
+	if err := c.Create(ctx, rawSAR); err != nil {
 		return fmt.Errorf("failed to create SubjectAccessReview: %w", err)
 	}
 
-	if !rw.Status.Allowed {
+	allowed, _, err := unstructured.NestedBool(rawSAR.Object, "status", "allowed")
+	if err != nil {
+		return fmt.Errorf("failed to get SubjectAccessReview status.allowed: %w", err)
+	}
+
+	if !allowed {
 		return fmt.Errorf("%q on target %q.%q/%q in namespace %q is not allowed", verb, target.APIGroup, target.Kind, target.Name, target.Namespace)
 	}
 
 	return nil
 }
 
-func mapTargetRefToResourceAttribute(c client.Client, target userv1.TargetRef) (*authorization.ResourceAttributes, error) {
+func mapTargetRefToResourceAttribute(c client.Client, target userv1.TargetRef) (map[string]any, error) {
 	rm, err := c.RESTMapper().RESTMapping(schema.GroupKind{
 		Group: target.APIGroup,
 		Kind:  target.Kind,
@@ -113,11 +125,12 @@ func mapTargetRefToResourceAttribute(c client.Client, target userv1.TargetRef) (
 		return nil, fmt.Errorf("failed to get REST mapping for %q.%q: %w", target.APIGroup, target.Kind, err)
 	}
 
-	return &authorization.ResourceAttributes{
-		Namespace: target.Namespace,
-		Group:     target.APIGroup,
-		Version:   rm.Resource.Version,
-		Resource:  rm.Resource.Resource,
-		Name:      target.Name,
+	return map[string]any{
+		"group":    target.APIGroup,
+		"version":  rm.Resource.Version,
+		"resource": rm.Resource.Resource,
+
+		"namespace": target.Namespace,
+		"name":      target.Name,
 	}, nil
 }
