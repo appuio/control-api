@@ -59,7 +59,7 @@ func (v *InvitationValidator) InjectDecoder(d *admission.Decoder) error {
 // InjectClient injects a Kubernetes client into the InvitationValidator
 func (v *InvitationValidator) InjectClient(c client.Client) error {
 	v.client = c
-	return nil
+	return authorization.AddToScheme(c.Scheme())
 }
 
 func authorizeTarget(ctx context.Context, c client.Client, user authenticationv1.UserInfo, target userv1.TargetRef) error {
