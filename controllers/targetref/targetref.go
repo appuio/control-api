@@ -14,6 +14,15 @@ import (
 // GetTarget returns the target object for the given TargetRef.
 // Returns an error if the target is not supported.
 func GetTarget(ctx context.Context, c client.Client, target userv1.TargetRef) (client.Object, error) {
+	obj, err := NewObjectFromRef(target)
+	if err != nil {
+		return nil, err
+	}
+	return obj, c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, obj)
+}
+
+// NewObjectFromRef returns a new object for the given TargetRef or an error if the target is not supported.
+func NewObjectFromRef(target userv1.TargetRef) (client.Object, error) {
 	var obj client.Object
 	switch {
 	case target.APIGroup == "appuio.io" && target.Kind == "OrganizationMembers":
@@ -28,8 +37,7 @@ func GetTarget(ctx context.Context, c client.Client, target userv1.TargetRef) (c
 		return nil, fmt.Errorf("unsupported target %q.%q", target.APIGroup, target.Kind)
 	}
 
-	err := c.Get(ctx, client.ObjectKey{Name: target.Name, Namespace: target.Namespace}, obj)
-	return obj, err
+	return obj, nil
 }
 
 // UserAccessor is an interface for accessing users from objects supported by this project.

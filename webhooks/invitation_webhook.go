@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"go.uber.org/multierr"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	authorizationv1 "k8s.io/kubernetes/pkg/apis/authorization/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -16,6 +19,8 @@ import (
 )
 
 // +kubebuilder:webhook:path=/validate-user-appuio-io-v1-invitation,mutating=false,failurePolicy=fail,groups="user.appuio.io",resources=invitations,verbs=create;update,versions=v1,name=validate-invitations.user.appuio.io,admissionReviewVersions=v1,sideEffects=None
+
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 // InvitationValidator holds context for the validating admission webhook for users.appuio.io
 type InvitationValidator struct {
@@ -35,18 +40,12 @@ func (v *InvitationValidator) Handle(ctx context.Context, req admission.Request)
 	}
 	log.V(1).WithValues("invitation", inv).Info("Validating")
 
-	username := req.UserInfo.Username
-	if !strings.HasPrefix(username, v.UsernamePrefix) {
-		return admission.Denied(fmt.Sprintf("Invalid username: only usernames with prefix %q are accepted, got username %q", v.UsernamePrefix, username))
-	}
-	username = strings.TrimPrefix(username, v.UsernamePrefix)
-
 	authErrors := make([]error, 0, len(inv.Spec.TargetRefs))
 	for _, target := range inv.Spec.TargetRefs {
-		authErrors = append(authErrors, authorizeTarget(ctx, v.client, username, v.UsernamePrefix, target))
+		authErrors = append(authErrors, authorizeTarget(ctx, v.client, req.UserInfo, target))
 	}
 	if err := multierr.Combine(authErrors...); err != nil {
-		return admission.Denied(fmt.Sprintf("user %q is not allowed to invite to the targets: %s", username, err))
+		return admission.Denied(fmt.Sprintf("user %q is not allowed to invite to the targets: %s", req.UserInfo.Username, err))
 	}
 
 	return admission.Allowed("target refs are valid")
@@ -64,20 +63,74 @@ func (v *InvitationValidator) InjectClient(c client.Client) error {
 	return nil
 }
 
-func authorizeTarget(ctx context.Context, c client.Client, user, prefix string, target userv1.TargetRef) error {
-	o, err := targetref.GetTarget(ctx, c, target)
+func authorizeTarget(ctx context.Context, c client.Client, user authenticationv1.UserInfo, target userv1.TargetRef) error {
+	// Check if the target references a supported resource
+	_, err := targetref.NewObjectFromRef(target)
 	if err != nil {
 		return err
 	}
 
-	a, err := targetref.NewUserAccessor(o)
+	return canEditTarget(ctx, c, user, target)
+}
+
+// canEditTarget checks if the user is allowed to edit the target.
+// it does so by creating a SubjectAccessReview to `update` the resource and checking the response.
+func canEditTarget(ctx context.Context, c client.Client, user authenticationv1.UserInfo, target userv1.TargetRef) error {
+	const verb = "update"
+
+	ra, err := mapTargetRefToResourceAttribute(c, target)
 	if err != nil {
 		return err
 	}
+	ra["verb"] = verb
 
-	if a.HasUser(prefix, user) {
-		return nil
+	// I could not find a way to create a SubjectAccessReview object with the client.
+	// `no kind "CreateOptions" is registered for the internal version of group "authorization.k8s.io" in scheme`
+	// even after installing the authorization scheme.
+	rawSAR := &unstructured.Unstructured{
+		Object: map[string]any{
+			"spec": map[string]any{
+				"resourceAttributes": ra,
+
+				"user":   user.Username,
+				"groups": user.Groups,
+				"uid":    user.UID,
+			},
+		}}
+	rawSAR.SetGroupVersionKind(authorizationv1.SchemeGroupVersion.WithKind("SubjectAccessReview"))
+
+	if err := c.Create(ctx, rawSAR); err != nil {
+		return fmt.Errorf("failed to create SubjectAccessReview: %w", err)
 	}
 
-	return fmt.Errorf("target %q.%q/%q in namespace %q is not allowed", target.APIGroup, target.Kind, target.Name, target.Namespace)
+	allowed, _, err := unstructured.NestedBool(rawSAR.Object, "status", "allowed")
+	if err != nil {
+		return fmt.Errorf("failed to get SubjectAccessReview status.allowed: %w", err)
+	}
+
+	if !allowed {
+		return fmt.Errorf("%q on target %q.%q/%q in namespace %q is not allowed", verb, target.APIGroup, target.Kind, target.Name, target.Namespace)
+	}
+
+	return nil
+}
+
+func mapTargetRefToResourceAttribute(c client.Client, target userv1.TargetRef) (map[string]any, error) {
+	rm, err := c.RESTMapper().RESTMapping(schema.GroupKind{
+		Group: target.APIGroup,
+		Kind:  target.Kind,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get REST mapping for %q.%q: %w", target.APIGroup, target.Kind, err)
+	}
+
+	return map[string]any{
+		"group":    target.APIGroup,
+		"version":  rm.Resource.Version,
+		"resource": rm.Resource.Resource,
+
+		"namespace": target.Namespace,
+		"name":      target.Name,
+	}, nil
 }
