@@ -166,6 +166,70 @@ func (o *RedeemOptions) ConvertFromUrlValues(values *url.Values) error {
 	return convert_url_Values_To__RedeemOptions(values, o)
 }
 
+var _ resource.Object = &InvitationRedeemRequest{}
+
+// +kubebuilder:object:root=true
+// InvitationRedeemRequest is a request to redeem an invitation
+type InvitationRedeemRequest struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Token is the token to redeem the invitation
+	Token string `json:"token"`
+}
+
+// GetObjectMeta returns the objects meta reference.
+func (o *InvitationRedeemRequest) GetObjectMeta() *metav1.ObjectMeta {
+	return &o.ObjectMeta
+}
+
+// GetGroupVersionResource returns the GroupVersionResource for this resource.
+// The resource should be the all lowercase and pluralized kind
+func (o *InvitationRedeemRequest) GetGroupVersionResource() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    GroupVersion.Group,
+		Version:  GroupVersion.Version,
+		Resource: "invitationredeemrequests",
+	}
+}
+
+// IsStorageVersion returns true if the object is also the internal version -- i.e. is the type defined for the API group or an alias to this object.
+// If false, the resource is expected to implement MultiVersionObject interface.
+func (o *InvitationRedeemRequest) IsStorageVersion() bool {
+	return true
+}
+
+// NamespaceScoped returns true if the object is namespaced
+func (o *InvitationRedeemRequest) NamespaceScoped() bool {
+	return false
+}
+
+// New returns a new instance of the resource
+func (o *InvitationRedeemRequest) New() runtime.Object {
+	return &InvitationRedeemRequest{}
+}
+
+// NewList return a new list instance of the resource
+func (o *InvitationRedeemRequest) NewList() runtime.Object {
+	return &InvitationRedeemRequestList{}
+}
+
+var _ resource.ObjectList = &InvitationRedeemRequestList{}
+
+// +kubebuilder:object:root=true
+// InvitationList contains a list of Invitations
+type InvitationRedeemRequestList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []InvitationRedeemRequest `json:"items"`
+}
+
+// GetListMeta returns the list meta reference.
+func (in *InvitationRedeemRequestList) GetListMeta() *metav1.ListMeta {
+	return &in.ListMeta
+}
+
 func init() {
-	SchemeBuilder.Register(&Invitation{}, &InvitationList{})
+	SchemeBuilder.Register(&Invitation{}, &InvitationList{}, &InvitationRedeemRequest{})
 }

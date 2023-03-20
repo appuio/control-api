@@ -24,8 +24,11 @@ rules:
 # `get` permissions are created when creating a new BillingEntity
 - apiGroups: ["rbac.appuio.io"]
   resources: ["invitations"]
-  verbs: ["watch", "list", "redeem"]
+  verbs: ["watch", "list"]
 - apiGroups: ["user.appuio.io"]
   resources: ["invitations"]
-  # empty verb to allow upstream server to pass custom verbs to our aggregated API server
-  verbs: ["get", "watch", "list", "redeem", ""]
+  verbs: ["get", "watch", "list"]
+# Allow redeeming invitations
+- apiGroups: ["user.appuio.io"]
+  resources: ["invitationredeemrequests"]
+  verbs: ["create"]
