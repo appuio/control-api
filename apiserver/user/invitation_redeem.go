@@ -66,9 +66,20 @@ func (s *invitationRedeemer) Create(ctx context.Context, obj runtime.Object, cre
 		return nil, fmt.Errorf("failed to get invitation: %w", err)
 	}
 
-	tokenValid := inv.Status.Token != "" && inv.Status.ValidUntil.After(time.Now())
-	if inv.IsRedeemed() || !tokenValid || inv.Status.Token != token {
-		l.Info("invalid token")
+	if inv.Status.Token == "" {
+		l.Info("token is empty")
+		return nil, errForbidden()
+	}
+	if !inv.Status.ValidUntil.After(time.Now()) {
+		l.Info("invitation is expired")
+		return nil, errForbidden()
+	}
+	if inv.IsRedeemed() {
+		l.Info("invitation is already redeemed")
+		return nil, errForbidden()
+	}
+	if inv.Status.Token != token {
+		l.Info("token does not match")
 		return nil, errForbidden()
 	}
 
@@ -99,7 +110,7 @@ func (s *invitationRedeemer) Create(ctx context.Context, obj runtime.Object, cre
 	})
 
 	if err := s.client.Status().Update(ctx, inv); err != nil {
-		return nil, errForbidden()
+		return nil, fmt.Errorf("failed to update invitation: %w", err)
 	}
 
 	return irr, nil

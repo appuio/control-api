@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -63,6 +64,38 @@ func TestConnect_Redeem_Fail_InvalidUser(t *testing.T) {
 		client:         c,
 		usernamePrefix: "appuio#",
 	}
+
+	executeRequest(t, subject, "redeeming-user", "token", http.StatusForbidden)
+}
+
+func TestConnect_Redeem_Fail_Expired(t *testing.T) {
+	inv := redeemableInvitation()
+	inv.Status.ValidUntil = metav1.NewTime(metav1.Now().Add(-time.Hour))
+	c := prepareTest(t, inv)
+	subject := invitationRedeemer{client: c}
+
+	executeRequest(t, subject, "redeeming-user", "token", http.StatusForbidden)
+}
+
+// The token is added asynchronously, so it might not be available yet.
+func TestConnect_Redeem_Fail_NoTokenYet(t *testing.T) {
+	inv := redeemableInvitation()
+	inv.Status.Token = ""
+	inv.Status.ValidUntil = metav1.Time{}
+	c := prepareTest(t, inv)
+	subject := invitationRedeemer{client: c}
+
+	executeRequest(t, subject, "redeeming-user", "token", http.StatusForbidden)
+}
+
+func TestConnect_Redeem_Fail_AlreadyRedeemed(t *testing.T) {
+	inv := redeemableInvitation()
+	apimeta.SetStatusCondition(&inv.Status.Conditions, metav1.Condition{
+		Type:   userv1.ConditionRedeemed,
+		Status: metav1.ConditionTrue,
+	})
+	c := prepareTest(t, inv)
+	subject := invitationRedeemer{client: c}
 
 	executeRequest(t, subject, "redeeming-user", "token", http.StatusForbidden)
 }
