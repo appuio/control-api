@@ -15,22 +15,31 @@ import (
 	"github.com/appuio/control-api/apiserver/secretstorage"
 )
 
-// New returns a new storage provider with RBAC authentication for BillingEntities
-func NewInvitationStorage(backingNS, usernamePrefix string) restbuilder.ResourceHandlerProvider {
+// NewInvitationRedeemStorage creates a new REST storage for InvitationRedeemRequest objects
+func NewInvitationRedeemStorage(usernamePrefix string) restbuilder.ResourceHandlerProvider {
 	return func(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
-		c, err := client.NewWithWatch(loopback.GetLoopbackMasterClientConfig(), client.Options{})
+		c, err := buildClient()
 		if err != nil {
 			return nil, err
 		}
 
-		err = userv1.AddToScheme(c.Scheme())
+		stor := &invitationRedeemer{
+			client:         c,
+			usernamePrefix: usernamePrefix,
+		}
+
+		return stor, nil
+	}
+}
+
+// NewInvitationStorage returns a new storage provider with RBAC authentication for BillingEntities
+func NewInvitationStorage(backingNS string) restbuilder.ResourceHandlerProvider {
+	return func(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
+		c, err := buildClient()
 		if err != nil {
 			return nil, err
 		}
-		err = rbacv1.AddToScheme(c.Scheme())
-		if err != nil {
-			return nil, err
-		}
+
 		stor, err := secretstorage.NewStorage(&userv1.Invitation{}, c, backingNS)
 		if err != nil {
 			return nil, err
@@ -39,13 +48,6 @@ func NewInvitationStorage(backingNS, usernamePrefix string) restbuilder.Resource
 		stor = &rbacCreatorIsOwner{
 			ScopedStandardStorage: stor,
 			client:                c,
-		}
-
-		// Warning: Should be the last storage layer before authorization since it expands the interface with the Connecter interface
-		stor = &invitationRedeemer{
-			ScopedStandardStorage: stor,
-			client:                c,
-			usernamePrefix:        usernamePrefix,
 		}
 
 		astor, err := authwrapper.NewAuthorizedStorage(stor, metav1.GroupVersionResource{
@@ -59,4 +61,20 @@ func NewInvitationStorage(backingNS, usernamePrefix string) restbuilder.Resource
 
 		return astor, nil
 	}
+}
+
+func buildClient() (client.WithWatch, error) {
+	c, err := client.NewWithWatch(loopback.GetLoopbackMasterClientConfig(), client.Options{})
+	if err != nil {
+		return nil, err
+	}
+
+	if err = userv1.AddToScheme(c.Scheme()); err != nil {
+		return nil, err
+	}
+	if err = rbacv1.AddToScheme(c.Scheme()); err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }

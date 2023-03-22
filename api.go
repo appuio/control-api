@@ -40,6 +40,7 @@ func APICommand() *cobra.Command {
 		WithResourceAndHandler(&billingv1.BillingEntity{}, ob.Build).
 		WithResourceAndHandler(&userv1.Invitation{}, ib.Build).
 		WithResourceAndHandler(secretstorage.NewStatusSubResourceRegisterer(&userv1.Invitation{}), ib.Build).
+		WithResourceAndHandler(&userv1.InvitationRedeemRequest{}, ib.BuildRedeem).
 		WithoutEtcd().
 		ExposeLoopbackAuthorizer().
 		ExposeLoopbackMasterClientConfig().
@@ -102,7 +103,11 @@ type invitationStorageBuilder struct {
 }
 
 func (i *invitationStorageBuilder) Build(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
-	return user.NewInvitationStorage(i.backingNS, *i.usernamePrefix)(s, g)
+	return user.NewInvitationStorage(i.backingNS)(s, g)
+}
+
+func (i *invitationStorageBuilder) BuildRedeem(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
+	return user.NewInvitationRedeemStorage(*i.usernamePrefix)(s, g)
 }
 
 type organizationStatusRegisterer struct {
