@@ -36,3 +36,19 @@ There's an example in `config/examples/billing-entity.yaml`.
 
 Note that the data is lost when the control-api Pod is shut down.
 When this case happens, delete the `be-####-viewer` cluster role and -binding before recreating the objects.
+
+## Invitations
+
+As described in [Invitation API](https://kb.vshn.ch/appuio-cloud/references/architecture/control-api-invitation.html), you can redeem invitations.
+
+If you are developing for [Portal](https://github.com/appuio/cloud-portal) and have a local dev instance running on `localhost:4200`, you can generate invitation links.
+To get the invitation Links, run Kubectl with a template, like this:
+```bash
+kubectl get invitations -o go-template-file=local-env/templates/invitation-token.tpl
+```
+This returns URLs like following:
+```
+http://localhost:4200/invitations/44fb8124-199d-4cb6-b417-02aee1435b8d?token=35743705-a742-442d-b6ff-dcd9f67d9c4c
+http://localhost:4200/invitations/5184d9db-1e7a-4385-8405-911665ad6154?token=e063cfd3-a232-498f-9db8-54884f65e12d
+```
+Note: Already redeemed invitations are not listed.
