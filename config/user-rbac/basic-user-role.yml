@@ -28,6 +28,9 @@ rules:
 - apiGroups: ["user.appuio.io"]
   resources: ["invitations"]
   verbs: ["get", "watch", "list"]
+- apiGroups: ["rbac.appuio.io", "user.appuio.io"]
+  resources: ["invitations"]
+  verbs: ["create"]
 # Allow redeeming invitations
 - apiGroups: ["user.appuio.io"]
   resources: ["invitationredeemrequests"]
