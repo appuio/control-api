@@ -2,15 +2,22 @@ package controllers
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 
 	"go.uber.org/multierr"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
+	kstrings "k8s.io/utils/strings"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	userv1 "github.com/appuio/control-api/apis/user/v1"
@@ -57,6 +64,10 @@ func (r *InvitationRedeemReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, errors.New("redeemed invitation has no user")
 	}
 
+	if err := r.createRedeemerRole(ctx, &inv); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	var errors []error
 	statusHasChanged := false
 	for i := range inv.Status.TargetStatuses {
@@ -92,6 +103,8 @@ func (r *InvitationRedeemReconciler) Reconcile(ctx context.Context, req ctrl.Req
 func (r *InvitationRedeemReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&userv1.Invitation{}).
+		Owns(&rbacv1.ClusterRoleBinding{}).
+		Owns(&rbacv1.ClusterRole{}).
 		Complete(r)
 }
 
@@ -112,4 +125,74 @@ func addUserToTarget(ctx context.Context, c client.Client, user, prefix string, 
 	}
 
 	return nil
+}
+
+func (r *InvitationRedeemReconciler) createRedeemerRole(ctx context.Context, inv *userv1.Invitation) error {
+	rolename := invRedeemRoleName(inv.Name)
+
+	role := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: rolename,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups:     []string{"rbac.appuio.io", "user.appuio.io"},
+				Resources:     []string{"invitations"},
+				Verbs:         []string{"get", "list", "watch"},
+				ResourceNames: []string{inv.Name},
+			},
+		},
+	}
+
+	rolebinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: rolename,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     "User",
+				APIGroup: "rbac.authorization.k8s.io",
+				Name:     inv.Status.RedeemedBy,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "ClusterRole",
+			APIGroup: "rbac.authorization.k8s.io",
+			Name:     rolename,
+		},
+	}
+
+	for _, o := range [...]client.Object{role, rolebinding} {
+		if err := controllerutil.SetControllerReference(inv, o, r.Scheme); err != nil {
+			return fmt.Errorf("failed setting controller reference for %T/%s: %w", o, o.GetName(), err)
+		}
+
+		if err := r.Create(ctx, o); client.IgnoreAlreadyExists(err) != nil {
+			if apierrors.IsAlreadyExists(err) {
+				log.FromContext(ctx).Error(err, "object already exists while redeeming invitation", "invitation", inv.Name)
+			} else {
+				return fmt.Errorf("failed creating %T/%s: %w", o, o.GetName(), err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func invRedeemRoleName(objName string) string {
+	prefix := "invitations-"
+	suffix := "-redeemer"
+
+	if len(prefix)+len(suffix)+len(objName) <= 63 {
+		return fmt.Sprintf("%s%s%s", prefix, objName, suffix)
+	}
+
+	h := sha1.New()
+	h.Write([]byte(objName))
+	hsh := kstrings.ShortenString(hex.EncodeToString(h.Sum(nil)), 7)
+
+	maxLength := 63 - len(prefix) - len(suffix) - len(hsh) - 1
+	maxSafe := kstrings.ShortenString(objName, maxLength)
+
+	return fmt.Sprintf("%s%s-%s%s", prefix, maxSafe, hsh, suffix)
 }

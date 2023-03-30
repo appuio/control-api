@@ -114,6 +114,21 @@ func Test_InvitationRedeemReconciler_Reconcile_Success(t *testing.T) {
 	require.NoError(t, c.Get(ctx, client.ObjectKeyFromObject(crb), crb))
 	assert.Equal(t, []rbacv1.Subject{{Kind: rbacv1.UserKind, APIGroup: rbacv1.GroupName, Name: redeemedBy}}, crb.Subjects)
 
+	role := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "invitations-subject-redeemer",
+		},
+	}
+	require.NoError(t, c.Get(ctx, client.ObjectKeyFromObject(role), role), "Redeeming person should have read access to the invitation")
+	rolebinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "invitations-subject-redeemer",
+		},
+	}
+	require.NoError(t, c.Get(ctx, client.ObjectKeyFromObject(rolebinding), rolebinding), "Redeeming person should have read access to the invitation")
+	require.Len(t, rolebinding.Subjects, 1)
+	require.Equal(t, redeemedBy, rolebinding.Subjects[0].Name)
+
 	_, err = r.Reconcile(ctx, requestFor(subject))
 	require.NoError(t, err)
 }
