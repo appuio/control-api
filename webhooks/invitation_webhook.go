@@ -9,7 +9,6 @@ import (
 	authenticationv1 "k8s.io/api/authentication/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	authorizationv1 "k8s.io/kubernetes/pkg/apis/authorization/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -97,7 +96,7 @@ func canEditTarget(ctx context.Context, c client.Client, user authenticationv1.U
 				"uid":    user.UID,
 			},
 		}}
-	rawSAR.SetGroupVersionKind(authorizationv1.SchemeGroupVersion.WithKind("SubjectAccessReview"))
+	rawSAR.SetGroupVersionKind(schema.GroupVersionKind{Group: "authorization.k8s.io", Version: "v1", Kind: "SubjectAccessReview"})
 
 	if err := c.Create(ctx, rawSAR); err != nil {
 		return fmt.Errorf("failed to create SubjectAccessReview: %w", err)
