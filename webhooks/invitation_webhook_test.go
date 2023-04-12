@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/kubernetes/pkg/apis/authorization"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -290,7 +289,6 @@ func prepareInvitationValidatorTest(t *testing.T, sarAllowedUser string, initObj
 	require.NoError(t, orgv1.AddToScheme(scheme))
 	require.NoError(t, controlv1.AddToScheme(scheme))
 	require.NoError(t, userv1.AddToScheme(scheme))
-	require.NoError(t, authorization.AddToScheme(scheme))
 
 	decoder, err := admission.NewDecoder(scheme)
 	require.NoError(t, err)
