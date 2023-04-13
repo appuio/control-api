@@ -27,6 +27,8 @@ dockers:
       - "--platform=linux/amd64"
     image_templates:
       - "ghcr.io/appuio/control-api:v{{ .Version }}-amd64"
+    extra_files:
+      - countries.yaml
 
   - goarch: arm64
     use: buildx
@@ -34,6 +36,8 @@ dockers:
       - "--platform=linux/arm64/v8"
     image_templates:
       - "ghcr.io/appuio/control-api:v{{ .Version }}-arm64"
+    extra_files:
+      - countries.yaml
 
 docker_manifests:
   # For prereleases, updating `latest` does not make sense.

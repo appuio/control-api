@@ -1,0 +1,27 @@
+- code: CH
+  id: 44
+  name: Switzerland
+# Not an error: Someone created a country with the name "Schweiz" in the ERP.
+- code: false
+  id: 256
+  name: Schweiz
+
+- code: LI
+  id: 129
+  name: Liechtenstein
+- code: AT
+  id: 13
+  name: Austria
+- code: IT
+  id: 110
+  name: Italy
+- code: FR
+  id: 76
+  name: France
+- code: DE
+  id: 58
+  name: Germany
+
+- code: GB
+  id: 233
+  name: United Kingdom

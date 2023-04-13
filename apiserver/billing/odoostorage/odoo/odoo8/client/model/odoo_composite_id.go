@@ -24,6 +24,15 @@ type OdooCompositeID struct {
 	Name string
 }
 
+// NewCompositeID creates a new, valid OdooCompositeID.
+func NewCompositeID(id int, name string) OdooCompositeID {
+	return OdooCompositeID{
+		Valid: true,
+		ID:    id,
+		Name:  name,
+	}
+}
+
 // UnmarshalJSON handles deserialization of OdooCompositeID.
 func (t *OdooCompositeID) UnmarshalJSON(b []byte) error {
 	// Odoo returns false (not null) if a field is not set.

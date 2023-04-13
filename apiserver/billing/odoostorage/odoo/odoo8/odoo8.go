@@ -49,8 +49,9 @@ var accountingContactUpdateAllowedFields = newSet(
 	"email",
 )
 
-func NewOdoo8Storage(odooURL string, debugTransport bool) odoo.OdooStorage {
+func NewOdoo8Storage(odooURL string, debugTransport bool, countryIDs map[string]int) odoo.OdooStorage {
 	return &oodo8Storage{
+		countryIDs: countryIDs,
 		sessionCreator: func(ctx context.Context) (client.QueryExecutor, error) {
 			return client.Open(ctx, odooURL, client.ClientOptions{UseDebugLogger: debugTransport})
 		},
@@ -58,6 +59,8 @@ func NewOdoo8Storage(odooURL string, debugTransport bool) odoo.OdooStorage {
 }
 
 type oodo8Storage struct {
+	countryIDs map[string]int
+
 	sessionCreator func(ctx context.Context) (client.QueryExecutor, error)
 }
 
@@ -162,7 +165,10 @@ func (s *oodo8Storage) Create(ctx context.Context, be *billingv1.BillingEntity) 
 	if be == nil {
 		return errors.New("billing entity is nil")
 	}
-	company, accounting := mapBillingEntityToPartners(*be)
+	company, accounting, err := mapBillingEntityToPartners(*be, s.countryIDs)
+	if err != nil {
+		return fmt.Errorf("failed mapping billing entity to partners: %w", err)
+	}
 
 	inflight := uuid.New().String()
 	l = l.WithValues("debug_inflight", inflight)
@@ -212,7 +218,11 @@ func (s *oodo8Storage) Update(ctx context.Context, be *billingv1.BillingEntity) 
 		return errors.New("billing entity is nil")
 	}
 
-	company, accounting := mapBillingEntityToPartners(*be)
+	company, accounting, err := mapBillingEntityToPartners(*be, s.countryIDs)
+	if err != nil {
+		return fmt.Errorf("failed mapping billing entity to partners: %w", err)
+	}
+
 	origCompany, origAccounting, err := s.get(ctx, be.Name)
 	if err != nil {
 		return fmt.Errorf("error fetching billing entity to update: %w", err)
@@ -297,21 +307,21 @@ func mapPartnersToBillingEntity(company model.Partner, accounting model.Partner)
 	}
 }
 
-func mapBillingEntityToPartners(be billingv1.BillingEntity) (company model.Partner, accounting model.Partner) {
+func mapBillingEntityToPartners(be billingv1.BillingEntity, countryIDs map[string]int) (company model.Partner, accounting model.Partner, err error) {
+	countryID, ok := countryIDs[be.Spec.Address.Country]
+	if !ok {
+		return company, accounting, fmt.Errorf("unknown country %q", be.Spec.Address.Country)
+	}
+
 	company = model.Partner{
 		Name:  be.Spec.Name,
 		Phone: model.NewNullable(be.Spec.Phone),
 
-		Street:  model.NewNullable(be.Spec.Address.Line1),
-		Street2: model.NewNullable(be.Spec.Address.Line2),
-		City:    model.NewNullable(be.Spec.Address.City),
-		Zip:     model.NewNullable(be.Spec.Address.PostalCode),
-		CountryID: model.OdooCompositeID{
-			ID:    256, // TODO(swi): Switzerland is hardcoded for now
-			Valid: true,
-			// Name:  be.Spec.Address.Country,
-			Name: "Switzerland",
-		},
+		Street:    model.NewNullable(be.Spec.Address.Line1),
+		Street2:   model.NewNullable(be.Spec.Address.Line2),
+		City:      model.NewNullable(be.Spec.Address.City),
+		Zip:       model.NewNullable(be.Spec.Address.PostalCode),
+		CountryID: model.NewCompositeID(countryID, ""),
 	}
 	company.SetEmails(be.Spec.Emails)
 
@@ -320,7 +330,7 @@ func mapBillingEntityToPartners(be billingv1.BillingEntity) (company model.Partn
 	}
 	accounting.SetEmails(be.Spec.AccountingContact.Emails)
 
-	return company, accounting
+	return company, accounting, nil
 }
 
 func setStaticAccountingContactFields(a *model.Partner) {
