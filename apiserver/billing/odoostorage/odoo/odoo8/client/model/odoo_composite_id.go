@@ -66,5 +66,10 @@ func (t *OdooCompositeID) UnmarshalJSON(b []byte) error {
 
 // MarshalJSON handles serialization of OdooCompositeID.
 func (t OdooCompositeID) MarshalJSON() ([]byte, error) {
-	return json.Marshal([...]any{t.ID, t.Name})
+	if !t.Valid {
+		return []byte("false"), nil
+	}
+
+	// Write path wants just the ID, not the tuple.
+	return json.Marshal(t.ID)
 }

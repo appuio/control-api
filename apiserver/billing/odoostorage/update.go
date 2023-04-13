@@ -22,7 +22,7 @@ func (s *billingEntityStorage) Update(ctx context.Context, name string, objInfo 
 
 	newObj, err := objInfo.UpdatedObject(ctx, oldBE)
 	if err != nil {
-		// returns a 404 error if the there is no annotation support
+		// returns a 404 error if the there is no UID present in the object
 		return nil, false, fmt.Errorf("failed to calculate new object: %w", err)
 	}
 

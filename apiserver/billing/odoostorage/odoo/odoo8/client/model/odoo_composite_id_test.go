@@ -11,15 +11,15 @@ import (
 )
 
 func TestOdooCompositeIDMarshal(t *testing.T) {
-	subject := model.OdooCompositeID{ID: 2, Name: "10 Days"}
+	subject := model.OdooCompositeID{Valid: true, ID: 2, Name: "10 Days"}
 	marshalled, err := json.Marshal(subject)
 	require.NoError(t, err)
+	require.JSONEq(t, fmt.Sprintf(`%d`, subject.ID), string(marshalled))
 
-	require.JSONEq(t, string(marshalled), fmt.Sprintf(`[%d,%q]`, subject.ID, subject.Name))
-
-	var unmarshalled model.OdooCompositeID
-	require.NoError(t, json.Unmarshal(marshalled, &unmarshalled))
-	require.Equal(t, subject.ID, unmarshalled.ID)
+	subject = model.OdooCompositeID{Valid: false}
+	marshalled, err = json.Marshal(subject)
+	require.NoError(t, err)
+	require.JSONEq(t, "false", string(marshalled))
 }
 
 func TestOdooCompositeIDUnmarshal(t *testing.T) {

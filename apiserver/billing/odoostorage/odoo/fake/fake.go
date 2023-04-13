@@ -6,8 +6,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/google/uuid"
 	"golang.org/x/exp/slices"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apitypes "k8s.io/apimachinery/pkg/types"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo"
@@ -45,6 +47,7 @@ func (s *fakeOdooStorage) Create(ctx context.Context, be *billingv1.BillingEntit
 	id := formatID(s.nextID())
 
 	be.Name = id
+	be.UID = apitypes.UID(uuid.NewString())
 
 	s.cleanMetadata(be)
 
@@ -104,10 +107,13 @@ func (s *fakeOdooStorage) nextID() uint64 {
 func (s *fakeOdooStorage) cleanMetadata(be *billingv1.BillingEntity) {
 	meta := metav1.ObjectMeta{
 		Name: be.Name,
+		// Without UID patch requests fail with a 404 error.
+		UID: be.UID,
 	}
 	if s.metadataSupport {
 		meta = metav1.ObjectMeta{
 			Name:            be.Name,
+			UID:             be.UID,
 			ResourceVersion: be.ResourceVersion,
 			Annotations:     be.Annotations,
 			Labels:          be.Labels,

@@ -96,7 +96,7 @@ func TestSession_UpdateGenericModel(t *testing.T) {
 	require.NoError(t, err)
 	session := Session{client: &Client{http: http.DefaultClient, parsedURL: u}}
 	session.client.http.Transport = newDebugTransport()
-	err = session.UpdateGenericModel(newTestContext(t), "model", 1, "data")
+	err = session.UpdateGenericModel(newTestContext(t), "model", []int{1}, "data")
 	require.NoError(t, err)
 	assert.Equal(t, 1, numRequests)
 }

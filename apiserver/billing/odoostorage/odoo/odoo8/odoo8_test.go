@@ -46,6 +46,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, &billingv1.BillingEntity{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "be-456",
+			UID:               "96ac3772-d380-51b0-bf65-793ffd3837a5",
 			CreationTimestamp: metav1.Time{Time: tn},
 			Annotations: map[string]string{
 				VSHNAccountingContactNameKey: "Accounting",
@@ -164,6 +165,7 @@ func TestList(t *testing.T) {
 				Annotations: map[string]string{
 					VSHNAccountingContactNameKey: "Accounting",
 				},
+				UID: "96ac3772-d380-51b0-bf65-793ffd3837a5",
 			},
 			Spec: billingv1.BillingEntitySpec{
 				Name:   "Test Company",
@@ -178,6 +180,7 @@ func TestList(t *testing.T) {
 				Annotations: map[string]string{
 					VSHNAccountingContactNameKey: "Accounting",
 				},
+				UID: "84bf1157-0532-5f6b-9257-633795440cda",
 			},
 			Spec: billingv1.BillingEntitySpec{
 				Name:   "Foo Company",
@@ -191,13 +194,137 @@ func TestList(t *testing.T) {
 }
 
 func TestCreate(t *testing.T) {
-	subject := NewOdoo8Storage("http://localhost:8069", true)
-	assert.ErrorContains(t, subject.Create(context.Background(), nil), "not implemented")
+	ctrl, mock, subject := createStorage(t)
+	defer ctrl.Finish()
+
+	tn := time.Now()
+
+	gomock.InOrder(
+		// Create company (parent)
+		mock.EXPECT().CreateGenericModel(gomock.Any(), model.PartnerModel, gomock.Any()).Return(700, nil),
+		// Create accounting contact
+		mock.EXPECT().CreateGenericModel(gomock.Any(), model.PartnerModel, gomock.Any()).Return(702, nil),
+		// Reset inflight flag
+		mock.EXPECT().UpdateGenericModel(gomock.Any(), model.PartnerModel, gomock.InAnyOrder([]int{700, 702}), gomock.Any()),
+		// Fetch created company
+		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
+			Items: []model.Partner{
+				{
+					ID:                702,
+					Name:              "Accounting",
+					CreationTimestamp: client.Date(tn),
+					Parent:            model.OdooCompositeID{ID: 700, Valid: true},
+					EmailRaw:          model.NewNullable("accounting@test.com, notifications@test.com"),
+				},
+			},
+		}),
+		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
+			Items: []model.Partner{
+				{ID: 700, Name: "Test Company"},
+			},
+		}),
+	)
+
+	s := &billingv1.BillingEntity{
+		Spec: billingv1.BillingEntitySpec{
+			Name: "Test Company",
+		},
+	}
+	err := subject.Create(context.Background(), s)
+	require.NoError(t, err)
+	assert.Equal(t, &billingv1.BillingEntity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "be-702",
+			UID:               "94362980-c246-582a-a019-817206397978",
+			CreationTimestamp: metav1.Time{Time: tn},
+			Annotations: map[string]string{
+				VSHNAccountingContactNameKey: "Accounting",
+			},
+		},
+		Spec: billingv1.BillingEntitySpec{
+			Name:   "Test Company",
+			Emails: []string{},
+			AccountingContact: billingv1.BillingEntityContact{
+				Emails: []string{
+					"accounting@test.com",
+					"notifications@test.com",
+				},
+			},
+		},
+	}, s)
 }
 
 func TestUpdate(t *testing.T) {
-	subject := NewOdoo8Storage("http://localhost:8069", true)
-	assert.ErrorContains(t, subject.Update(context.Background(), nil), "not implemented")
+	ctrl, mock, subject := createStorage(t)
+	defer ctrl.Finish()
+
+	tn := time.Now()
+
+	gomock.InOrder(
+		// Fetch existing company
+		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
+			Items: []model.Partner{
+				{ID: 702, Parent: model.OdooCompositeID{ID: 700, Valid: true}},
+			},
+		}),
+		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
+			Items: []model.Partner{
+				{ID: 700, Name: "Test Company"},
+			},
+		}),
+		// Update company
+		mock.EXPECT().UpdateGenericModel(gomock.Any(), model.PartnerModel, []int{700}, gomock.Any()),
+		// Update accounting contact
+		mock.EXPECT().UpdateGenericModel(gomock.Any(), model.PartnerModel, []int{702}, gomock.Any()),
+		// Fetch created company
+		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
+			Items: []model.Partner{
+				{
+					ID:                702,
+					Name:              "Accounting",
+					CreationTimestamp: client.Date(tn),
+					Parent:            model.OdooCompositeID{ID: 700, Valid: true},
+					EmailRaw:          model.NewNullable("accounting@test.com, notifications@test.com"),
+				},
+			},
+		}),
+		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
+			Items: []model.Partner{
+				{ID: 700, Name: "Test Company"},
+			},
+		}),
+	)
+
+	s := &billingv1.BillingEntity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "be-702",
+		},
+		Spec: billingv1.BillingEntitySpec{
+			Name: "Test Company",
+		},
+	}
+	err := subject.Update(context.Background(), s)
+	require.NoError(t, err)
+	assert.Equal(t, &billingv1.BillingEntity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "be-702",
+			UID:               "94362980-c246-582a-a019-817206397978",
+			CreationTimestamp: metav1.Time{Time: tn},
+			Annotations: map[string]string{
+				VSHNAccountingContactNameKey: "Accounting",
+			},
+		},
+		Spec: billingv1.BillingEntitySpec{
+			Name:   "Test Company",
+			Emails: []string{},
+			AccountingContact: billingv1.BillingEntityContact{
+				Emails: []string{
+					"accounting@test.com",
+					"notifications@test.com",
+				},
+			},
+		},
+	}, s)
 }
 
 func createStorage(t *testing.T) (*gomock.Controller, *clientmock.MockQueryExecutor, *oodo8Storage) {

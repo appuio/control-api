@@ -23,7 +23,7 @@ type QueryExecutor interface {
 	// CreateGenericModel accepts a payload and executes a query to create the new data record.
 	CreateGenericModel(ctx context.Context, model string, data any) (int, error)
 	// UpdateGenericModel accepts a payload and executes a query to update an existing data record.
-	UpdateGenericModel(ctx context.Context, model string, id int, data any) error
+	UpdateGenericModel(ctx context.Context, model string, ids []int, data any) error
 	// DeleteGenericModel accepts a model identifier and data records IDs as payload and executes a query to delete multiple existing data records.
 	// At least one ID is required.
 	DeleteGenericModel(ctx context.Context, model string, ids []int) error
@@ -60,15 +60,21 @@ func (s *Session) CreateGenericModel(ctx context.Context, model string, data any
 }
 
 // UpdateGenericModel implements QueryExecutor.
-func (s *Session) UpdateGenericModel(ctx context.Context, model string, id int, data any) error {
-	if id == 0 {
-		return fmt.Errorf("id cannot be zero: %v", data)
+func (s *Session) UpdateGenericModel(ctx context.Context, model string, ids []int, data any) error {
+	if len(ids) == 0 {
+		return fmt.Errorf("ids are required")
 	}
+	for _, id := range ids {
+		if id == 0 {
+			return fmt.Errorf("ids can't be zero: %v", ids)
+		}
+	}
+
 	payload := WriteModel{
 		Model:  model,
 		Method: MethodWrite,
 		Args: []any{
-			[]int{id},
+			ids,
 			data,
 		},
 		KWArgs: map[string]any{}, // set to non-null when serializing

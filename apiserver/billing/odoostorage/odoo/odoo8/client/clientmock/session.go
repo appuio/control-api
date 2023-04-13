@@ -93,7 +93,7 @@ func (mr *MockQueryExecutorMockRecorder) SearchGenericModel(arg0, arg1, arg2 int
 }
 
 // UpdateGenericModel mocks base method.
-func (m *MockQueryExecutor) UpdateGenericModel(arg0 context.Context, arg1 string, arg2 int, arg3 interface{}) error {
+func (m *MockQueryExecutor) UpdateGenericModel(arg0 context.Context, arg1 string, arg2 []int, arg3 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateGenericModel", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
