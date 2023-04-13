@@ -175,6 +175,10 @@ func setupManager(
 		&controllers.OrgBillingRefLinkMetric{
 			Client: mgr.GetClient(),
 		})
+	metrics.Registry.MustRegister(
+		&controllers.EmailPendingMetric{
+			Client: mgr.GetClient(),
+		})
 
 	ur := &controllers.UserReconciler{
 		Client:   mgr.GetClient(),
@@ -240,16 +244,23 @@ func setupManager(
 	if err = invclean.SetupWithManager(mgr); err != nil {
 		return nil, err
 	}
+	failcount := controllers.NewFailureCounter()
+	successcount := controllers.NewSuccessCounter()
 	invmail := &controllers.InvitationEmailReconciler{
 		Client:         mgr.GetClient(),
 		Scheme:         mgr.GetScheme(),
 		Recorder:       mgr.GetEventRecorderFor("invitation-email-controller"),
 		BaseRetryDelay: invEmailBaseRetryDelay,
 		MailSender:     mailSender,
+		SuccessCounter: successcount,
+		FailureCounter: failcount,
 	}
 	if err = invmail.SetupWithManager(mgr); err != nil {
 		return nil, err
 	}
+
+	metrics.Registry.MustRegister(failcount)
+	metrics.Registry.MustRegister(successcount)
 
 	mgr.GetWebhookServer().Register("/validate-appuio-io-v1-user", &webhook.Admission{
 		Handler: &webhooks.UserValidator{},

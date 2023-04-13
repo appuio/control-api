@@ -3,9 +3,12 @@ package controllers_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	userv1 "github.com/appuio/control-api/apis/user/v1"
+	"github.com/appuio/control-api/controllers"
 	. "github.com/appuio/control-api/controllers"
 )
 
@@ -70,6 +74,64 @@ func Test_InvitationEmailReconciler_Reconcile_WithSendingFailure_Success(t *test
 	require.Equal(t, ReasonSendFailed, condition.Reason)
 }
 
+func Test_InvitationEmailReconciler_Reconcile_MetricsCorrect(t *testing.T) {
+	ctx := context.Background()
+
+	subject := baseInvitation()
+	apimeta.SetStatusCondition(&subject.Status.Conditions, metav1.Condition{
+		Type:   userv1.ConditionEmailSent,
+		Status: metav1.ConditionFalse,
+	})
+
+	c := prepareTest(t, subject)
+
+	r := invitationEmailReconciler(c)
+	_, err := r.Reconcile(ctx, requestFor(subject))
+	require.NoError(t, err)
+
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(r.FailureCounter)
+	reg.MustRegister(r.SuccessCounter)
+	require.NoError(t, testutil.CollectAndCompare(reg, strings.NewReader(`
+# HELP control_api_emails_sent_failed_total Total number of invitation e-mails which failed to send
+# TYPE control_api_emails_sent_failed_total counter
+control_api_emails_sent_failed_total 0
+# HELP control_api_emails_sent_success_total Total number of successfully sent invitation e-mails
+# TYPE control_api_emails_sent_success_total counter
+control_api_emails_sent_success_total 1
+`),
+	))
+}
+
+func Test_InvitationEmailReconciler_Reconcile_WithSendingFailure_MetricsCorrect(t *testing.T) {
+	ctx := context.Background()
+
+	subject := baseInvitation()
+	apimeta.SetStatusCondition(&subject.Status.Conditions, metav1.Condition{
+		Type:   userv1.ConditionEmailSent,
+		Status: metav1.ConditionFalse,
+	})
+
+	c := prepareTest(t, subject)
+
+	r := invitationEmailReconcilerWithFailingSender(c)
+	_, err := r.Reconcile(ctx, requestFor(subject))
+	require.Error(t, err)
+
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(r.FailureCounter)
+	reg.MustRegister(r.SuccessCounter)
+	require.NoError(t, testutil.CollectAndCompare(reg, strings.NewReader(`
+# HELP control_api_emails_sent_failed_total Total number of invitation e-mails which failed to send
+# TYPE control_api_emails_sent_failed_total counter
+control_api_emails_sent_failed_total 1
+# HELP control_api_emails_sent_success_total Total number of successfully sent invitation e-mails
+# TYPE control_api_emails_sent_success_total counter
+control_api_emails_sent_success_total 0
+`),
+	))
+}
+
 func Test_InvitationEmailReconciler_Reconcile_NoEmail_Success(t *testing.T) {
 	ctx := context.Background()
 
@@ -93,6 +155,8 @@ func invitationEmailReconciler(c client.WithWatch) *InvitationEmailReconciler {
 		Recorder:       record.NewFakeRecorder(3),
 		MailSender:     &SenderWithConstantId{},
 		BaseRetryDelay: time.Minute,
+		SuccessCounter: controllers.NewSuccessCounter(),
+		FailureCounter: controllers.NewFailureCounter(),
 	}
 }
 
@@ -103,6 +167,8 @@ func invitationEmailReconcilerWithFailingSender(c client.WithWatch) *InvitationE
 		Recorder:       record.NewFakeRecorder(3),
 		MailSender:     &FailingSender{},
 		BaseRetryDelay: time.Minute,
+		SuccessCounter: controllers.NewSuccessCounter(),
+		FailureCounter: controllers.NewFailureCounter(),
 	}
 }
 

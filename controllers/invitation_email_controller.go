@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/appuio/control-api/mailsenders"
+	"github.com/prometheus/client_golang/prometheus"
 
 	userv1 "github.com/appuio/control-api/apis/user/v1"
 )
@@ -33,6 +34,25 @@ type InvitationEmailReconciler struct {
 
 	MailSender     mailsenders.MailSender
 	BaseRetryDelay time.Duration
+
+	FailureCounter prometheus.Counter
+	SuccessCounter prometheus.Counter
+}
+
+func NewSuccessCounter() prometheus.Counter {
+	return prometheus.NewCounter(prometheus.CounterOpts{
+		Subsystem: "control_api",
+		Name:      "emails_sent_success_total",
+		Help:      "Total number of successfully sent invitation e-mails",
+	})
+}
+
+func NewFailureCounter() prometheus.Counter {
+	return prometheus.NewCounter(prometheus.CounterOpts{
+		Subsystem: "control_api",
+		Name:      "emails_sent_failed_total",
+		Help:      "Total number of invitation e-mails which failed to send",
+	})
 }
 
 //+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations,verbs=get;list;watch
@@ -66,7 +86,7 @@ func (r *InvitationEmailReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	id, err := r.MailSender.Send(ctx, email, inv)
 	if err != nil {
 		log.V(0).Error(err, "Error in e-mail backend")
-
+		r.FailureCounter.Add(1)
 		apimeta.SetStatusCondition(&inv.Status.Conditions, metav1.Condition{
 			Type:    userv1.ConditionEmailSent,
 			Status:  metav1.ConditionFalse,
@@ -75,6 +95,7 @@ func (r *InvitationEmailReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		})
 		return ctrl.Result{}, multierr.Append(err, r.Client.Status().Update(ctx, &inv))
 	}
+	r.SuccessCounter.Add(1)
 
 	var message string
 	if id != "" {
