@@ -28,9 +28,9 @@ func TestEmailPendingMetric(t *testing.T) {
 
 	require.NoError(t,
 		testutil.CollectAndCompare(&controllers.EmailPendingMetric{c}, strings.NewReader(`
-# HELP control_api_email_pending_current Amount of e-mails that have not been sent yet
-# TYPE control_api_email_pending_current gauge
-control_api_email_pending_current 1
+# HELP control_api_invitation_emails_pending_current Amount of e-mails that have not been sent yet
+# TYPE control_api_invitation_emails_pending_current gauge
+control_api_invitation_emails_pending_current 1
 `),
 		),
 	)

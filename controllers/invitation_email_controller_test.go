@@ -93,12 +93,12 @@ func Test_InvitationEmailReconciler_Reconcile_MetricsCorrect(t *testing.T) {
 	reg.MustRegister(r.FailureCounter)
 	reg.MustRegister(r.SuccessCounter)
 	require.NoError(t, testutil.CollectAndCompare(reg, strings.NewReader(`
-# HELP control_api_emails_sent_failed_total Total number of invitation e-mails which failed to send
-# TYPE control_api_emails_sent_failed_total counter
-control_api_emails_sent_failed_total 0
-# HELP control_api_emails_sent_success_total Total number of successfully sent invitation e-mails
-# TYPE control_api_emails_sent_success_total counter
-control_api_emails_sent_success_total 1
+# HELP control_api_invitation_emails_sent_failed_total Total number of invitation e-mails which failed to send
+# TYPE control_api_invitation_emails_sent_failed_total counter
+control_api_invitation_emails_sent_failed_total 0
+# HELP control_api_invitation_emails_sent_success_total Total number of successfully sent invitation e-mails
+# TYPE control_api_invitation_emails_sent_success_total counter
+control_api_invitation_emails_sent_success_total 1
 `),
 	))
 }
@@ -122,12 +122,12 @@ func Test_InvitationEmailReconciler_Reconcile_WithSendingFailure_MetricsCorrect(
 	reg.MustRegister(r.FailureCounter)
 	reg.MustRegister(r.SuccessCounter)
 	require.NoError(t, testutil.CollectAndCompare(reg, strings.NewReader(`
-# HELP control_api_emails_sent_failed_total Total number of invitation e-mails which failed to send
-# TYPE control_api_emails_sent_failed_total counter
-control_api_emails_sent_failed_total 1
-# HELP control_api_emails_sent_success_total Total number of successfully sent invitation e-mails
-# TYPE control_api_emails_sent_success_total counter
-control_api_emails_sent_success_total 0
+# HELP control_api_invitation_emails_sent_failed_total Total number of invitation e-mails which failed to send
+# TYPE control_api_invitation_emails_sent_failed_total counter
+control_api_invitation_emails_sent_failed_total 1
+# HELP control_api_invitation_emails_sent_success_total Total number of successfully sent invitation e-mails
+# TYPE control_api_invitation_emails_sent_success_total counter
+control_api_invitation_emails_sent_success_total 0
 `),
 	))
 }

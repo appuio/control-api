@@ -14,7 +14,7 @@ import (
 //+kubebuilder:rbac:groups="organization.appuio.io",resources=organizations,verbs=get;list;watch
 
 var emailPendingDesc = prometheus.NewDesc(
-	"control_api_email_pending_current",
+	"control_api_invitation_emails_pending_current",
 	"Amount of e-mails that have not been sent yet",
 	nil,
 	nil,

@@ -41,16 +41,16 @@ type InvitationEmailReconciler struct {
 
 func NewSuccessCounter() prometheus.Counter {
 	return prometheus.NewCounter(prometheus.CounterOpts{
-		Subsystem: "control_api",
-		Name:      "emails_sent_success_total",
+		Subsystem: "control_api_invitation_emails",
+		Name:      "sent_success_total",
 		Help:      "Total number of successfully sent invitation e-mails",
 	})
 }
 
 func NewFailureCounter() prometheus.Counter {
 	return prometheus.NewCounter(prometheus.CounterOpts{
-		Subsystem: "control_api",
-		Name:      "emails_sent_failed_total",
+		Subsystem: "control_api_invitation_emails",
+		Name:      "sent_failed_total",
 		Help:      "Total number of invitation e-mails which failed to send",
 	})
 }
