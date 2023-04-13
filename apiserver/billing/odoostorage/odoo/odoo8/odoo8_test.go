@@ -327,11 +327,30 @@ func TestUpdate(t *testing.T) {
 	}, s)
 }
 
+func Test_CreateUpdate_UnknownCountry(t *testing.T) {
+	ctrl, _, subject := createStorage(t)
+	defer ctrl.Finish()
+
+	s := &billingv1.BillingEntity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "be-702",
+		},
+		Spec: billingv1.BillingEntitySpec{
+			Address: billingv1.BillingEntityAddress{
+				Country: "Vatican City",
+			},
+		},
+	}
+	require.ErrorContains(t, subject.Create(context.Background(), s), "unknown country")
+	require.ErrorContains(t, subject.Update(context.Background(), s), "unknown country")
+}
+
 func createStorage(t *testing.T) (*gomock.Controller, *clientmock.MockQueryExecutor, *oodo8Storage) {
 	ctrl := gomock.NewController(t)
 	mock := clientmock.NewMockQueryExecutor(ctrl)
 
 	return ctrl, mock, &oodo8Storage{
+		countryIDs: map[string]int{"": 0, "Switzerland": 1, "Germany": 2},
 		sessionCreator: func(ctx context.Context) (client.QueryExecutor, error) {
 			return mock, nil
 		},

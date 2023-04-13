@@ -1,0 +1,769 @@
+# Full export from the VSHN Odoo database
+- code: AF
+  id: 3
+  name: Afghanistan, Islamic State of
+- code: AX
+  id: 16
+  name: Åland Islands
+- code: AL
+  id: 6
+  name: Albania
+- code: DZ
+  id: 63
+  name: Algeria
+- code: AS
+  id: 12
+  name: American Samoa
+- code: AD
+  id: 1
+  name: Andorra, Principality of
+- code: AO
+  id: 9
+  name: Angola
+- code: AI
+  id: 5
+  name: Anguilla
+- code: AQ
+  id: 10
+  name: Antarctica
+- code: AG
+  id: 4
+  name: Antigua and Barbuda
+- code: AR
+  id: 11
+  name: Argentina
+- code: AM
+  id: 7
+  name: Armenia
+- code: AW
+  id: 15
+  name: Aruba
+- code: AU
+  id: 14
+  name: Australia
+- code: AT
+  id: 13
+  name: Austria
+- code: AZ
+  id: 17
+  name: Azerbaijan
+- code: BS
+  id: 33
+  name: Bahamas
+- code: BH
+  id: 24
+  name: Bahrain
+- code: BD
+  id: 20
+  name: Bangladesh
+- code: BB
+  id: 19
+  name: Barbados
+- code: BY
+  id: 37
+  name: Belarus
+- code: BE
+  id: 21
+  name: Belgium
+- code: BZ
+  id: 38
+  name: Belize
+- code: BJ
+  id: 26
+  name: Benin
+- code: BM
+  id: 28
+  name: Bermuda
+- code: BT
+  id: 34
+  name: Bhutan
+- code: BO
+  id: 30
+  name: Bolivia
+- code: BQ
+  id: 31
+  name: Bonaire, Sint Eustatius and Saba
+- code: BA
+  id: 18
+  name: Bosnia-Herzegovina
+- code: BW
+  id: 36
+  name: Botswana
+- code: BV
+  id: 35
+  name: Bouvet Island
+- code: BR
+  id: 32
+  name: Brazil
+- code: IO
+  id: 106
+  name: British Indian Ocean Territory
+- code: BN
+  id: 29
+  name: Brunei Darussalam
+- code: BG
+  id: 23
+  name: Bulgaria
+- code: BF
+  id: 22
+  name: Burkina Faso
+- code: BI
+  id: 25
+  name: Burundi
+- code: KH
+  id: 117
+  name: Cambodia, Kingdom of
+- code: CM
+  id: 48
+  name: Cameroon
+- code: CA
+  id: 39
+  name: Canada
+- code: CV
+  id: 53
+  name: Cape Verde
+- code: KY
+  id: 124
+  name: Cayman Islands
+- code: CF
+  id: 41
+  name: Central African Republic
+- code: TD
+  id: 216
+  name: Chad
+- code: CL
+  id: 47
+  name: Chile
+- code: CN
+  id: 49
+  name: China
+- code: CX
+  id: 55
+  name: Christmas Island
+- code: CC
+  id: 40
+  name: Cocos (Keeling) Islands
+- code: CO
+  id: 50
+  name: Colombia
+- code: KM
+  id: 119
+  name: Comoros
+- code: CG
+  id: 43
+  name: Congo
+- code: CD
+  id: 42
+  name: Congo, Democratic Republic of the
+- code: CK
+  id: 46
+  name: Cook Islands
+- code: CR
+  id: 51
+  name: Costa Rica
+- code: HR
+  id: 98
+  name: Croatia
+- code: CU
+  id: 52
+  name: Cuba
+- code: CW
+  id: 54
+  name: Curaçao
+- code: CY
+  id: 56
+  name: Cyprus
+- code: CZ
+  id: 57
+  name: Czech Republic
+- code: DK
+  id: 60
+  name: Denmark
+- code: false
+  id: 255
+  name: Deutschland
+- code: DJ
+  id: 59
+  name: Djibouti
+- code: DM
+  id: 61
+  name: Dominica
+- code: DO
+  id: 62
+  name: Dominican Republic
+- code: TP
+  id: 225
+  name: East Timor
+- code: EC
+  id: 64
+  name: Ecuador
+- code: EG
+  id: 66
+  name: Egypt
+- code: SV
+  id: 211
+  name: El Salvador
+- code: GQ
+  id: 88
+  name: Equatorial Guinea
+- code: ER
+  id: 68
+  name: Eritrea
+- code: EE
+  id: 65
+  name: Estonia
+- code: ET
+  id: 70
+  name: Ethiopia
+- code: FK
+  id: 73
+  name: Falkland Islands
+- code: FO
+  id: 75
+  name: Faroe Islands
+- code: FJ
+  id: 72
+  name: Fiji
+- code: FI
+  id: 71
+  name: Finland
+- code: FR
+  id: 76
+  name: France
+- code: GF
+  id: 80
+  name: French Guyana
+- code: TF
+  id: 217
+  name: French Southern Territories
+- code: GA
+  id: 77
+  name: Gabon
+- code: GM
+  id: 85
+  name: Gambia
+- code: GE
+  id: 79
+  name: Georgia
+- code: DE
+  id: 58
+  name: Germany
+- code: GH
+  id: 81
+  name: Ghana
+- code: GI
+  id: 82
+  name: Gibraltar
+- code: GR
+  id: 89
+  name: Greece
+- code: GL
+  id: 84
+  name: Greenland
+- code: GD
+  id: 78
+  name: Grenada
+- code: GP
+  id: 87
+  name: Guadeloupe (French)
+- code: GU
+  id: 92
+  name: Guam (USA)
+- code: GT
+  id: 91
+  name: Guatemala
+- code: GG
+  id: 83
+  name: Guernsey
+- code: GN
+  id: 86
+  name: Guinea
+- code: GW
+  id: 93
+  name: Guinea Bissau
+- code: GY
+  id: 94
+  name: Guyana
+- code: HT
+  id: 99
+  name: Haiti
+- code: HM
+  id: 96
+  name: Heard and McDonald Islands
+- code: VA
+  id: 238
+  name: Holy See (Vatican City State)
+- code: HN
+  id: 97
+  name: Honduras
+- code: HK
+  id: 95
+  name: Hong Kong
+- code: HU
+  id: 100
+  name: Hungary
+- code: IS
+  id: 109
+  name: Iceland
+- code: IN
+  id: 105
+  name: India
+- code: ID
+  id: 101
+  name: Indonesia
+- code: IR
+  id: 108
+  name: Iran
+- code: IQ
+  id: 107
+  name: Iraq
+- code: IE
+  id: 102
+  name: Ireland
+- code: IM
+  id: 104
+  name: Isle of Man
+- code: IL
+  id: 103
+  name: Israel
+- code: IT
+  id: 110
+  name: Italy
+- code: CI
+  id: 45
+  name: Ivory Coast (Cote D'Ivoire)
+- code: JM
+  id: 112
+  name: Jamaica
+- code: JP
+  id: 114
+  name: Japan
+- code: JE
+  id: 111
+  name: Jersey
+- code: JO
+  id: 113
+  name: Jordan
+- code: KZ
+  id: 125
+  name: Kazakhstan
+- code: KE
+  id: 115
+  name: Kenya
+- code: KI
+  id: 118
+  name: Kiribati
+- code: KW
+  id: 123
+  name: Kuwait
+- code: KG
+  id: 116
+  name: Kyrgyz Republic (Kyrgyzstan)
+- code: LA
+  id: 126
+  name: Laos
+- code: LV
+  id: 135
+  name: Latvia
+- code: LB
+  id: 127
+  name: Lebanon
+- code: LS
+  id: 132
+  name: Lesotho
+- code: LR
+  id: 131
+  name: Liberia
+- code: LY
+  id: 136
+  name: Libya
+- code: LI
+  id: 129
+  name: Liechtenstein
+- code: LT
+  id: 133
+  name: Lithuania
+- code: LU
+  id: 134
+  name: Luxembourg
+- code: MO
+  id: 148
+  name: Macau
+- code: MK
+  id: 144
+  name: Macedonia, the former Yugoslav Republic of
+- code: MG
+  id: 142
+  name: Madagascar
+- code: MW
+  id: 156
+  name: Malawi
+- code: MY
+  id: 158
+  name: Malaysia
+- code: MV
+  id: 155
+  name: Maldives
+- code: ML
+  id: 145
+  name: Mali
+- code: MT
+  id: 153
+  name: Malta
+- code: MH
+  id: 143
+  name: Marshall Islands
+- code: MQ
+  id: 150
+  name: Martinique (French)
+- code: MR
+  id: 151
+  name: Mauritania
+- code: MU
+  id: 154
+  name: Mauritius
+- code: YT
+  id: 248
+  name: Mayotte
+- code: MX
+  id: 157
+  name: Mexico
+- code: FM
+  id: 74
+  name: Micronesia
+- code: MD
+  id: 139
+  name: Moldavia
+- code: MC
+  id: 138
+  name: Monaco
+- code: MN
+  id: 147
+  name: Mongolia
+- code: ME
+  id: 140
+  name: Montenegro
+- code: MS
+  id: 152
+  name: Montserrat
+- code: MA
+  id: 137
+  name: Morocco
+- code: MZ
+  id: 159
+  name: Mozambique
+- code: MM
+  id: 146
+  name: Myanmar
+- code: NA
+  id: 160
+  name: Namibia
+- code: NR
+  id: 169
+  name: Nauru
+- code: NP
+  id: 168
+  name: Nepal
+- code: NL
+  id: 166
+  name: Netherlands
+- code: AN
+  id: 8
+  name: Netherlands Antilles
+- code: NT
+  id: 170
+  name: Neutral Zone
+- code: NC
+  id: 161
+  name: New Caledonia (French)
+- code: NZ
+  id: 172
+  name: New Zealand
+- code: NI
+  id: 165
+  name: Nicaragua
+- code: NE
+  id: 162
+  name: Niger
+- code: NG
+  id: 164
+  name: Nigeria
+- code: NU
+  id: 171
+  name: Niue
+- code: NF
+  id: 163
+  name: Norfolk Island
+- code: MP
+  id: 149
+  name: Northern Mariana Islands
+- code: KP
+  id: 121
+  name: North Korea
+- code: NO
+  id: 167
+  name: Norway
+- code: OM
+  id: 173
+  name: Oman
+- code: PK
+  id: 179
+  name: Pakistan
+- code: PW
+  id: 186
+  name: Palau
+- code: PS
+  id: 184
+  name: Palestinian Territory, Occupied
+- code: PA
+  id: 174
+  name: Panama
+- code: PG
+  id: 177
+  name: Papua New Guinea
+- code: PY
+  id: 187
+  name: Paraguay
+- code: PE
+  id: 175
+  name: Peru
+- code: PH
+  id: 178
+  name: Philippines
+- code: PN
+  id: 182
+  name: Pitcairn Island
+- code: PL
+  id: 180
+  name: Poland
+- code: PF
+  id: 176
+  name: Polynesia (French)
+- code: PT
+  id: 185
+  name: Portugal
+- code: PR
+  id: 183
+  name: Puerto Rico
+- code: QA
+  id: 188
+  name: Qatar
+- code: RE
+  id: 189
+  name: Reunion (French)
+- code: RO
+  id: 190
+  name: Romania
+- code: RU
+  id: 192
+  name: Russian Federation
+- code: RW
+  id: 193
+  name: Rwanda
+- code: BL
+  id: 27
+  name: Saint Barthélémy
+- code: SH
+  id: 200
+  name: Saint Helena
+- code: KN
+  id: 120
+  name: Saint Kitts & Nevis Anguilla
+- code: LC
+  id: 128
+  name: Saint Lucia
+- code: MF
+  id: 141
+  name: Saint Martin (French part)
+- code: PM
+  id: 181
+  name: Saint Pierre and Miquelon
+- code: ST
+  id: 210
+  name: Saint Tome (Sao Tome) and Principe
+- code: VC
+  id: 239
+  name: Saint Vincent & Grenadines
+- code: WS
+  id: 246
+  name: Samoa
+- code: SM
+  id: 205
+  name: San Marino
+- code: SA
+  id: 194
+  name: Saudi Arabia
+- code: false
+  id: 256
+  name: Schweiz
+- code: SN
+  id: 206
+  name: Senegal
+- code: RS
+  id: 191
+  name: Serbia
+- code: SC
+  id: 196
+  name: Seychelles
+- code: SL
+  id: 204
+  name: Sierra Leone
+- code: SG
+  id: 199
+  name: Singapore
+- code: SX
+  id: 212
+  name: Sint Maarten (Dutch part)
+- code: SK
+  id: 203
+  name: Slovakia
+- code: SI
+  id: 201
+  name: Slovenia
+- code: SB
+  id: 195
+  name: Solomon Islands
+- code: SO
+  id: 207
+  name: Somalia
+- code: ZA
+  id: 250
+  name: South Africa
+- code: GS
+  id: 90
+  name: South Georgia and the South Sandwich Islands
+- code: KR
+  id: 122
+  name: South Korea
+- code: SS
+  id: 209
+  name: South Sudan
+- code: ES
+  id: 69
+  name: Spain
+- code: LK
+  id: 130
+  name: Sri Lanka
+- code: SD
+  id: 197
+  name: Sudan
+- code: SR
+  id: 208
+  name: Suriname
+- code: SJ
+  id: 202
+  name: Svalbard and Jan Mayen Islands
+- code: SZ
+  id: 214
+  name: Swaziland
+- code: SE
+  id: 198
+  name: Sweden
+- code: CH
+  id: 44
+  name: Switzerland
+- code: SY
+  id: 213
+  name: Syria
+- code: TW
+  id: 229
+  name: Taiwan
+- code: TJ
+  id: 220
+  name: Tajikistan
+- code: TZ
+  id: 230
+  name: Tanzania
+- code: TH
+  id: 219
+  name: Thailand
+- code: false
+  id: 258
+  name: The Netherlands
+- code: TG
+  id: 218
+  name: Togo
+- code: TK
+  id: 221
+  name: Tokelau
+- code: TO
+  id: 224
+  name: Tonga
+- code: TT
+  id: 227
+  name: Trinidad and Tobago
+- code: TN
+  id: 223
+  name: Tunisia
+- code: TR
+  id: 226
+  name: Turkey
+- code: TM
+  id: 222
+  name: Turkmenistan
+- code: TC
+  id: 215
+  name: Turks and Caicos Islands
+- code: TV
+  id: 228
+  name: Tuvalu
+- code: UG
+  id: 232
+  name: Uganda
+- code: UA
+  id: 231
+  name: Ukraine
+- code: AE
+  id: 2
+  name: United Arab Emirates
+- code: GB
+  id: 233
+  name: United Kingdom
+- code: US
+  id: 235
+  name: United States
+- code: UY
+  id: 236
+  name: Uruguay
+- code: UM
+  id: 234
+  name: USA Minor Outlying Islands
+- code: UZ
+  id: 237
+  name: Uzbekistan
+- code: VU
+  id: 244
+  name: Vanuatu
+- code: VE
+  id: 240
+  name: Venezuela
+- code: VN
+  id: 243
+  name: Vietnam
+- code: VG
+  id: 241
+  name: Virgin Islands (British)
+- code: VI
+  id: 242
+  name: Virgin Islands (USA)
+- code: WF
+  id: 245
+  name: Wallis and Futuna Islands
+- code: EH
+  id: 67
+  name: Western Sahara
+- code: YE
+  id: 247
+  name: Yemen
+- code: YU
+  id: 249
+  name: Yugoslavia
+- code: ZR
+  id: 252
+  name: Zaire
+- code: ZM
+  id: 251
+  name: Zambia
+- code: ZW
+  id: 253
+  name: Zimbabwe
