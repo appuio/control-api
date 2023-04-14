@@ -81,6 +81,13 @@ rules:
   - update
   - watch
 - apiGroups:
+  - billing.appuio.io
+  - rbac.appuio.io
+  resources:
+  - billingentities
+  verbs:
+  - '*'
+- apiGroups:
   - coordination.k8s.io
   resources:
   - leases
@@ -111,12 +118,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - rbac.appuio.io
-  resources:
-  - billingentities
-  verbs:
-  - '*'
 - apiGroups:
   - rbac.appuio.io
   resources:

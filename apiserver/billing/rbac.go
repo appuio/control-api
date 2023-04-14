@@ -18,7 +18,7 @@ import (
 )
 
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=get;list;watch;create;delete;patch;update;edit
-// +kubebuilder:rbac:groups=rbac.appuio.io,resources=billingentities,verbs=*
+// +kubebuilder:rbac:groups=rbac.appuio.io;billing.appuio.io,resources=billingentities,verbs=*
 
 // createRBACWrapper is a wrapper around the storage that creates a ClusterRole and ClusterRoleBinding for each BillingEntity on creation.
 type createRBACWrapper struct {
@@ -44,11 +44,10 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 		return createdObj, fmt.Errorf("could not get name of created object: %w", err)
 	}
 
-	rolename := fmt.Sprintf("billingentities-%s-viewer", objName)
-
-	role := &rbacv1.ClusterRole{
+	viewRoleName := fmt.Sprintf("billingentities-%s-viewer", objName)
+	viewRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: rolename,
+			Name: viewRoleName,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -59,10 +58,40 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 			},
 		},
 	}
-
-	rolebinding := &rbacv1.ClusterRoleBinding{
+	viewRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: rolename,
+			Name: viewRoleName,
+		},
+		Subjects: []rbacv1.Subject{},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "ClusterRole",
+			APIGroup: "rbac.authorization.k8s.io",
+			Name:     viewRoleName,
+		},
+	}
+	adminRoleName := fmt.Sprintf("billingentities-%s-admin", objName)
+	adminRole := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: adminRoleName,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups:     []string{"rbac.appuio.io", "billing.appuio.io"},
+				Resources:     []string{"billingentities"},
+				Verbs:         []string{"get", "patch", "update", "edit"},
+				ResourceNames: []string{objName},
+			},
+			{
+				APIGroups:     []string{"rbac.authorization.k8s.io"},
+				Resources:     []string{"clusterrolebindings"},
+				Verbs:         []string{"get", "edit", "update", "patch"},
+				ResourceNames: []string{viewRoleName, adminRoleName},
+			},
+		},
+	}
+	adminRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: adminRoleName,
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -74,7 +103,7 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "ClusterRole",
 			APIGroup: "rbac.authorization.k8s.io",
-			Name:     rolename,
+			Name:     adminRoleName,
 		},
 	}
 
@@ -87,16 +116,21 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 		return nil
 	}
 
-	err = c.client.Create(ctx, role, &client.CreateOptions{DryRun: opts.DryRun})
-	if err != nil {
-		rollbackErr := rollback()
-		return createdObj, multierr.Append(err, rollbackErr)
+	toCreate := []client.Object{viewRole, viewRoleBinding, adminRole, adminRoleBinding}
+	created := make([]client.Object, 0, len(toCreate))
+	var createErr error
+	for _, obj := range toCreate {
+		if err := c.client.Create(ctx, obj, &client.CreateOptions{DryRun: opts.DryRun}); err != nil {
+			createErr = err
+			break
+		}
+		created = append(created, obj)
 	}
-	err = c.client.Create(ctx, rolebinding, &client.CreateOptions{DryRun: opts.DryRun})
-	if err != nil {
-		rollbackErr := rollback()
-		roleRollbackErr := c.client.Delete(ctx, role, &client.DeleteOptions{DryRun: opts.DryRun})
-		return createdObj, multierr.Combine(err, rollbackErr, roleRollbackErr)
+	if err := createErr; err != nil {
+		for _, obj := range created {
+			multierr.AppendInto(&err, c.client.Delete(ctx, obj, &client.DeleteOptions{DryRun: opts.DryRun}))
+		}
+		return createdObj, multierr.Combine(err, rollback())
 	}
 
 	return createdObj, nil

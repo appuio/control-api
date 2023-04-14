@@ -45,12 +45,22 @@ func Test_createRBACWrapper(t *testing.T) {
 	_, err := subject.Create(ctxWithInfo("create", "", user), &testresource.TestResource{}, nil, &metav1.CreateOptions{})
 	require.NoError(t, err)
 
-	rn := "billingentities-" + returnedResourceName + "-viewer"
-	var role rbacv1.ClusterRole
-	require.NoError(t, c.Get(context.Background(), types.NamespacedName{Name: rn}, &role))
-	var clusterrole rbacv1.ClusterRoleBinding
-	require.NoError(t, c.Get(context.Background(), types.NamespacedName{Name: rn}, &clusterrole))
-	assert.Equal(t, []rbacv1.Subject{{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: user}}, clusterrole.Subjects)
+	{
+		viewerName := "billingentities-" + returnedResourceName + "-viewer"
+		var role rbacv1.ClusterRole
+		require.NoError(t, c.Get(context.Background(), types.NamespacedName{Name: viewerName}, &role))
+		var clusterrole rbacv1.ClusterRoleBinding
+		require.NoError(t, c.Get(context.Background(), types.NamespacedName{Name: viewerName}, &clusterrole))
+	}
+
+	{
+		adminName := "billingentities-" + returnedResourceName + "-admin"
+		var role rbacv1.ClusterRole
+		require.NoError(t, c.Get(context.Background(), types.NamespacedName{Name: adminName}, &role))
+		var clusterrole rbacv1.ClusterRoleBinding
+		require.NoError(t, c.Get(context.Background(), types.NamespacedName{Name: adminName}, &clusterrole))
+		assert.Equal(t, []rbacv1.Subject{{APIGroup: "rbac.authorization.k8s.io", Kind: "User", Name: user}}, clusterrole.Subjects)
+	}
 }
 
 func Test_createRBACWrapper_rollback(t *testing.T) {
