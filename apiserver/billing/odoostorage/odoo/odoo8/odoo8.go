@@ -31,22 +31,27 @@ var roleAccountFilter = []any{"category_id", "in", []int{roleAccountCategory}}
 var activeFilter = []any{"active", "in", []bool{true}}
 var notInflightFilter = []any{"x_control_api_inflight", "in", []any{false}}
 
-var companyUpdateAllowedFields = newSet(
-	"name",
+var (
+	// There's a ton of fields we don't want to override in Odoo.
+	// Sadly Odoo overrides them with an empty value if the key in JSON is present even if the value is null or false.
+	// The only chance to not override them is removing the key from the serialized object.
+	// json:"blub,omitempty" won't omit the keys since we use custom marshalling to work around some other Odoo quirks.
+	companyUpdateAllowedFields = newSet(
+		"name",
 
-	"street",
-	"street2",
-	"city",
-	"zip",
-	"country_id",
+		"street",
+		"street2",
+		"city",
+		"zip",
+		"country_id",
 
-	"email",
-	"phone",
-)
-
-var accountingContactUpdateAllowedFields = newSet(
-	"x_invoice_contact",
-	"email",
+		"email",
+		"phone",
+	)
+	accountingContactUpdateAllowedFields = newSet(
+		"x_invoice_contact",
+		"email",
+	)
 )
 
 func NewOdoo8Storage(odooURL string, debugTransport bool, countryIDs map[string]int) odoo.OdooStorage {
