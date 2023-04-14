@@ -244,23 +244,19 @@ func setupManager(
 	if err = invclean.SetupWithManager(mgr); err != nil {
 		return nil, err
 	}
-	failcount := controllers.NewFailureCounter()
-	successcount := controllers.NewSuccessCounter()
-	invmail := &controllers.InvitationEmailReconciler{
-		Client:         mgr.GetClient(),
-		Scheme:         mgr.GetScheme(),
-		Recorder:       mgr.GetEventRecorderFor("invitation-email-controller"),
-		BaseRetryDelay: invEmailBaseRetryDelay,
-		MailSender:     mailSender,
-		SuccessCounter: successcount,
-		FailureCounter: failcount,
-	}
+
+	invmail := controllers.NewInvitationEmailReconciler(
+		mgr.GetClient(),
+		mgr.GetEventRecorderFor("invitation-email-controller"),
+		mgr.GetScheme(),
+		mailSender,
+		invEmailBaseRetryDelay,
+	)
 	if err = invmail.SetupWithManager(mgr); err != nil {
 		return nil, err
 	}
 
-	metrics.Registry.MustRegister(failcount)
-	metrics.Registry.MustRegister(successcount)
+	metrics.Registry.MustRegister(invmail.GetMetrics())
 
 	mgr.GetWebhookServer().Register("/validate-appuio-io-v1-user", &webhook.Admission{
 		Handler: &webhooks.UserValidator{},

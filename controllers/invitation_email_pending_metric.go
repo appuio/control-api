@@ -10,8 +10,10 @@ import (
 	userv1 "github.com/appuio/control-api/apis/user/v1"
 )
 
-//+kubebuilder:rbac:groups="rbac.appuio.io",resources=organizations,verbs=get;list;watch
-//+kubebuilder:rbac:groups="organization.appuio.io",resources=organizations,verbs=get;list;watch
+//+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations,verbs=get;list;watch
+//+kubebuilder:rbac:groups="user.appuio.io",resources=invitations,verbs=get;list;watch
+//+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations/status,verbs=get
+//+kubebuilder:rbac:groups="user.appuio.io",resources=invitations/status,verbs=get
 
 var emailPendingDesc = prometheus.NewDesc(
 	"control_api_invitation_emails_pending_current",
@@ -20,7 +22,7 @@ var emailPendingDesc = prometheus.NewDesc(
 	nil,
 )
 
-// OrgBillingRefLinkMetric is a Prometheus collector that exposes the link between an organization and a billing entity.
+// EmailPendingMetric is a Prometheus collector that exposes the number of currently pending invitation e-mails
 type EmailPendingMetric struct {
 	client.Client
 }
@@ -34,7 +36,7 @@ func (e *EmailPendingMetric) Describe(ch chan<- *prometheus.Desc) {
 }
 
 // Collect implements prometheus.Collector.
-// Sends a metric for each organization and its billing entity to the provided channel.
+// Sends a metric to the provided channel.
 func (e *EmailPendingMetric) Collect(ch chan<- prometheus.Metric) {
 	invs := &userv1.InvitationList{}
 

@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	userv1 "github.com/appuio/control-api/apis/user/v1"
-	"github.com/appuio/control-api/controllers"
 	. "github.com/appuio/control-api/controllers"
 )
 
@@ -90,8 +89,7 @@ func Test_InvitationEmailReconciler_Reconcile_MetricsCorrect(t *testing.T) {
 	require.NoError(t, err)
 
 	reg := prometheus.NewRegistry()
-	reg.MustRegister(r.FailureCounter)
-	reg.MustRegister(r.SuccessCounter)
+	reg.MustRegister(r.GetMetrics())
 	require.NoError(t, testutil.CollectAndCompare(reg, strings.NewReader(`
 # HELP control_api_invitation_emails_sent_failed_total Total number of invitation e-mails which failed to send
 # TYPE control_api_invitation_emails_sent_failed_total counter
@@ -119,8 +117,7 @@ func Test_InvitationEmailReconciler_Reconcile_WithSendingFailure_MetricsCorrect(
 	require.Error(t, err)
 
 	reg := prometheus.NewRegistry()
-	reg.MustRegister(r.FailureCounter)
-	reg.MustRegister(r.SuccessCounter)
+	reg.MustRegister(r.GetMetrics())
 	require.NoError(t, testutil.CollectAndCompare(reg, strings.NewReader(`
 # HELP control_api_invitation_emails_sent_failed_total Total number of invitation e-mails which failed to send
 # TYPE control_api_invitation_emails_sent_failed_total counter
@@ -149,27 +146,25 @@ func Test_InvitationEmailReconciler_Reconcile_NoEmail_Success(t *testing.T) {
 }
 
 func invitationEmailReconciler(c client.WithWatch) *InvitationEmailReconciler {
-	return &InvitationEmailReconciler{
-		Client:         c,
-		Scheme:         c.Scheme(),
-		Recorder:       record.NewFakeRecorder(3),
-		MailSender:     &SenderWithConstantId{},
-		BaseRetryDelay: time.Minute,
-		SuccessCounter: controllers.NewSuccessCounter(),
-		FailureCounter: controllers.NewFailureCounter(),
-	}
+	r := NewInvitationEmailReconciler(
+		c,
+		record.NewFakeRecorder(3),
+		c.Scheme(),
+		&SenderWithConstantId{},
+		time.Minute,
+	)
+	return &r
 }
 
 func invitationEmailReconcilerWithFailingSender(c client.WithWatch) *InvitationEmailReconciler {
-	return &InvitationEmailReconciler{
-		Client:         c,
-		Scheme:         c.Scheme(),
-		Recorder:       record.NewFakeRecorder(3),
-		MailSender:     &FailingSender{},
-		BaseRetryDelay: time.Minute,
-		SuccessCounter: controllers.NewSuccessCounter(),
-		FailureCounter: controllers.NewFailureCounter(),
-	}
+	r := NewInvitationEmailReconciler(
+		c,
+		record.NewFakeRecorder(3),
+		c.Scheme(),
+		&FailingSender{},
+		time.Minute,
+	)
+	return &r
 }
 
 func baseInvitation() *userv1.Invitation {
