@@ -16,10 +16,10 @@ rules:
 # `get` permissions are created manually or when creating a new BillingEntity
 - apiGroups: ["rbac.appuio.io"]
   resources: ["billingentities"]
-  verbs: ["watch", "list"]
+  verbs: ["create", "watch", "list"]
 - apiGroups: ["billing.appuio.io"]
   resources: ["billingentities"]
-  verbs: ["get", "watch", "list"]
+  verbs: ["create", "get", "watch", "list"]
 # Invitation
 # `get` permissions are created when creating a new BillingEntity
 - apiGroups: ["rbac.appuio.io"]
