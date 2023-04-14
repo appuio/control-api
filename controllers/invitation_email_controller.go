@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/appuio/control-api/mailsenders"
+	"github.com/prometheus/client_golang/prometheus"
 
 	userv1 "github.com/appuio/control-api/apis/user/v1"
 )
@@ -33,6 +34,45 @@ type InvitationEmailReconciler struct {
 
 	MailSender     mailsenders.MailSender
 	BaseRetryDelay time.Duration
+
+	failureCounter prometheus.Counter
+	successCounter prometheus.Counter
+}
+
+func NewInvitationEmailReconciler(client client.Client, eventRecorder record.EventRecorder, scheme *runtime.Scheme, mailSender mailsenders.MailSender, baseRetryDelay time.Duration) InvitationEmailReconciler {
+	return InvitationEmailReconciler{
+		Client:         client,
+		Recorder:       eventRecorder,
+		Scheme:         scheme,
+		MailSender:     mailSender,
+		BaseRetryDelay: baseRetryDelay,
+		failureCounter: newFailureCounter(),
+		successCounter: newSuccessCounter(),
+	}
+
+}
+
+func newSuccessCounter() prometheus.Counter {
+	return prometheus.NewCounter(prometheus.CounterOpts{
+		Subsystem: "control_api_invitation_emails",
+		Name:      "sent_success_total",
+		Help:      "Total number of successfully sent invitation e-mails",
+	})
+}
+
+func newFailureCounter() prometheus.Counter {
+	return prometheus.NewCounter(prometheus.CounterOpts{
+		Subsystem: "control_api_invitation_emails",
+		Name:      "sent_failed_total",
+		Help:      "Total number of invitation e-mails which failed to send",
+	})
+}
+
+func (r *InvitationEmailReconciler) GetMetrics() prometheus.Collector {
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(r.failureCounter)
+	reg.MustRegister(r.successCounter)
+	return reg
 }
 
 //+kubebuilder:rbac:groups="rbac.appuio.io",resources=invitations,verbs=get;list;watch
@@ -66,7 +106,7 @@ func (r *InvitationEmailReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	id, err := r.MailSender.Send(ctx, email, inv)
 	if err != nil {
 		log.V(0).Error(err, "Error in e-mail backend")
-
+		r.failureCounter.Add(1)
 		apimeta.SetStatusCondition(&inv.Status.Conditions, metav1.Condition{
 			Type:    userv1.ConditionEmailSent,
 			Status:  metav1.ConditionFalse,
@@ -75,6 +115,7 @@ func (r *InvitationEmailReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		})
 		return ctrl.Result{}, multierr.Append(err, r.Client.Status().Update(ctx, &inv))
 	}
+	r.successCounter.Add(1)
 
 	var message string
 	if id != "" {
