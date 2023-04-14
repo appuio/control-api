@@ -1,10 +1,6 @@
 - code: CH
   id: 44
   name: Switzerland
-# Not an error: Someone created a country with the name "Schweiz" in the ERP.
-- code: false
-  id: 256
-  name: Schweiz
 
 - code: LI
   id: 129
