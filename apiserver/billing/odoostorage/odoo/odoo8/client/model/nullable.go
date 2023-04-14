@@ -13,6 +13,14 @@ type Nullable[T any] struct {
 	Valid bool
 }
 
+// NewNullable creates a new Nullable[T] with the given value.
+func NewNullable[T any](v T) Nullable[T] {
+	return Nullable[T]{
+		Value: v,
+		Valid: true,
+	}
+}
+
 func (t *Nullable[T]) UnmarshalJSON(b []byte) error {
 	// Odoo returns false (not null) if a field is not set.
 	if bytes.Equal(b, []byte("false")) {

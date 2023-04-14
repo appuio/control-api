@@ -9,6 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Test_NewNullable(t *testing.T) {
+	subject := model.NewNullable("test")
+	require.True(t, subject.Valid)
+	require.Equal(t, "test", subject.Value)
+}
+
 func Test_Nullable(t *testing.T) {
 	type mt struct {
 		NullableString model.Nullable[string] `json:"nullable_string"`

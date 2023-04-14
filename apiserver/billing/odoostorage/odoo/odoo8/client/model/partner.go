@@ -8,6 +8,9 @@ import (
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/client"
 )
 
+// PartnerModel is the name of the Odoo model for partners.
+const PartnerModel = "res.partner"
+
 // Partner represents a partner ("Customer") record in Odoo
 type Partner struct {
 	// ID is the data record identifier.
@@ -18,7 +21,7 @@ type Partner struct {
 	CreationTimestamp client.Date `json:"create_date,omitempty" yaml:"create_date,omitempty"`
 
 	// CategoryID is the category of the partner.
-	CategoryID []int `json:"category_id,omitempty" yaml:"category_id,omitempty"`
+	CategoryID CategoryIDs `json:"category_id,omitempty" yaml:"category_id,omitempty"`
 	// Lang is the language of the partner.
 	Lang Nullable[string] `json:"lang,omitempty" yaml:"lang,omitempty"`
 	// NotifyEmail is the email notification preference of the partner.
@@ -48,6 +51,9 @@ type Partner struct {
 	EmailRaw Nullable[string] `json:"email,omitempty" yaml:"email,omitempty"`
 	// Phone is the phone number of the partner.
 	Phone Nullable[string] `json:"phone,omitempty" yaml:"phone,omitempty"`
+
+	// Inflight allows detecting half-finished creates.
+	Inflight Nullable[string] `json:"x_control_api_inflight,omitempty" yaml:"x_control_api_inflight,omitempty"`
 }
 
 func (p Partner) Emails() []string {
@@ -55,7 +61,7 @@ func (p Partner) Emails() []string {
 }
 
 func (p *Partner) SetEmails(emails []string) {
-	p.EmailRaw = Nullable[string]{Valid: true, Value: strings.Join(emails, ", ")}
+	p.EmailRaw = NewNullable(strings.Join(emails, ", "))
 }
 
 func splitCommaSeparated(s string) []string {
@@ -116,9 +122,18 @@ func (o Odoo) FetchPartnerByID(ctx context.Context, id int, domainFilters ...cli
 func (o Odoo) SearchPartners(ctx context.Context, domainFilters []client.Filter) ([]Partner, error) {
 	result := &PartnerList{}
 	err := o.querier.SearchGenericModel(ctx, client.SearchReadModel{
-		Model:  "res.partner",
+		Model:  PartnerModel,
 		Domain: domainFilters,
 		Fields: PartnerFields,
 	}, result)
 	return result.Items, err
+}
+
+func (o Odoo) CreatePartner(ctx context.Context, p Partner) (id int, err error) {
+	id, err = o.querier.CreateGenericModel(ctx, PartnerModel, p)
+	return id, err
+}
+
+func (o Odoo) UpdateRawPartner(ctx context.Context, ids []int, raw any) error {
+	return o.querier.UpdateGenericModel(ctx, PartnerModel, ids, raw)
 }

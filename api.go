@@ -19,6 +19,7 @@ import (
 	"github.com/appuio/control-api/apiserver/authwrapper"
 	billingStore "github.com/appuio/control-api/apiserver/billing"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/countries"
 	orgStore "github.com/appuio/control-api/apiserver/organization"
 	"github.com/appuio/control-api/apiserver/secretstorage"
 	"github.com/appuio/control-api/apiserver/user"
@@ -57,6 +58,7 @@ func APICommand() *cobra.Command {
 	cmd.Flags().BoolVar(&ob.billingEntityFakeMetadataSupport, "billing-entity-fake-metadata-support", false, "Enable metadata support for the fake storage backend")
 	cmd.Flags().StringVar(&ob.odoo8URL, "billing-entity-odoo8-url", "http://localhost:8069", "URL of the Odoo instance to use for billing entities")
 	cmd.Flags().BoolVar(&ob.odoo8DebugTransport, "billing-entity-odoo8-debug-transport", false, "Enable debug logging for the Odoo transport")
+	cmd.Flags().StringVar(&ob.odoo8CountryListPath, "billing-entity-odoo8-country-list", "countries.yaml", "Path to the country list file in the format of [{name: \"Germany\", code: \"DE\", id: 81},...]")
 
 	cmd.Flags().StringVar(&ib.backingNS, "invitation-storage-backing-ns", "default", "Namespace to store invitation secrets in")
 
@@ -79,18 +81,20 @@ func APICommand() *cobra.Command {
 }
 
 type odooStorageBuilder struct {
-	billingEntityStorage, odoo8URL                        string
+	billingEntityStorage, odoo8URL, odoo8CountryListPath  string
 	billingEntityFakeMetadataSupport, odoo8DebugTransport bool
 }
 
 func (o *odooStorageBuilder) Build(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
-	fmt.Printf("Building storage with options: %#v\n", o)
-
 	switch o.billingEntityStorage {
 	case "fake":
 		return billingStore.New(odoostorage.NewFakeStorage(o.billingEntityFakeMetadataSupport).(authwrapper.StorageScoper))(s, g)
 	case "odoo8":
-		return billingStore.New(odoostorage.NewOdoo8Storage(o.odoo8URL, o.odoo8DebugTransport).(authwrapper.StorageScoper))(s, g)
+		countryIDs, err := countries.LoadCountryIDs(o.odoo8CountryListPath)
+		if err != nil {
+			return nil, err
+		}
+		return billingStore.New(odoostorage.NewOdoo8Storage(o.odoo8URL, o.odoo8DebugTransport, countryIDs).(authwrapper.StorageScoper))(s, g)
 	default:
 		return nil, fmt.Errorf("unknown billing entity storage: %s", o.billingEntityStorage)
 	}

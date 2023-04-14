@@ -11,6 +11,7 @@ RUN \
   mkdir /.cache && chmod -R g=u /.cache
 
 COPY control-api /usr/local/bin/
+COPY countries.yaml .
 
 RUN chmod a+x /usr/local/bin/control-api
 
