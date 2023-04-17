@@ -23,6 +23,7 @@ const VSHNAccountingContactNameKey = "billing.appuio.io/vshn-accounting-contact-
 
 // Used to identify the accounting contact of a company.
 const roleAccountCategory = 7
+const companyCategory = 1
 
 // Used to generate the UUID for the .metadata.uid field.
 var metaUIDNamespace = uuid.MustParse("51887759-C769-4829-9910-BB9D5F92767D")
@@ -54,9 +55,16 @@ var (
 	)
 )
 
-func NewOdoo8Storage(odooURL string, debugTransport bool, countryIDs map[string]int) odoo.OdooStorage {
+type Config struct {
+	CountryIDs                   map[string]int
+	AccountingContactDisplayName string
+	LanguagePreference           string
+	PaymentTermID                int
+}
+
+func NewOdoo8Storage(odooURL string, debugTransport bool, conf Config) odoo.OdooStorage {
 	return &oodo8Storage{
-		countryIDs: countryIDs,
+		config: conf,
 		sessionCreator: func(ctx context.Context) (client.QueryExecutor, error) {
 			return client.Open(ctx, odooURL, client.ClientOptions{UseDebugLogger: debugTransport})
 		},
@@ -64,7 +72,7 @@ func NewOdoo8Storage(odooURL string, debugTransport bool, countryIDs map[string]
 }
 
 type oodo8Storage struct {
-	countryIDs map[string]int
+	config Config
 
 	sessionCreator func(ctx context.Context) (client.QueryExecutor, error)
 }
@@ -170,7 +178,7 @@ func (s *oodo8Storage) Create(ctx context.Context, be *billingv1.BillingEntity) 
 	if be == nil {
 		return errors.New("billing entity is nil")
 	}
-	company, accounting, err := mapBillingEntityToPartners(*be, s.countryIDs)
+	company, accounting, err := mapBillingEntityToPartners(*be, s.config.CountryIDs)
 	if err != nil {
 		return fmt.Errorf("failed mapping billing entity to partners: %w", err)
 	}
@@ -179,8 +187,8 @@ func (s *oodo8Storage) Create(ctx context.Context, be *billingv1.BillingEntity) 
 	l = l.WithValues("debug_inflight", inflight)
 	company.Inflight = model.NewNullable(inflight)
 	accounting.Inflight = model.NewNullable(inflight)
-	setStaticCompanyFields(&company)
-	setStaticAccountingContactFields(&accounting)
+	setStaticCompanyFields(s.config, &company)
+	setStaticAccountingContactFields(s.config, &accounting)
 
 	session, err := s.sessionCreator(ctx)
 	if err != nil {
@@ -223,7 +231,7 @@ func (s *oodo8Storage) Update(ctx context.Context, be *billingv1.BillingEntity) 
 		return errors.New("billing entity is nil")
 	}
 
-	company, accounting, err := mapBillingEntityToPartners(*be, s.countryIDs)
+	company, accounting, err := mapBillingEntityToPartners(*be, s.config.CountryIDs)
 	if err != nil {
 		return fmt.Errorf("failed mapping billing entity to partners: %w", err)
 	}
@@ -338,20 +346,20 @@ func mapBillingEntityToPartners(be billingv1.BillingEntity, countryIDs map[strin
 	return company, accounting, nil
 }
 
-func setStaticAccountingContactFields(a *model.Partner) {
+func setStaticAccountingContactFields(conf Config, a *model.Partner) {
 	a.CategoryID = []int{roleAccountCategory}
-	a.Name = "Accounting"
-	a.Lang = model.NewNullable("en_US")
+	a.Name = conf.AccountingContactDisplayName
+	a.Lang = model.NewNullable(conf.LanguagePreference)
 	a.NotifyEmail = "always"
-	a.PaymentTerm = model.OdooCompositeID{Valid: true, ID: 2}
+	a.PaymentTerm = model.OdooCompositeID{Valid: true, ID: conf.PaymentTermID}
 	a.UseParentAddress = true
 }
 
-func setStaticCompanyFields(a *model.Partner) {
-	a.CategoryID = []int{1}
-	a.Lang = model.NewNullable("en_US")
+func setStaticCompanyFields(conf Config, a *model.Partner) {
+	a.CategoryID = []int{companyCategory}
+	a.Lang = model.NewNullable(conf.LanguagePreference)
 	a.NotifyEmail = "none"
-	a.PaymentTerm = model.OdooCompositeID{Valid: true, ID: 2}
+	a.PaymentTerm = model.OdooCompositeID{Valid: true, ID: conf.PaymentTermID}
 }
 
 func filterFields(p model.Partner, allowed set) (map[string]any, error) {

@@ -350,7 +350,16 @@ func createStorage(t *testing.T) (*gomock.Controller, *clientmock.MockQueryExecu
 	mock := clientmock.NewMockQueryExecutor(ctrl)
 
 	return ctrl, mock, &oodo8Storage{
-		countryIDs: map[string]int{"": 0, "Switzerland": 1, "Germany": 2},
+		config: Config{
+			CountryIDs: map[string]int{
+				"":            0,
+				"Switzerland": 1,
+				"Germany":     2,
+			},
+			AccountingContactDisplayName: "Accounting",
+			LanguagePreference:           "en_US",
+			PaymentTermID:                2,
+		},
 		sessionCreator: func(ctx context.Context) (client.QueryExecutor, error) {
 			return mock, nil
 		},

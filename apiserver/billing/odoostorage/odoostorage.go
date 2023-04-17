@@ -18,9 +18,9 @@ func NewFakeStorage(metadataSupport bool) Storage {
 }
 
 // NewOdoo8Storage returns a new storage provider for BillingEntities
-func NewOdoo8Storage(odooURL string, debugTransport bool, countryIDs map[string]int) Storage {
+func NewOdoo8Storage(odooURL string, debugTransport bool, conf odoo8.Config) Storage {
 	return &billingEntityStorage{
-		storage: odoo8.NewOdoo8Storage(odooURL, debugTransport, countryIDs),
+		storage: odoo8.NewOdoo8Storage(odooURL, debugTransport, conf),
 	}
 }
 
