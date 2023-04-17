@@ -19,6 +19,7 @@ import (
 	"github.com/appuio/control-api/apiserver/authwrapper"
 	billingStore "github.com/appuio/control-api/apiserver/billing"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8/countries"
 	orgStore "github.com/appuio/control-api/apiserver/organization"
 	"github.com/appuio/control-api/apiserver/secretstorage"
@@ -60,6 +61,10 @@ func APICommand() *cobra.Command {
 	cmd.Flags().BoolVar(&ob.odoo8DebugTransport, "billing-entity-odoo8-debug-transport", false, "Enable debug logging for the Odoo transport")
 	cmd.Flags().StringVar(&ob.odoo8CountryListPath, "billing-entity-odoo8-country-list", "countries.yaml", "Path to the country list file in the format of [{name: \"Germany\", code: \"DE\", id: 81},...]")
 
+	cmd.Flags().StringVar(&ob.odoo8AccountingContactDisplayName, "billing-entity-odoo8-accounting-contact-display-name", "Accounting", "Display name of the accounting contact")
+	cmd.Flags().StringVar(&ob.odoo8LanguagePreference, "billing-entity-odoo8-language-preference", "en_US", "Language preference of the Odoo record")
+	cmd.Flags().IntVar(&ob.odoo8PaymentTermID, "billing-entity-odoo8-payment-term-id", 2, "Payment term ID of the Odoo record")
+
 	cmd.Flags().StringVar(&ib.backingNS, "invitation-storage-backing-ns", "default", "Namespace to store invitation secrets in")
 
 	rf := cmd.Run
@@ -81,8 +86,10 @@ func APICommand() *cobra.Command {
 }
 
 type odooStorageBuilder struct {
-	billingEntityStorage, odoo8URL, odoo8CountryListPath  string
-	billingEntityFakeMetadataSupport, odoo8DebugTransport bool
+	billingEntityStorage, odoo8URL, odoo8CountryListPath       string
+	odoo8AccountingContactDisplayName, odoo8LanguagePreference string
+	odoo8PaymentTermID                                         int
+	billingEntityFakeMetadataSupport, odoo8DebugTransport      bool
 }
 
 func (o *odooStorageBuilder) Build(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
@@ -94,7 +101,12 @@ func (o *odooStorageBuilder) Build(s *runtime.Scheme, g genericregistry.RESTOpti
 		if err != nil {
 			return nil, err
 		}
-		return billingStore.New(odoostorage.NewOdoo8Storage(o.odoo8URL, o.odoo8DebugTransport, countryIDs).(authwrapper.StorageScoper))(s, g)
+		return billingStore.New(odoostorage.NewOdoo8Storage(o.odoo8URL, o.odoo8DebugTransport, odoo8.Config{
+			AccountingContactDisplayName: o.odoo8AccountingContactDisplayName,
+			LanguagePreference:           o.odoo8LanguagePreference,
+			PaymentTermID:                o.odoo8PaymentTermID,
+			CountryIDs:                   countryIDs,
+		}).(authwrapper.StorageScoper))(s, g)
 	default:
 		return nil, fmt.Errorf("unknown billing entity storage: %s", o.billingEntityStorage)
 	}
