@@ -35,7 +35,9 @@ import (
 const (
 	defaultInvitationEmailTemplate = `Hi,
 
-You've been invited to join on a new group on APPUiO Cloud https://portal.dev/invitations/{{.Invitation.ObjectMeta.Name}}?token={{.Invitation.Status.Token}}.
+You've been invited to join APPUiO Cloud. Please follow https://portal.dev/invitations/{{.Invitation.ObjectMeta.Name}}?token={{.Invitation.Status.Token}} to accept.
+
+Please check out https://docs.appuio.cloud/user/tutorials/getting-started.html on how to get sarted with APPUiO Cloud and https://appuio.cloud to learn more about this service in general. 
 
 Best regards,
 APPUiO Cloud Team`
