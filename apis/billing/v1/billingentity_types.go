@@ -16,6 +16,8 @@ type BillingEntity struct {
 
 	// Spec holds the cluster specific metadata.
 	Spec BillingEntitySpec `json:"spec,omitempty"`
+
+	Status BillingEntityStatus `json:"status,omitempty"`
 }
 
 // BillingEntitySpec defines the desired state of the BillingEntity
@@ -54,6 +56,12 @@ type BillingEntityContact struct {
 	Name string `json:"name"`
 	// Emails is a list of email addresses of the contact person
 	Emails []string `json:"emails"`
+}
+
+// BillingEntityStatus contains the status conditions of the BillingEntity
+type BillingEntityStatus struct {
+	// Conditions is a list of conditions for the invitation
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // BillingEntity needs to implement the builder resource interface

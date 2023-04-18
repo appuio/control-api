@@ -48,6 +48,7 @@ var (
 
 		"email",
 		"phone",
+		"x_control_api_meta_status",
 	)
 	accountingContactUpdateAllowedFields = newSet(
 		"x_invoice_contact",
@@ -287,6 +288,10 @@ func odooIDToK8sID(id int) string {
 
 func mapPartnersToBillingEntity(company model.Partner, accounting model.Partner) billingv1.BillingEntity {
 	name := odooIDToK8sID(accounting.ID)
+
+	var status billingv1.BillingEntityStatus
+	json.Unmarshal([]byte(company.Status.Value), &status)
+
 	return billingv1.BillingEntity{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -317,6 +322,7 @@ func mapPartnersToBillingEntity(company model.Partner, accounting model.Partner)
 			},
 			LanguagePreference: "",
 		},
+		Status: status,
 	}
 }
 
@@ -325,6 +331,13 @@ func mapBillingEntityToPartners(be billingv1.BillingEntity, countryIDs map[strin
 	if !ok {
 		return company, accounting, fmt.Errorf("unknown country %q", be.Spec.Address.Country)
 	}
+
+	st, err := json.Marshal(be.Status)
+	if err != nil {
+		return company, accounting, err
+	}
+	statusString := string(st)
+	fmt.Println(statusString)
 
 	company = model.Partner{
 		Name:  be.Spec.Name,
@@ -335,6 +348,8 @@ func mapBillingEntityToPartners(be billingv1.BillingEntity, countryIDs map[strin
 		City:      model.NewNullable(be.Spec.Address.City),
 		Zip:       model.NewNullable(be.Spec.Address.PostalCode),
 		CountryID: model.NewCompositeID(countryID, ""),
+
+		Status: model.NewNullable(statusString),
 	}
 	company.SetEmails(be.Spec.Emails)
 
