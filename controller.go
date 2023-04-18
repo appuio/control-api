@@ -41,7 +41,7 @@ APPUiO Cloud is a shared Kubernetes offering based on OpenShift provided by http
 
 Unsure what to do next? Accept this invitation using the link above, login to one of the zones listed at https://portal.appuio.cloud/zones, deploy your application. A getting started guide on how to do so, is available at https://docs.appuio.cloud/user/tutorials/getting-started.html. To learn more about APPUiO Cloud in general, please visit https://appuio.cloud. 
 
-In case you need support, please email us at support@appuio.ch.
+If you have any problems or questions, please email us at support@appuio.ch.
 
 All the best
 Your APPUiO Cloud Team`
