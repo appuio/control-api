@@ -21,6 +21,8 @@ func TestGet(t *testing.T) {
 	defer ctrl.Finish()
 
 	tn := time.Now()
+	st, _ := time.Parse(time.RFC3339, "2023-04-18T14:07:55Z")
+	statusTime := st.Local()
 
 	gomock.InOrder(
 		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
@@ -36,7 +38,11 @@ func TestGet(t *testing.T) {
 		}).Return(nil),
 		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
 			Items: []model.Partner{
-				{ID: 123, Name: "Test Company"},
+				{
+					ID:     123,
+					Name:   "Test Company",
+					Status: model.Nullable[string]{Valid: true, Value: "{\"conditions\":[{\"type\":\"ConditionFoo\",\"status\":\"False\",\"lastTransitionTime\":\"" + statusTime.Format(time.RFC3339) + "\",\"reason\":\"Whatever\",\"message\":\"Hello World\"}]}"},
+				},
 			},
 		}).Return(nil),
 	)
@@ -59,6 +65,17 @@ func TestGet(t *testing.T) {
 				Emails: []string{
 					"accounting@test.com",
 					"notifications@test.com",
+				},
+			},
+		},
+		Status: billingv1.BillingEntityStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               "ConditionFoo",
+					Status:             metav1.ConditionFalse,
+					LastTransitionTime: metav1.NewTime(statusTime),
+					Reason:             "Whatever",
+					Message:            "Hello World",
 				},
 			},
 		},
@@ -259,6 +276,8 @@ func TestUpdate(t *testing.T) {
 	defer ctrl.Finish()
 
 	tn := time.Now()
+	st, _ := time.Parse(time.RFC3339, "2023-04-18T14:07:55Z")
+	statusTime := st.Local()
 
 	gomock.InOrder(
 		// Fetch existing company
@@ -290,7 +309,11 @@ func TestUpdate(t *testing.T) {
 		}),
 		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
 			Items: []model.Partner{
-				{ID: 700, Name: "Test Company"},
+				{
+					ID:     700,
+					Name:   "Test Company",
+					Status: model.Nullable[string]{Valid: true, Value: "{\"conditions\":[{\"type\":\"ConditionFoo\",\"status\":\"False\",\"lastTransitionTime\":\"" + statusTime.Format(time.RFC3339) + "\",\"reason\":\"Whatever\",\"message\":\"Hello World\"}]}"},
+				},
 			},
 		}),
 	)
@@ -301,6 +324,17 @@ func TestUpdate(t *testing.T) {
 		},
 		Spec: billingv1.BillingEntitySpec{
 			Name: "Test Company",
+		},
+		Status: billingv1.BillingEntityStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               "ConditionFoo",
+					Status:             metav1.ConditionFalse,
+					LastTransitionTime: metav1.NewTime(statusTime),
+					Reason:             "Whatever",
+					Message:            "Hello World",
+				},
+			},
 		},
 	}
 	err := subject.Update(context.Background(), s)
@@ -321,6 +355,17 @@ func TestUpdate(t *testing.T) {
 				Emails: []string{
 					"accounting@test.com",
 					"notifications@test.com",
+				},
+			},
+		},
+		Status: billingv1.BillingEntityStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               "ConditionFoo",
+					Status:             metav1.ConditionFalse,
+					LastTransitionTime: metav1.NewTime(statusTime),
+					Reason:             "Whatever",
+					Message:            "Hello World",
 				},
 			},
 		},
