@@ -84,7 +84,7 @@ func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.Billing
 		return nil, err
 	}
 
-	be := mapPartnersToBillingEntity(company, accountingContact)
+	be := mapPartnersToBillingEntity(ctx, company, accountingContact)
 	return &be, nil
 }
 
@@ -167,7 +167,7 @@ func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, err
 			l.Info("could not load parent partner (maybe no longer active?)", "parent_id", p.Parent.ID, "id", p.ID)
 			continue
 		}
-		bes = append(bes, mapPartnersToBillingEntity(mp, p))
+		bes = append(bes, mapPartnersToBillingEntity(ctx, mp, p))
 	}
 
 	return bes, nil
@@ -286,11 +286,16 @@ func odooIDToK8sID(id int) string {
 	return fmt.Sprintf("be-%d", id)
 }
 
-func mapPartnersToBillingEntity(company model.Partner, accounting model.Partner) billingv1.BillingEntity {
+func mapPartnersToBillingEntity(ctx context.Context, company model.Partner, accounting model.Partner) billingv1.BillingEntity {
+	l := klog.FromContext(ctx)
 	name := odooIDToK8sID(accounting.ID)
 
 	var status billingv1.BillingEntityStatus
-	json.Unmarshal([]byte(company.Status.Value), &status)
+	err := json.Unmarshal([]byte(accounting.Status.Value), &status)
+
+	if err != nil {
+		l.Error(err, "Could not unmarshal BillingEntityStatus", "billingEntityName", name, "rawStatus", accounting.Status.Value)
+	}
 
 	return billingv1.BillingEntity{
 		ObjectMeta: metav1.ObjectMeta{
@@ -337,7 +342,6 @@ func mapBillingEntityToPartners(be billingv1.BillingEntity, countryIDs map[strin
 		return company, accounting, err
 	}
 	statusString := string(st)
-	fmt.Println(statusString)
 
 	company = model.Partner{
 		Name:  be.Spec.Name,
@@ -348,13 +352,12 @@ func mapBillingEntityToPartners(be billingv1.BillingEntity, countryIDs map[strin
 		City:      model.NewNullable(be.Spec.Address.City),
 		Zip:       model.NewNullable(be.Spec.Address.PostalCode),
 		CountryID: model.NewCompositeID(countryID, ""),
-
-		Status: model.NewNullable(statusString),
 	}
 	company.SetEmails(be.Spec.Emails)
 
 	accounting = model.Partner{
 		InvoiceContactName: model.NewNullable(be.Spec.AccountingContact.Name),
+		Status:             model.NewNullable(statusString),
 	}
 	accounting.SetEmails(be.Spec.AccountingContact.Emails)
 

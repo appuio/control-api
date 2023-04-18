@@ -33,15 +33,15 @@ func TestGet(t *testing.T) {
 					CreationTimestamp: client.Date(tn),
 					Parent:            model.OdooCompositeID{ID: 123, Valid: true},
 					EmailRaw:          model.Nullable[string]{Valid: true, Value: "accounting@test.com, notifications@test.com"},
+					Status:            model.Nullable[string]{Valid: true, Value: "{\"conditions\":[{\"type\":\"ConditionFoo\",\"status\":\"False\",\"lastTransitionTime\":\"" + statusTime.Format(time.RFC3339) + "\",\"reason\":\"Whatever\",\"message\":\"Hello World\"}]}"},
 				},
 			},
 		}).Return(nil),
 		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
 			Items: []model.Partner{
 				{
-					ID:     123,
-					Name:   "Test Company",
-					Status: model.Nullable[string]{Valid: true, Value: "{\"conditions\":[{\"type\":\"ConditionFoo\",\"status\":\"False\",\"lastTransitionTime\":\"" + statusTime.Format(time.RFC3339) + "\",\"reason\":\"Whatever\",\"message\":\"Hello World\"}]}"},
+					ID:   123,
+					Name: "Test Company",
 				},
 			},
 		}).Return(nil),
@@ -304,15 +304,15 @@ func TestUpdate(t *testing.T) {
 					CreationTimestamp: client.Date(tn),
 					Parent:            model.OdooCompositeID{ID: 700, Valid: true},
 					EmailRaw:          model.NewNullable("accounting@test.com, notifications@test.com"),
+					Status:            model.Nullable[string]{Valid: true, Value: "{\"conditions\":[{\"type\":\"ConditionFoo\",\"status\":\"False\",\"lastTransitionTime\":\"" + statusTime.Format(time.RFC3339) + "\",\"reason\":\"Whatever\",\"message\":\"Hello World\"}]}"},
 				},
 			},
 		}),
 		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
 			Items: []model.Partner{
 				{
-					ID:     700,
-					Name:   "Test Company",
-					Status: model.Nullable[string]{Valid: true, Value: "{\"conditions\":[{\"type\":\"ConditionFoo\",\"status\":\"False\",\"lastTransitionTime\":\"" + statusTime.Format(time.RFC3339) + "\",\"reason\":\"Whatever\",\"message\":\"Hello World\"}]}"},
+					ID:   700,
+					Name: "Test Company",
 				},
 			},
 		}),

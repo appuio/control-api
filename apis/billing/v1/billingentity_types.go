@@ -60,7 +60,7 @@ type BillingEntityContact struct {
 
 // BillingEntityStatus contains the status conditions of the BillingEntity
 type BillingEntityStatus struct {
-	// Conditions is a list of conditions for the invitation
+	// Conditions is a list of conditions for the billing entity
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
