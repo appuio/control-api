@@ -33,12 +33,18 @@ import (
 )
 
 const (
-	defaultInvitationEmailTemplate = `Hi,
+	defaultInvitationEmailTemplate = `Hello developer of great software, Kubernetes engineer or fellow human,
 
-You've been invited to join on a new group on APPUiO Cloud https://portal.dev/invitations/{{.Invitation.ObjectMeta.Name}}?token={{.Invitation.Status.Token}}.
+A user of APPUiO Cloud has invited you to join them. Follow https://portal.dev/invitations/{{.Invitation.ObjectMeta.Name}}?token={{.Invitation.Status.Token}} to accept this invitation.
 
-Best regards,
-APPUiO Cloud Team`
+APPUiO Cloud is a shared Kubernetes offering based on OpenShift provided by https://vshn.ch.
+
+Unsure what to do next? Accept this invitation using the link above, login to one of the zones listed at https://portal.appuio.cloud/zones, deploy your application. A getting started guide on how to do so, is available at https://docs.appuio.cloud/user/tutorials/getting-started.html. To learn more about APPUiO Cloud in general, please visit https://appuio.cloud. 
+
+If you have any problems or questions, please email us at support@appuio.ch.
+
+All the best
+Your APPUiO Cloud Team`
 )
 
 // ControllerCommand creates a new command allowing to start the controller
