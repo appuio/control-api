@@ -23,8 +23,6 @@ import (
 	userv1 "github.com/appuio/control-api/apis/user/v1"
 )
 
-const ReasonSendFailed = "SendFailed"
-
 // InvitationEmailReconciler reconciles invitations and sends invitation emails if appropriate
 type InvitationEmailReconciler struct {
 	client.Client
@@ -46,26 +44,10 @@ func NewInvitationEmailReconciler(client client.Client, eventRecorder record.Eve
 		Scheme:         scheme,
 		MailSender:     mailSender,
 		BaseRetryDelay: baseRetryDelay,
-		failureCounter: newFailureCounter(),
-		successCounter: newSuccessCounter(),
+		failureCounter: newFailureCounter("control_api_invitation_emails"),
+		successCounter: newSuccessCounter("control_api_invitation_emails"),
 	}
 
-}
-
-func newSuccessCounter() prometheus.Counter {
-	return prometheus.NewCounter(prometheus.CounterOpts{
-		Subsystem: "control_api_invitation_emails",
-		Name:      "sent_success_total",
-		Help:      "Total number of successfully sent invitation e-mails",
-	})
-}
-
-func newFailureCounter() prometheus.Counter {
-	return prometheus.NewCounter(prometheus.CounterOpts{
-		Subsystem: "control_api_invitation_emails",
-		Name:      "sent_failed_total",
-		Help:      "Total number of invitation e-mails which failed to send",
-	})
 }
 
 func (r *InvitationEmailReconciler) GetMetrics() prometheus.Collector {
@@ -110,7 +92,7 @@ func (r *InvitationEmailReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		apimeta.SetStatusCondition(&inv.Status.Conditions, metav1.Condition{
 			Type:    userv1.ConditionEmailSent,
 			Status:  metav1.ConditionFalse,
-			Reason:  ReasonSendFailed,
+			Reason:  userv1.ConditionReasonSendFailed,
 			Message: err.Error(),
 		})
 		return ctrl.Result{}, multierr.Append(err, r.Client.Status().Update(ctx, &inv))

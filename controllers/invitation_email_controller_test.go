@@ -22,11 +22,11 @@ import (
 type FailingSender struct{}
 type SenderWithConstantId struct{}
 
-func (f *FailingSender) Send(context.Context, string, userv1.Invitation) (string, error) {
+func (f *FailingSender) Send(context.Context, string, any) (string, error) {
 	return "", errors.New("Err0r")
 }
 
-func (s *SenderWithConstantId) Send(context.Context, string, userv1.Invitation) (string, error) {
+func (s *SenderWithConstantId) Send(context.Context, string, any) (string, error) {
 	return "ID10", nil
 }
 
@@ -70,7 +70,7 @@ func Test_InvitationEmailReconciler_Reconcile_WithSendingFailure_Success(t *test
 	require.False(t, apimeta.IsStatusConditionTrue(subject.Status.Conditions, userv1.ConditionEmailSent))
 	condition := apimeta.FindStatusCondition(subject.Status.Conditions, userv1.ConditionEmailSent)
 	require.NotNil(t, condition)
-	require.Equal(t, ReasonSendFailed, condition.Reason)
+	require.Equal(t, userv1.ConditionReasonSendFailed, condition.Reason)
 }
 
 func Test_InvitationEmailReconciler_Reconcile_MetricsCorrect(t *testing.T) {

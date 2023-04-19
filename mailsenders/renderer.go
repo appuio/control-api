@@ -4,21 +4,19 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
-
-	userv1 "github.com/appuio/control-api/apis/user/v1"
 )
 
-type InvitationRenderer struct {
+type Renderer struct {
 	Template *template.Template
 }
 
-type templateData struct {
-	Invitation userv1.Invitation
+type TemplateData struct {
+	Object any
 }
 
-func (ir InvitationRenderer) Render(inv userv1.Invitation) (string, error) {
+func (ir Renderer) Render(obj any) (string, error) {
 	body := &strings.Builder{}
-	err := ir.Template.Execute(body, templateData{Invitation: inv})
+	err := ir.Template.Execute(body, TemplateData{Object: obj})
 	if err != nil {
 		return "", fmt.Errorf("failed to render e-mail body: %w", err)
 	}

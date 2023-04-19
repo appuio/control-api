@@ -6,12 +6,10 @@ import (
 	"strings"
 
 	"github.com/mailgun/mailgun-go/v4"
-
-	userv1 "github.com/appuio/control-api/apis/user/v1"
 )
 
 type MailSender interface {
-	Send(ctx context.Context, recipient string, inv userv1.Invitation) (id string, err error)
+	Send(ctx context.Context, recipient string, obj any) (id string, err error)
 }
 
 var _ MailSender = &MailgunSender{}
@@ -24,7 +22,7 @@ type MailgunSender struct {
 	UseTestMode    bool
 	Subject        string
 
-	Body *InvitationRenderer
+	Body *Renderer
 }
 
 var _ MailSender = &StdoutSender{}
@@ -32,11 +30,11 @@ var _ MailSender = &StdoutSender{}
 // StdoutSender is a MailSender that logs the e-mail to stdout.
 type StdoutSender struct {
 	Subject string
-	Body    *InvitationRenderer
+	Body    *Renderer
 }
 
-func (s *StdoutSender) Send(ctx context.Context, recipient string, inv userv1.Invitation) (string, error) {
-	body, err := s.Body.Render(inv)
+func (s *StdoutSender) Send(ctx context.Context, recipient string, obj any) (string, error) {
+	body, err := s.Body.Render(obj)
 	if err != nil {
 		return "", err
 	}
@@ -47,7 +45,7 @@ func (s *StdoutSender) Send(ctx context.Context, recipient string, inv userv1.In
 	return "", nil
 }
 
-func NewMailgunSender(domain string, token string, baseUrl string, senderAddress string, body *InvitationRenderer, subject string, useTestMode bool) MailgunSender {
+func NewMailgunSender(domain string, token string, baseUrl string, senderAddress string, body *Renderer, subject string, useTestMode bool) MailgunSender {
 	mg := mailgun.NewMailgun(domain, token)
 	mg.SetAPIBase(baseUrl)
 	return MailgunSender{
@@ -59,8 +57,8 @@ func NewMailgunSender(domain string, token string, baseUrl string, senderAddress
 	}
 }
 
-func (m *MailgunSender) Send(ctx context.Context, recipient string, inv userv1.Invitation) (string, error) {
-	body, err := m.Body.Render(inv)
+func (m *MailgunSender) Send(ctx context.Context, recipient string, obj any) (string, error) {
+	body, err := m.Body.Render(obj)
 	if err != nil {
 		return "", err
 	}

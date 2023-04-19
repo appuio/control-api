@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"text/template"
@@ -10,6 +11,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"github.com/Masterminds/sprig/v3"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -19,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
@@ -35,13 +38,21 @@ import (
 const (
 	defaultInvitationEmailTemplate = `Hello developer of great software, Kubernetes engineer or fellow human,
 
-A user of APPUiO Cloud has invited you to join them. Follow https://portal.dev/invitations/{{.Invitation.ObjectMeta.Name}}?token={{.Invitation.Status.Token}} to accept this invitation.
+A user of APPUiO Cloud has invited you to join them. Follow https://portal.dev/invitations/{{.Object.ObjectMeta.Name}}?token={{.Object.Status.Token}} to accept this invitation.
 
 APPUiO Cloud is a shared Kubernetes offering based on OpenShift provided by https://vshn.ch.
 
 Unsure what to do next? Accept this invitation using the link above, login to one of the zones listed at https://portal.appuio.cloud/zones, deploy your application. A getting started guide on how to do so, is available at https://docs.appuio.cloud/user/tutorials/getting-started.html. To learn more about APPUiO Cloud in general, please visit https://appuio.cloud. 
 
 If you have any problems or questions, please email us at support@appuio.ch.
+
+All the best
+Your APPUiO Cloud Team`
+	defaultBillingEntityEmailTemplate = `Good time of day!
+
+A user of APPUiO Cloud has updated billing entity {{.Object.ObjectMeta.Name}} ({{.Object.Spec.Name}}).
+
+See https://erp.vshn.net/web#id={{ trimPrefix "be-" .Object.ObjectMeta.Name }}&view_type=form&model=res.partner&menu_id=74&action=60 for details.
 
 All the best
 Your APPUiO Cloud Team`
@@ -86,6 +97,11 @@ func ControllerCommand() *cobra.Command {
 	invEmailMailgunUrl := cmd.Flags().String("mailgun-url", "https://api.eu.mailgun.net/v3", "API base URL for your Mailgun account")
 	invEmailMailgunTestMode := cmd.Flags().Bool("mailgun-test-mode", false, "If set, do not actually send e-mails")
 
+	billingEntityEmailBodyTemplate := cmd.Flags().String("billingentity-email-body-template", defaultBillingEntityEmailTemplate, "Body for billing entity modification update mails")
+	billingEntityEmailRecipient := cmd.Flags().String("billingentity-email-recipient", "", "Recipient e-mail address for billing entity modification update mails")
+	billingEntityEmailSubject := cmd.Flags().String("billingentity-email-subject", "An APPUiO Billing Entity has been updated", "Subject for billing entity modification update mails")
+	billingEntityCronInterval := cmd.Flags().String("billingentity-email-cron-interval", "@every 1m", "Cron interval for how frequently billing entity update e-mails are sent")
+
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
 		setupLog := ctrl.Log.WithName("setup")
@@ -100,29 +116,59 @@ func ControllerCommand() *cobra.Command {
 		ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 		ctx := ctrl.SetupSignalHandler()
 
-		bt, err := template.New("emailBody").Parse(*emailBodyTemplate)
+		bt, err := template.New("emailBody").Funcs(sprig.FuncMap()).Parse(*emailBodyTemplate)
 		if err != nil {
-			setupLog.Error(err, "Failed to parse email body template")
+			setupLog.Error(err, "Failed to parse email body template for invitations")
 			os.Exit(1)
 		}
-		bodyRenderer := &mailsenders.InvitationRenderer{Template: bt}
+		bet, err := template.New("emailBody").Funcs(sprig.FuncMap()).Parse(*billingEntityEmailBodyTemplate)
+		if err != nil {
+			setupLog.Error(err, "Failed to parse email body template for billing entity e-mails")
+			os.Exit(1)
+		}
+		invitationBodyRenderer := &mailsenders.Renderer{Template: bt}
+		billingEntityBodyRenderer := &mailsenders.Renderer{Template: bet}
 
-		var mailSender mailsenders.MailSender
+		var invMailSender mailsenders.MailSender
+		var beMailSender mailsenders.MailSender
 		if *invEmailBackend == "mailgun" {
 			b := mailsenders.NewMailgunSender(
 				*invEmailMailgunDomain,
 				*invEmailMailgunToken,
 				*invEmailMailgunUrl,
 				*invEmailSender,
-				bodyRenderer,
+				invitationBodyRenderer,
 				*invEmailSubject,
 				*invEmailMailgunTestMode,
 			)
-			mailSender = &b
+			invMailSender = &b
+			if *billingEntityEmailRecipient != "" {
+				be := mailsenders.NewMailgunSender(
+					*invEmailMailgunDomain,
+					*invEmailMailgunToken,
+					*invEmailMailgunUrl,
+					*invEmailSender,
+					billingEntityBodyRenderer,
+					*billingEntityEmailSubject,
+					*invEmailMailgunTestMode,
+				)
+				beMailSender = &be
+			} else {
+				// fall back to stdout if no recipient e-mail is given
+				beMailSender = &mailsenders.StdoutSender{
+					Subject: *billingEntityEmailSubject,
+					Body:    billingEntityBodyRenderer,
+				}
+			}
+			invMailSender = &b
 		} else {
-			mailSender = &mailsenders.StdoutSender{
+			invMailSender = &mailsenders.StdoutSender{
 				Subject: *invEmailSubject,
-				Body:    bodyRenderer,
+				Body:    invitationBodyRenderer,
+			}
+			beMailSender = &mailsenders.StdoutSender{
+				Subject: *billingEntityEmailSubject,
+				Body:    billingEntityBodyRenderer,
 			}
 		}
 
@@ -135,7 +181,7 @@ func ControllerCommand() *cobra.Command {
 			*invTokenValidFor,
 			*redeemedInvitationTTL,
 			*invEmailBaseRetryDelay,
-			mailSender,
+			invMailSender,
 			ctrl.Options{
 				Scheme:                 scheme,
 				MetricsBindAddress:     *metricsAddr,
@@ -150,11 +196,23 @@ func ControllerCommand() *cobra.Command {
 			os.Exit(1)
 		}
 
+		cron, err := setupCron(
+			ctx,
+			*billingEntityCronInterval,
+			mgr,
+			beMailSender,
+			*billingEntityEmailRecipient,
+		)
+
+		cron.Start()
+
 		setupLog.Info("starting manager")
 		if err := mgr.Start(ctx); err != nil {
 			setupLog.Error(err, "problem running manager")
 			os.Exit(1)
 		}
+		setupLog.Info("Stopping...")
+		<-cron.Stop().Done()
 	}
 
 	return cmd
@@ -282,4 +340,39 @@ func setupManager(
 		return nil, err
 	}
 	return mgr, err
+}
+
+func setupCron(
+	ctx context.Context,
+	crontab string,
+	mgr ctrl.Manager,
+	beMailSender mailsenders.MailSender,
+	beMailRecipient string,
+) (*cron.Cron, error) {
+
+	bemail := controllers.NewBillingEntityEmailCronJob(
+		mgr.GetClient(),
+		mgr.GetEventRecorderFor("invitation-email-controller"),
+		mgr.GetScheme(),
+		beMailSender,
+		beMailRecipient,
+	)
+
+	metrics.Registry.MustRegister(bemail.GetMetrics())
+	syncLog := ctrl.Log.WithName("cron")
+
+	c := cron.New()
+	_, err := c.AddFunc(crontab, func() {
+		err := bemail.Run(ctx)
+
+		if err == nil {
+			return
+		}
+		syncLog.Error(err, "Error during periodic job")
+
+	})
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }

@@ -48,10 +48,10 @@ var (
 
 		"email",
 		"phone",
-		"x_control_api_meta_status",
 	)
 	accountingContactUpdateAllowedFields = newSet(
 		"x_invoice_contact",
+		"x_control_api_meta_status",
 		"email",
 	)
 )
@@ -291,10 +291,12 @@ func mapPartnersToBillingEntity(ctx context.Context, company model.Partner, acco
 	name := odooIDToK8sID(accounting.ID)
 
 	var status billingv1.BillingEntityStatus
-	err := json.Unmarshal([]byte(accounting.Status.Value), &status)
+	if accounting.Status.Value != "" {
+		err := json.Unmarshal([]byte(accounting.Status.Value), &status)
 
-	if err != nil {
-		l.Error(err, "Could not unmarshal BillingEntityStatus", "billingEntityName", name, "rawStatus", accounting.Status.Value)
+		if err != nil {
+			l.Error(err, "Could not unmarshal BillingEntityStatus", "billingEntityName", name, "rawStatus", accounting.Status.Value)
+		}
 	}
 
 	return billingv1.BillingEntity{

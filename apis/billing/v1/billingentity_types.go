@@ -7,6 +7,13 @@ import (
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
 )
 
+const (
+	// ConditionEmailSent is set when the update notification email has been sent
+	ConditionEmailSent        = "EmailSent"
+	ConditionReasonSendFailed = "SendFailed"
+	ConditionReasonUpdated    = "Updated"
+)
+
 // +kubebuilder:object:root=true
 
 // BillingEntity is a representation of an APPUiO Cloud BillingEntity
