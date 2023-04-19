@@ -27,7 +27,7 @@ const (
 	MethodDelete Method = "unlink"
 )
 
-// WriteModel is used as "params" in requests to "dataset/create", "dataset/write" or "dataset/unlinke" endpoints.
+// WriteModel is used as "params" in requests to "dataset/create", "dataset/write" or "dataset/unlink" endpoints.
 type WriteModel struct {
 	Model  string `json:"model"`
 	Method Method `json:"method"`

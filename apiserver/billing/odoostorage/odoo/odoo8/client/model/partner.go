@@ -54,6 +54,9 @@ type Partner struct {
 
 	// Inflight allows detecting half-finished creates.
 	Inflight Nullable[string] `json:"x_control_api_inflight,omitempty" yaml:"x_control_api_inflight,omitempty"`
+
+	// Status allows storing status conditions
+	Status Nullable[string] `json:"x_control_api_meta_status,omitempty" yaml:"x_control_api_meta_status,omitempty"`
 }
 
 func (p Partner) Emails() []string {
@@ -102,6 +105,8 @@ var PartnerFields = []string{
 
 	"email",
 	"phone",
+
+	"x_control_api_meta_status",
 }
 
 // FetchPartnerByID searches for the partner by ID and returns the first entry in the result.
