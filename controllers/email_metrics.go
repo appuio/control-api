@@ -8,7 +8,7 @@ func newSuccessCounter(subsystem string) prometheus.Counter {
 	return prometheus.NewCounter(prometheus.CounterOpts{
 		Subsystem: subsystem,
 		Name:      "sent_success_total",
-		Help:      "Total number of successfully sent invitation e-mails",
+		Help:      "Total number of successfully sent e-mails",
 	})
 }
 
@@ -16,6 +16,6 @@ func newFailureCounter(subsystem string) prometheus.Counter {
 	return prometheus.NewCounter(prometheus.CounterOpts{
 		Subsystem: subsystem,
 		Name:      "sent_failed_total",
-		Help:      "Total number of invitation e-mails which failed to send",
+		Help:      "Total number of e-mails which failed to send",
 	})
 }

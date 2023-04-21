@@ -3,8 +3,11 @@ package controllers_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,6 +76,55 @@ func billingEntityCronJob(c client.WithWatch) *BillingEntityEmailCronJob {
 		"foo@example.com",
 	)
 	return &r
+}
+func Test_BillingEntityEmailCronJob_MetricsCorrect(t *testing.T) {
+	ctx := context.Background()
+
+	subject := baseBillingEntity()
+
+	c := prepareTest(t, subject)
+
+	j := billingEntityCronJob(c)
+
+	err := j.Run(ctx)
+	require.NoError(t, err)
+
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(j.GetMetrics())
+	require.NoError(t, testutil.CollectAndCompare(reg, strings.NewReader(`
+# HELP control_api_billingentity_emails_sent_failed_total Total number of e-mails which failed to send
+# TYPE control_api_billingentity_emails_sent_failed_total counter
+control_api_billingentity_emails_sent_failed_total 0
+# HELP control_api_billingentity_emails_sent_success_total Total number of successfully sent e-mails
+# TYPE control_api_billingentity_emails_sent_success_total counter
+control_api_billingentity_emails_sent_success_total 1
+`),
+	))
+}
+
+func Test_BillingEntityEmailCronJob_WithSendingFailure_MetricsCorrect(t *testing.T) {
+	ctx := context.Background()
+
+	subject := baseBillingEntity()
+
+	c := prepareTest(t, subject)
+
+	j := billingEntityCronJobWithFailingSender(c)
+
+	err := j.Run(ctx)
+	require.NoError(t, err)
+
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(j.GetMetrics())
+	require.NoError(t, testutil.CollectAndCompare(reg, strings.NewReader(`
+# HELP control_api_billingentity_emails_sent_failed_total Total number of e-mails which failed to send
+# TYPE control_api_billingentity_emails_sent_failed_total counter
+control_api_billingentity_emails_sent_failed_total 1
+# HELP control_api_billingentity_emails_sent_success_total Total number of successfully sent e-mails
+# TYPE control_api_billingentity_emails_sent_success_total counter
+control_api_billingentity_emails_sent_success_total 0
+`),
+	))
 }
 
 func billingEntityCronJobWithFailingSender(c client.WithWatch) *BillingEntityEmailCronJob {

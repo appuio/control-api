@@ -100,7 +100,7 @@ func ControllerCommand() *cobra.Command {
 	billingEntityEmailBodyTemplate := cmd.Flags().String("billingentity-email-body-template", defaultBillingEntityEmailTemplate, "Body for billing entity modification update mails")
 	billingEntityEmailRecipient := cmd.Flags().String("billingentity-email-recipient", "", "Recipient e-mail address for billing entity modification update mails")
 	billingEntityEmailSubject := cmd.Flags().String("billingentity-email-subject", "An APPUiO Billing Entity has been updated", "Subject for billing entity modification update mails")
-	billingEntityCronInterval := cmd.Flags().String("billingentity-email-cron-interval", "@every 1m", "Cron interval for how frequently billing entity update e-mails are sent")
+	billingEntityCronInterval := cmd.Flags().String("billingentity-email-cron-interval", "@every 1h", "Cron interval for how frequently billing entity update e-mails are sent")
 
 	cmd.Run = func(*cobra.Command, []string) {
 		scheme := runtime.NewScheme()
