@@ -3,6 +3,11 @@ kind: ClusterRole
 metadata:
   name: control-api:basic-user
 rules:
+# Allow kubectl to validate CRDs
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["get", "watch", "list"]
+
 - apiGroups: ["organization.appuio.io"]
   resources: ["organizations"]
   verbs: ["get", "watch", "list", "patch", "update", "create"]
