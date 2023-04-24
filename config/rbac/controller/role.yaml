@@ -118,6 +118,14 @@ rules:
 - apiGroups:
   - rbac.appuio.io
   resources:
+  - billingentities/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - rbac.appuio.io
+  resources:
   - invitations
   verbs:
   - delete
@@ -189,6 +197,21 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - user.appuio.io
+  resources:
+  - billingentities
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - user.appuio.io
+  resources:
+  - billingentities/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - user.appuio.io
   resources:

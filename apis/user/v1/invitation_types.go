@@ -16,7 +16,8 @@ const (
 	// ConditionRedeemed is set when the invitation has been redeemed
 	ConditionRedeemed = "Redeemed"
 	// ConditionEmailSent is set when the invitation email has been sent
-	ConditionEmailSent = "EmailSent"
+	ConditionEmailSent        = "EmailSent"
+	ConditionReasonSendFailed = "SendFailed"
 )
 
 // +kubebuilder:object:root=true

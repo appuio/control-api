@@ -3,7 +3,9 @@ package odoostorage
 import (
 	"context"
 	"fmt"
+	"reflect"
 
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -36,6 +38,14 @@ func (s *billingEntityStorage) Update(ctx context.Context, name string, objInfo 
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to validate new object: %w", err)
 		}
+	}
+
+	if !reflect.DeepEqual(newBE.Spec, oldBE.Spec) {
+		apimeta.SetStatusCondition(&newBE.Status.Conditions, metav1.Condition{
+			Status: metav1.ConditionFalse,
+			Type:   billingv1.ConditionEmailSent,
+			Reason: billingv1.ConditionReasonUpdated,
+		})
 	}
 
 	return newBE, false, s.storage.Update(ctx, newBE)

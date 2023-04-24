@@ -11,10 +11,10 @@ import (
 )
 
 func Test_InvitationRenderer_Render(t *testing.T) {
-	tm, err := template.New("test").Parse("Hi {{.Invitation.Spec.Email}}, get your token: {{.Invitation.Status.Token}}")
+	tm, err := template.New("test").Parse("Hi {{.Object.Spec.Email}}, get your token: {{.Object.Status.Token}}")
 	assert.NoError(t, err)
 
-	subject := mailsenders.InvitationRenderer{Template: tm}
+	subject := mailsenders.Renderer{Template: tm}
 	rendered, err := subject.Render(userv1.Invitation{
 		Spec: userv1.InvitationSpec{
 			Email: "test@example.com",
