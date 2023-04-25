@@ -142,3 +142,7 @@ func (o Odoo) CreatePartner(ctx context.Context, p Partner) (id int, err error) 
 func (o Odoo) UpdateRawPartner(ctx context.Context, ids []int, raw any) error {
 	return o.querier.UpdateGenericModel(ctx, PartnerModel, ids, raw)
 }
+
+func (o Odoo) DeletePartner(ctx context.Context, ids []int) error {
+	return o.querier.DeleteGenericModel(ctx, PartnerModel, ids)
+}

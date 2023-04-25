@@ -31,6 +31,8 @@ var metaUIDNamespace = uuid.MustParse("51887759-C769-4829-9910-BB9D5F92767D")
 var roleAccountFilter = []any{"category_id", "in", []int{roleAccountCategory}}
 var activeFilter = []any{"active", "in", []bool{true}}
 var notInflightFilter = []any{"x_control_api_inflight", "in", []any{false}}
+var mustInflightFilter = []any{"x_control_api_inflight", "in", []any{true}}
+var notRecentlyUpdated = []any{"x_control_api_inflight", "in", []any{true}}
 
 var (
 	// There's a ton of fields we don't want to override in Odoo.
@@ -272,6 +274,33 @@ func (s *oodo8Storage) Update(ctx context.Context, be *billingv1.BillingEntity) 
 	}
 	*be = *ube
 	return nil
+}
+
+func (s *oodo8Storage) CleanupIncompleteRecords(ctx context.Context) error {
+	l := klog.FromContext(ctx)
+
+	session, err := s.sessionCreator(ctx)
+	if err != nil {
+		return err
+	}
+	o := model.NewOdoo(session)
+
+	inflightRecords, err := o.SearchPartners(ctx, []client.Filter{
+		mustInflightFilter,
+		notRecentlyUpdated,
+	})
+	if err != nil {
+		return err
+	}
+
+	ids := []int{}
+
+	for _, record := range(inflightRecords) {
+		ids = append(ids, record.ID)
+		l.Info("Preparing to delete inflight partner record", "record", record)
+	}
+
+	return o.DeletePartner(ctx, ids)
 }
 
 func k8sIDToOdooID(id string) (int, error) {
