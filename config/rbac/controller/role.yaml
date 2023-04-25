@@ -86,7 +86,17 @@ rules:
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
+- apiGroups:
+  - billing.appuio.io
+  resources:
+  - billingentities/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - organization.appuio.io
   resources:
@@ -114,6 +124,8 @@ rules:
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - rbac.appuio.io
@@ -197,21 +209,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - user.appuio.io
-  resources:
-  - billingentities
-  verbs:
-  - get
-  - list
-- apiGroups:
-  - user.appuio.io
-  resources:
-  - billingentities/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - user.appuio.io
   resources:
