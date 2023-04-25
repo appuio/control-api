@@ -52,10 +52,10 @@ func (r *BillingEntityEmailCronJob) GetMetrics() prometheus.Collector {
 	return reg
 }
 
-//+kubebuilder:rbac:groups="rbac.appuio.io",resources=billingentities,verbs=get;list
-//+kubebuilder:rbac:groups="user.appuio.io",resources=billingentities,verbs=get;list
+//+kubebuilder:rbac:groups="rbac.appuio.io",resources=billingentities,verbs=get;list;update;patch
+//+kubebuilder:rbac:groups="billing.appuio.io",resources=billingentities,verbs=get;list;update;patch
 //+kubebuilder:rbac:groups="rbac.appuio.io",resources=billingentities/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups="user.appuio.io",resources=billingentities/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups="billing.appuio.io",resources=billingentities/status,verbs=get;update;patch
 
 // Run lists all BillingEntity resources and sends notification emails if needed.
 func (r *BillingEntityEmailCronJob) Run(ctx context.Context) error {
