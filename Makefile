@@ -74,6 +74,10 @@ run-controller: build ## Starts control api controller against the current Kuber
 	$(localenv_make) webhook-certs/tls.key
 	$(BIN_FILENAME) controller --username-prefix "appuio#" --webhook-cert-dir=./local-env/webhook-certs --webhook-port=9444 --zap-log-level debug --billingentity-email-cron-interval "@every 1m"
 
+.PHONY: run-cleanup
+run-cleanup: build ## Starts cleanup command
+	$(BIN_FILENAME) cleanup --billing-entity-odoo8-url $(BE_ODOO_URL)
+
 .PHONY: local-env
 local-env-setup: ## Setup local kind-based dev environment
 	$(localenv_make) setup

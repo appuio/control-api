@@ -390,11 +390,11 @@ func Test_CreateUpdate_UnknownCountry(t *testing.T) {
 	require.ErrorContains(t, subject.Update(context.Background(), s), "unknown country")
 }
 
-func createStorage(t *testing.T) (*gomock.Controller, *clientmock.MockQueryExecutor, *oodo8Storage) {
+func createStorage(t *testing.T) (*gomock.Controller, *clientmock.MockQueryExecutor, *Odoo8Storage) {
 	ctrl := gomock.NewController(t)
 	mock := clientmock.NewMockQueryExecutor(ctrl)
 
-	return ctrl, mock, &oodo8Storage{
+	return ctrl, mock, &Odoo8Storage{
 		config: Config{
 			CountryIDs: map[string]int{
 				"":            0,
@@ -409,4 +409,41 @@ func createStorage(t *testing.T) (*gomock.Controller, *clientmock.MockQueryExecu
 			return mock, nil
 		},
 	}
+}
+
+func TestCleanup(t *testing.T) {
+	ctrl, mock, subject := createStorage(t)
+	defer ctrl.Finish()
+
+	tn := time.Now()
+	to := tn.Add(time.Hour * -1)
+
+	gomock.InOrder(
+		// Fetch stale records
+		mock.EXPECT().SearchGenericModel(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, model.PartnerList{
+			Items: []model.Partner{
+				{
+					ID:                702,
+					Name:              "Accounting",
+					CreationTimestamp: client.Date(tn),
+					Parent:            model.OdooCompositeID{ID: 700, Valid: true},
+					EmailRaw:          model.NewNullable("accounting@test.com, notifications@test.com"),
+					Inflight:          model.NewNullable("fooo"),
+				},
+				{
+					ID:                703,
+					Name:              "Accounting",
+					CreationTimestamp: client.Date(to),
+					Parent:            model.OdooCompositeID{ID: 700, Valid: true},
+					EmailRaw:          model.NewNullable("accounting@test.com, notifications@test.com"),
+					Inflight:          model.NewNullable("fooo"),
+				},
+			},
+		}),
+		mock.EXPECT().DeleteGenericModel(gomock.Any(), gomock.Any(), gomock.Eq([]int{703})).Return(nil),
+	)
+
+	err := subject.CleanupIncompleteRecords(context.Background(), time.Minute)
+	require.NoError(t, err)
+
 }

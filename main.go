@@ -20,7 +20,7 @@ var (
 )
 
 func main() {
-	rootCommand.AddCommand(ControllerCommand(), APICommand())
+	rootCommand.AddCommand(ControllerCommand(), APICommand(), CleanupCommand())
 
 	if err := rootCommand.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
