@@ -290,9 +290,9 @@ func (s *Odoo8Storage) Update(ctx context.Context, be *billingv1.BillingEntity) 
 	return nil
 }
 
+// CleanupIncompleteRecords looks for partner records in Odoo that still have the "inflight" flag set despite being older than `minAge`. Those records are then deleted.
+// Such records might come into existence due to a partially failed creation request.
 func (s *FailedRecordScrubber) CleanupIncompleteRecords(ctx context.Context, minAge time.Duration) error {
-	// CleanupIncompleteRecords looks for partner records in Odoo that still have the "inflight" flag set despite being older than `minAge`. Those records are then deleted.
-	// Such records might come into existence due to a partially failed creation request.
 	l := klog.FromContext(ctx)
 	l.Info("Looking for stale inflight partner records...")
 
