@@ -411,8 +411,19 @@ func createStorage(t *testing.T) (*gomock.Controller, *clientmock.MockQueryExecu
 	}
 }
 
+func createFailedRecordScrubber(t *testing.T) (*gomock.Controller, *clientmock.MockQueryExecutor, *FailedRecordScrubber) {
+	ctrl := gomock.NewController(t)
+	mock := clientmock.NewMockQueryExecutor(ctrl)
+
+	return ctrl, mock, &FailedRecordScrubber{
+		sessionCreator: func(ctx context.Context) (client.QueryExecutor, error) {
+			return mock, nil
+		},
+	}
+}
+
 func TestCleanup(t *testing.T) {
-	ctrl, mock, subject := createStorage(t)
+	ctrl, mock, subject := createFailedRecordScrubber(t)
 	defer ctrl.Finish()
 
 	tn := time.Now()

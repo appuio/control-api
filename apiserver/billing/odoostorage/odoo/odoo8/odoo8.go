@@ -76,9 +76,21 @@ func NewOdoo8Storage(odooURL string, debugTransport bool, conf Config) *Odoo8Sto
 	}
 }
 
+func NewFailedRecordScrubber(odooURL string, debugTransport bool) *FailedRecordScrubber {
+	return &FailedRecordScrubber{
+		sessionCreator: func(ctx context.Context) (client.QueryExecutor, error) {
+			return client.Open(ctx, odooURL, client.ClientOptions{UseDebugLogger: debugTransport})
+		},
+	}
+}
+
 type Odoo8Storage struct {
 	config Config
 
+	sessionCreator func(ctx context.Context) (client.QueryExecutor, error)
+}
+
+type FailedRecordScrubber struct {
 	sessionCreator func(ctx context.Context) (client.QueryExecutor, error)
 }
 
@@ -278,7 +290,9 @@ func (s *Odoo8Storage) Update(ctx context.Context, be *billingv1.BillingEntity) 
 	return nil
 }
 
-func (s *Odoo8Storage) CleanupIncompleteRecords(ctx context.Context, minAge time.Duration) error {
+func (s *FailedRecordScrubber) CleanupIncompleteRecords(ctx context.Context, minAge time.Duration) error {
+	// CleanupIncompleteRecords looks for partner records in Odoo that still have the "inflight" flag set despite being older than `minAge`. Those records are then deleted.
+	// Such records might come into existence due to a partially failed creation request.
 	l := klog.FromContext(ctx)
 	l.Info("Looking for stale inflight partner records...")
 
@@ -298,9 +312,9 @@ func (s *Odoo8Storage) CleanupIncompleteRecords(ctx context.Context, minAge time
 	ids := []int{}
 
 	for _, record := range inflightRecords {
-		updateTime := record.CreationTimestamp.ToTime()
+		createdTime := record.CreationTimestamp.ToTime()
 
-		if updateTime.Before(time.Now().Add(-1 * minAge)) {
+		if createdTime.Before(time.Now().Add(-1 * minAge)) {
 			ids = append(ids, record.ID)
 			l.Info("Preparing to delete inflight partner record", "name", record.Name, "id", record.ID)
 		}
