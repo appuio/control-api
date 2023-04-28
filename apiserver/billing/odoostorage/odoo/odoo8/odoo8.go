@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +32,7 @@ var metaUIDNamespace = uuid.MustParse("51887759-C769-4829-9910-BB9D5F92767D")
 var roleAccountFilter = []any{"category_id", "in", []int{roleAccountCategory}}
 var activeFilter = []any{"active", "in", []bool{true}}
 var notInflightFilter = []any{"x_control_api_inflight", "in", []any{false}}
+var mustInflightFilter = []any{"x_control_api_inflight", "not in", []any{false}}
 
 var (
 	// There's a ton of fields we don't want to override in Odoo.
@@ -63,8 +65,10 @@ type Config struct {
 	PaymentTermID                int
 }
 
-func NewOdoo8Storage(odooURL string, debugTransport bool, conf Config) odoo.OdooStorage {
-	return &oodo8Storage{
+var _ odoo.OdooStorage = &Odoo8Storage{}
+
+func NewOdoo8Storage(odooURL string, debugTransport bool, conf Config) *Odoo8Storage {
+	return &Odoo8Storage{
 		config: conf,
 		sessionCreator: func(ctx context.Context) (client.QueryExecutor, error) {
 			return client.Open(ctx, odooURL, client.ClientOptions{UseDebugLogger: debugTransport})
@@ -72,13 +76,25 @@ func NewOdoo8Storage(odooURL string, debugTransport bool, conf Config) odoo.Odoo
 	}
 }
 
-type oodo8Storage struct {
+func NewFailedRecordScrubber(odooURL string, debugTransport bool) *FailedRecordScrubber {
+	return &FailedRecordScrubber{
+		sessionCreator: func(ctx context.Context) (client.QueryExecutor, error) {
+			return client.Open(ctx, odooURL, client.ClientOptions{UseDebugLogger: debugTransport})
+		},
+	}
+}
+
+type Odoo8Storage struct {
 	config Config
 
 	sessionCreator func(ctx context.Context) (client.QueryExecutor, error)
 }
 
-func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.BillingEntity, error) {
+type FailedRecordScrubber struct {
+	sessionCreator func(ctx context.Context) (client.QueryExecutor, error)
+}
+
+func (s *Odoo8Storage) Get(ctx context.Context, name string) (*billingv1.BillingEntity, error) {
 	company, accountingContact, err := s.get(ctx, name)
 	if err != nil {
 		return nil, err
@@ -88,7 +104,7 @@ func (s *oodo8Storage) Get(ctx context.Context, name string) (*billingv1.Billing
 	return &be, nil
 }
 
-func (s *oodo8Storage) get(ctx context.Context, name string) (company model.Partner, accountingContact model.Partner, err error) {
+func (s *Odoo8Storage) get(ctx context.Context, name string) (company model.Partner, accountingContact model.Partner, err error) {
 	id, err := k8sIDToOdooID(name)
 	if err != nil {
 		return model.Partner{}, model.Partner{}, err
@@ -117,7 +133,7 @@ func (s *oodo8Storage) get(ctx context.Context, name string) (company model.Part
 	return company, accountingContact, nil
 }
 
-func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, error) {
+func (s *Odoo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, error) {
 	l := klog.FromContext(ctx)
 
 	session, err := s.sessionCreator(ctx)
@@ -173,7 +189,7 @@ func (s *oodo8Storage) List(ctx context.Context) ([]billingv1.BillingEntity, err
 	return bes, nil
 }
 
-func (s *oodo8Storage) Create(ctx context.Context, be *billingv1.BillingEntity) error {
+func (s *Odoo8Storage) Create(ctx context.Context, be *billingv1.BillingEntity) error {
 	l := klog.FromContext(ctx)
 
 	if be == nil {
@@ -225,7 +241,7 @@ func (s *oodo8Storage) Create(ctx context.Context, be *billingv1.BillingEntity) 
 	return nil
 }
 
-func (s *oodo8Storage) Update(ctx context.Context, be *billingv1.BillingEntity) error {
+func (s *Odoo8Storage) Update(ctx context.Context, be *billingv1.BillingEntity) error {
 	l := klog.FromContext(ctx)
 
 	if be == nil {
@@ -271,6 +287,42 @@ func (s *oodo8Storage) Update(ctx context.Context, be *billingv1.BillingEntity) 
 		return fmt.Errorf("error fetching updated billing entity: %w", err)
 	}
 	*be = *ube
+	return nil
+}
+
+// CleanupIncompleteRecords looks for partner records in Odoo that still have the "inflight" flag set despite being older than `minAge`. Those records are then deleted.
+// Such records might come into existence due to a partially failed creation request.
+func (s *FailedRecordScrubber) CleanupIncompleteRecords(ctx context.Context, minAge time.Duration) error {
+	l := klog.FromContext(ctx)
+	l.Info("Looking for stale inflight partner records...")
+
+	session, err := s.sessionCreator(ctx)
+	if err != nil {
+		return err
+	}
+	o := model.NewOdoo(session)
+
+	inflightRecords, err := o.SearchPartners(ctx, []client.Filter{
+		mustInflightFilter,
+	})
+	if err != nil {
+		return err
+	}
+
+	ids := []int{}
+
+	for _, record := range inflightRecords {
+		createdTime := record.CreationTimestamp.ToTime()
+
+		if createdTime.Before(time.Now().Add(-1 * minAge)) {
+			ids = append(ids, record.ID)
+			l.Info("Preparing to delete inflight partner record", "name", record.Name, "id", record.ID)
+		}
+	}
+
+	if len(ids) != 0 {
+		return o.DeletePartner(ctx, ids)
+	}
 	return nil
 }
 
