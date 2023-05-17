@@ -21,9 +21,10 @@ import (
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
+	"github.com/appuio/control-api/pkg/sar"
 )
 
-func TestUserValidator_Handle(t *testing.T) {
+func TestUserValidator_Handle_Preference(t *testing.T) {
 	ctx := context.Background()
 	tests := map[string]struct {
 		orgref  string
@@ -141,6 +142,75 @@ func TestUserValidator_Handle(t *testing.T) {
 	}
 }
 
+func TestUserValidator_Handle_Create(t *testing.T) {
+	ctx := context.Background()
+	tests := map[string]struct {
+		allowed bool
+		errcode int32
+		reqUser string
+	}{
+		"User can create themselves": {
+			reqUser: "test-user",
+			allowed: true,
+			errcode: http.StatusOK,
+		},
+		"User can't create other users": {
+			reqUser: "other-user",
+			allowed: false,
+			errcode: http.StatusForbidden,
+		},
+		"Users can have override to manage others": {
+			reqUser: "override-allowed-user",
+			allowed: true,
+			errcode: http.StatusOK,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			user := controlv1.User{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-user",
+				},
+			}
+
+			uv := prepareUserValidatorTest(t)
+
+			userJson, err := json.Marshal(user)
+			require.NoError(t, err)
+			userObj := runtime.RawExtension{
+				Raw: userJson,
+			}
+
+			admissionRequest := admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					UID: "e515f52d-7181-494d-a3d3-f0738856bd97",
+					Kind: metav1.GroupVersionKind{
+						Group:   "appuio.io",
+						Version: "v1",
+						Kind:    "User",
+					},
+					Resource: metav1.GroupVersionResource{
+						Group:    "appuio.io",
+						Version:  "v1",
+						Resource: "users",
+					},
+					Name:      "test-user",
+					Operation: admissionv1.Create,
+					UserInfo: authenticationv1.UserInfo{
+						Username: tc.reqUser,
+					},
+					Object: userObj,
+				},
+			}
+
+			resp := uv.Handle(ctx, admissionRequest)
+			assert.Equal(t, tc.allowed, resp.Allowed)
+			assert.Equal(t, tc.errcode, resp.Result.Code)
+		})
+	}
+}
+
 func prepareUserValidatorTest(t *testing.T, initObjs ...client.Object) *UserValidator {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -154,6 +224,11 @@ func prepareUserValidatorTest(t *testing.T, initObjs ...client.Object) *UserVali
 		WithScheme(scheme).
 		WithObjects(initObjs...).
 		Build()
+
+	client = sar.MOCK_SubjectAccessReviewResponder{
+		WithWatch:   client,
+		AllowedUser: "override-allowed-user",
+	}
 
 	uv := &UserValidator{}
 	uv.InjectClient(client)

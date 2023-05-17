@@ -40,3 +40,7 @@ rules:
 - apiGroups: ["user.appuio.io"]
   resources: ["invitationredeemrequests"]
   verbs: ["create"]
+# Allow users to create themselves, user create requests are validated by the users validation webhook
+- apiGroups: ["appuio.io"]
+  resources: ["users"]
+  verbs: ["create"]

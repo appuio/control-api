@@ -3,7 +3,6 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"testing"
 
@@ -14,7 +13,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -25,6 +23,7 @@ import (
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 	userv1 "github.com/appuio/control-api/apis/user/v1"
 	controlv1 "github.com/appuio/control-api/apis/v1"
+	"github.com/appuio/control-api/pkg/sar"
 )
 
 func TestInvitationValidator_Handle(t *testing.T) {
@@ -338,9 +337,9 @@ func prepareInvitationValidatorTest(t *testing.T, sarAllowedUser string, initObj
 		WithRESTMapper(drm).
 		Build()
 
-	client = subjectAccessReviewResponder{
-		client,
-		sarAllowedUser,
+	client = sar.MOCK_SubjectAccessReviewResponder{
+		WithWatch:   client,
+		AllowedUser: sarAllowedUser,
 	}
 
 	iv := &InvitationValidator{}
@@ -348,29 +347,4 @@ func prepareInvitationValidatorTest(t *testing.T, sarAllowedUser string, initObj
 	iv.InjectDecoder(decoder)
 
 	return iv
-}
-
-// subjectAccessReviewResponder is a wrapper for client.WithWatch that responds to SubjectAccessReview create requests
-// and allows or denies the request based on the allowedUser name.
-type subjectAccessReviewResponder struct {
-	client.WithWatch
-
-	allowedUser string
-}
-
-func (r subjectAccessReviewResponder) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	if sar, ok := obj.(*unstructured.Unstructured); ok {
-		if sar.GetKind() == "SubjectAccessReview" {
-			u, p, err := unstructured.NestedString(sar.Object, "spec", "user")
-			if err != nil {
-				return err
-			}
-			if !p {
-				return errors.New("spec.user not found")
-			}
-			unstructured.SetNestedField(sar.Object, u == r.allowedUser, "status", "allowed")
-			return nil
-		}
-	}
-	return r.WithWatch.Create(ctx, obj, opts...)
 }
