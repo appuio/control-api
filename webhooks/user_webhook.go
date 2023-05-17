@@ -35,10 +35,11 @@ func (v *UserValidator) Handle(ctx context.Context, req admission.Request) admis
 		if err := sar.AuthorizeResource(ctx, v.client, req.UserInfo, sar.ResourceAttributes{
 			Verb:     "create",
 			Group:    "rbac.appuio.io",
-			Resource: req.Resource.Group,
+			Resource: req.Resource.Resource,
 			Version:  req.Resource.Version,
 			Name:     req.Name,
 		}); err != nil {
+			log.Info("User not authorized to create other users", "request_user", req.AdmissionRequest.UserInfo, "user", req.Name, "error", err)
 			return admission.Denied(fmt.Sprintf("user %q is not allowed to create or update %q", req.UserInfo.Username, req.Name))
 		}
 		log.Info("User authorized to create other users", "user", req.AdmissionRequest.UserInfo)
