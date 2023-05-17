@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"net/http"
 
+	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	controlv1 "github.com/appuio/control-api/apis/v1"
+	"github.com/appuio/control-api/pkg/sar"
 )
 
 // +kubebuilder:webhook:path=/validate-appuio-io-v1-user,mutating=false,failurePolicy=fail,groups="appuio.io",resources=users,verbs=create;update,versions=v1,name=validate-users.appuio.io,admissionReviewVersions=v1,sideEffects=None
@@ -26,6 +28,21 @@ type UserValidator struct {
 // Handle handles the users.appuio.io admission requests
 func (v *UserValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	log := log.FromContext(ctx).WithName("webhook.validate-users.appuio.io")
+
+	// Allow the user to create or update itself.
+	// A special permission, used for controllers, `create rbac.appuio.io users` can override this.
+	if req.AdmissionRequest.Operation == admissionv1.Create && req.UserInfo.Username != req.Name {
+		if err := sar.AuthorizeResource(ctx, v.client, req.UserInfo, sar.ResourceAttributes{
+			Verb:     "create",
+			Group:    "rbac.appuio.io",
+			Resource: req.Resource.Group,
+			Version:  req.Resource.Version,
+			Name:     req.Name,
+		}); err != nil {
+			return admission.Denied(fmt.Sprintf("user %q is not allowed to create or update %q", req.UserInfo.Username, req.Name))
+		}
+		log.Info("User authorized to create other users", "user", req.AdmissionRequest.UserInfo)
+	}
 
 	user := &controlv1.User{}
 	if err := v.decoder.Decode(req, user); err != nil {

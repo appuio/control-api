@@ -7,7 +7,6 @@ import (
 
 	"go.uber.org/multierr"
 	authenticationv1 "k8s.io/api/authentication/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -15,6 +14,7 @@ import (
 
 	userv1 "github.com/appuio/control-api/apis/user/v1"
 	"github.com/appuio/control-api/controllers/targetref"
+	"github.com/appuio/control-api/pkg/sar"
 )
 
 // +kubebuilder:webhook:path=/validate-user-appuio-io-v1-invitation,mutating=false,failurePolicy=fail,groups="user.appuio.io",resources=invitations,verbs=create;update,versions=v1,name=validate-invitations.user.appuio.io,admissionReviewVersions=v1,sideEffects=None
@@ -81,55 +81,27 @@ func canEditTarget(ctx context.Context, c client.Client, user authenticationv1.U
 	if err != nil {
 		return err
 	}
-	ra["verb"] = verb
+	ra.Verb = verb
 
-	// I could not find a way to create a SubjectAccessReview object with the client.
-	// `no kind "CreateOptions" is registered for the internal version of group "authorization.k8s.io" in scheme`
-	// even after installing the authorization scheme.
-	rawSAR := &unstructured.Unstructured{
-		Object: map[string]any{
-			"spec": map[string]any{
-				"resourceAttributes": ra,
-
-				"user":   user.Username,
-				"groups": user.Groups,
-				"uid":    user.UID,
-			},
-		}}
-	rawSAR.SetGroupVersionKind(schema.GroupVersionKind{Group: "authorization.k8s.io", Version: "v1", Kind: "SubjectAccessReview"})
-
-	if err := c.Create(ctx, rawSAR); err != nil {
-		return fmt.Errorf("failed to create SubjectAccessReview: %w", err)
-	}
-
-	allowed, _, err := unstructured.NestedBool(rawSAR.Object, "status", "allowed")
-	if err != nil {
-		return fmt.Errorf("failed to get SubjectAccessReview status.allowed: %w", err)
-	}
-
-	if !allowed {
-		return fmt.Errorf("%q on target %q.%q/%q in namespace %q is not allowed", verb, target.APIGroup, target.Kind, target.Name, target.Namespace)
-	}
-
-	return nil
+	return sar.AuthorizeResource(ctx, c, user, ra)
 }
 
-func mapTargetRefToResourceAttribute(c client.Client, target userv1.TargetRef) (map[string]any, error) {
+func mapTargetRefToResourceAttribute(c client.Client, target userv1.TargetRef) (sar.ResourceAttributes, error) {
 	rm, err := c.RESTMapper().RESTMapping(schema.GroupKind{
 		Group: target.APIGroup,
 		Kind:  target.Kind,
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get REST mapping for %q.%q: %w", target.APIGroup, target.Kind, err)
+		return sar.ResourceAttributes{}, fmt.Errorf("failed to get REST mapping for %q.%q: %w", target.APIGroup, target.Kind, err)
 	}
 
-	return map[string]any{
-		"group":    target.APIGroup,
-		"version":  rm.Resource.Version,
-		"resource": rm.Resource.Resource,
+	return sar.ResourceAttributes{
+		Group:    target.APIGroup,
+		Version:  rm.Resource.Version,
+		Resource: rm.Resource.Resource,
 
-		"namespace": target.Namespace,
-		"name":      target.Name,
+		Namespace: target.Namespace,
+		Name:      target.Name,
 	}, nil
 }
