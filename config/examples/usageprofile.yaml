@@ -1,0 +1,72 @@
+apiVersion: appuio.io/v1
+kind: UsageProfile
+metadata:
+  name: example
+spec:
+  namespaceCount: 20
+  resources:
+    organization-compute:
+      apiVersion: v1
+      kind: ResourceQuota
+      spec:
+        hard:
+          limits.cpu: "8"
+          limits.memory: 20Gi
+          pods: "45"
+          requests.cpu: "4"
+          requests.memory: 4Gi
+        scopes:
+          - NotTerminating
+    organization-compute-terminating:
+      apiVersion: v1
+      kind: ResourceQuota
+      metadata:
+        labels:
+          foo: bar
+      spec:
+        hard:
+          limits.cpu: "4"
+          limits.memory: 4Gi
+          pods: "5"
+          requests.cpu: 500m
+          requests.memory: 2Gi
+        scopes:
+        - Terminating
+    organization-objects:
+      apiVersion: v1
+      kind: ResourceQuota
+      spec:
+        hard:
+          cephfs-fspool-cluster.storageclass.storage.k8s.io/requests.storage: 25Gi
+          count/configmaps: "150"
+          count/jobs.batch: "150"
+          count/replicationcontrollers: "100"
+          count/secrets: "150"
+          count/services: "20"
+          count/services.loadbalancers: "0"
+          count/services.nodeports: "0"
+          limits.ephemeral-storage: 500Mi
+          localblock-storage.storageclass.storage.k8s.io/persistentvolumeclaims: "0"
+          openshift.io/imagestreams: "20"
+          openshift.io/imagestreamtags: "50"
+          persistentvolumeclaims: "10"
+          rbd-storagepool-cluster.storageclass.storage.k8s.io/requests.storage: 25Gi
+          requests.ephemeral-storage: 250Mi
+          requests.storage: 1000Gi
+    deny-egress-tcp-25:
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      metadata:
+        annotations:
+          description: "Deny egress traffic to all hosts on ports 25"
+      spec:
+        podSelector: {}
+        egress:
+          - to:
+              - ipBlock:
+                  cidr: 0.0.0.0/0
+            ports:
+              - protocol: TCP
+                port: 25
+        policyTypes:
+          - Egress
