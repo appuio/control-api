@@ -6,6 +6,7 @@ resources:
 - base/appuio.io_organizationmembers.yaml
 - base/appuio.io_users.yaml
 - base/appuio.io_teams.yaml
+- base/appuio.io_usageprofiles.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.
