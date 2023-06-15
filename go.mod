@@ -22,7 +22,7 @@ require (
 	sigs.k8s.io/apiserver-runtime v1.1.2-0.20221226021050-33c901856927
 	sigs.k8s.io/controller-runtime v0.14.6
 	sigs.k8s.io/controller-tools v0.11.3
-	sigs.k8s.io/kind v0.17.0
+	sigs.k8s.io/kind v0.20.0
 	sigs.k8s.io/kustomize/kustomize/v5 v5.0.0
 )
 
