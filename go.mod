@@ -18,7 +18,7 @@ require (
 	k8s.io/apimachinery v0.26.2
 	k8s.io/apiserver v0.26.2
 	k8s.io/client-go v0.26.2
-	k8s.io/klog/v2 v2.90.1
+	k8s.io/klog/v2 v2.110.1
 	sigs.k8s.io/apiserver-runtime v1.1.2-0.20221226021050-33c901856927
 	sigs.k8s.io/controller-runtime v0.14.6
 	sigs.k8s.io/controller-tools v0.11.3
@@ -57,7 +57,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
-	github.com/go-logr/logr v1.2.3 // indirect
+	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.1 // indirect
