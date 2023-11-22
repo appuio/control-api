@@ -7,6 +7,7 @@ import (
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/fake"
+	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo16"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo8"
 )
 
@@ -21,6 +22,13 @@ func NewFakeStorage(metadataSupport bool) Storage {
 func NewOdoo8Storage(odooURL string, debugTransport bool, conf odoo8.Config) Storage {
 	return &billingEntityStorage{
 		storage: odoo8.NewOdoo8Storage(odooURL, debugTransport, conf),
+	}
+}
+
+// NewOdoo16Storage returns a new storage provider for BillingEntities
+func NewOdoo16Storage(credentials odoo16.OdooCredentials, config odoo16.Config) Storage {
+	return &billingEntityStorage{
+		storage: odoo16.NewOdoo16Storage(credentials, config),
 	}
 }
 

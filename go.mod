@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
+	github.com/appuio/go-odoo v0.3.0
 	github.com/go-logr/zapr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
@@ -30,6 +31,7 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
+	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
