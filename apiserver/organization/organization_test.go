@@ -7,8 +7,8 @@ import (
 	"github.com/appuio/control-api/apiserver/authwrapper"
 	authmock "github.com/appuio/control-api/apiserver/authwrapper/mock"
 	mock "github.com/appuio/control-api/apiserver/organization/mock"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
