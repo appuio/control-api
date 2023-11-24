@@ -75,7 +75,7 @@ var _ odoo.OdooStorage = &Odoo16Storage{}
 func NewOdoo16Storage(credentials OdooCredentials, conf Config) *Odoo16Storage {
 	return &Odoo16Storage{
 		config: conf,
-		sessionCreator: func(ctx context.Context) (*odooclient.Client, error) {
+		sessionCreator: func(ctx context.Context) (Odoo16Client, error) {
 			return odooclient.NewClient(&credentials)
 		},
 	}
@@ -83,7 +83,7 @@ func NewOdoo16Storage(credentials OdooCredentials, conf Config) *Odoo16Storage {
 
 func NewFailedRecordScrubber(credentials OdooCredentials) *FailedRecordScrubber {
 	return &FailedRecordScrubber{
-		sessionCreator: func(ctx context.Context) (*odooclient.Client, error) {
+		sessionCreator: func(ctx context.Context) (Odoo16Client, error) {
 			return odooclient.NewClient(&credentials)
 		},
 	}
@@ -92,11 +92,20 @@ func NewFailedRecordScrubber(credentials OdooCredentials) *FailedRecordScrubber 
 type Odoo16Storage struct {
 	config Config
 
-	sessionCreator func(ctx context.Context) (*odooclient.Client, error)
+	sessionCreator func(ctx context.Context) (Odoo16Client, error)
 }
 
 type FailedRecordScrubber struct {
-	sessionCreator func(ctx context.Context) (*odooclient.Client, error)
+	sessionCreator func(ctx context.Context) (Odoo16Client, error)
+}
+
+type Odoo16Client interface {
+	Read(string, []int64, *odooclient.Options, interface{}) error
+	Update(string, []int64, interface{}) error
+	FindResPartners(*odooclient.Criteria, *odooclient.Options) (*odooclient.ResPartners, error)
+	CreateResPartner(*odooclient.ResPartner) (int64, error)
+	UpdateResPartner(*odooclient.ResPartner) error
+	DeleteResPartners([]int64) error
 }
 
 func (s *Odoo16Storage) Get(ctx context.Context, name string) (*billingv1.BillingEntity, error) {
@@ -343,6 +352,10 @@ func mapPartnersToBillingEntity(ctx context.Context, company odooclient.ResPartn
 		}
 	}
 
+	var country string
+	if company.CountryId != nil {
+		country = company.CountryId.Name
+	}
 	return billingv1.BillingEntity{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -365,7 +378,7 @@ func mapPartnersToBillingEntity(ctx context.Context, company odooclient.ResPartn
 				Line2:      company.Street2.Get(),
 				City:       company.City.Get(),
 				PostalCode: company.Zip.Get(),
-				Country:    company.CountryId.Name,
+				Country:    country,
 			},
 			AccountingContact: billingv1.BillingEntityContact{
 				Name:   accounting.XInvoiceContact.Get(),
