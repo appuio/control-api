@@ -44,7 +44,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, &billingv1.BillingEntity{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "be-456",
-			UID:               "96ac3772-d380-51b0-bf65-793ffd3837a5",
+			UID:               "8804e682-706b-5f22-83bc-3564dadd08e1",
 			CreationTimestamp: metav1.Time{Time: tn},
 			Annotations: map[string]string{
 				VSHNAccountingContactNameKey: "Accounting",
@@ -161,7 +161,7 @@ func TestList(t *testing.T) {
 				Annotations: map[string]string{
 					VSHNAccountingContactNameKey: "Accounting",
 				},
-				UID: "96ac3772-d380-51b0-bf65-793ffd3837a5",
+				UID: "8804e682-706b-5f22-83bc-3564dadd08e1",
 			},
 			Spec: billingv1.BillingEntitySpec{
 				Name:   "Test Company",
@@ -176,7 +176,7 @@ func TestList(t *testing.T) {
 				Annotations: map[string]string{
 					VSHNAccountingContactNameKey: "Accounting",
 				},
-				UID: "84bf1157-0532-5f6b-9257-633795440cda",
+				UID: "cdb1442c-2444-5cde-8f07-7ebfa7e8825f",
 			},
 			Spec: billingv1.BillingEntitySpec{
 				Name:   "Foo Company",
@@ -226,7 +226,7 @@ func TestCreate(t *testing.T) {
 	assert.Equal(t, &billingv1.BillingEntity{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "be-702",
-			UID:               "94362980-c246-582a-a019-817206397978",
+			UID:               "5ff3b076-7648-51bf-b46d-ed96cfc6f43b",
 			CreationTimestamp: metav1.Time{Time: tn},
 			Annotations: map[string]string{
 				VSHNAccountingContactNameKey: "Accounting",
@@ -306,7 +306,7 @@ func TestUpdate(t *testing.T) {
 	assert.Equal(t, &billingv1.BillingEntity{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "be-702",
-			UID:               "94362980-c246-582a-a019-817206397978",
+			UID:               "5ff3b076-7648-51bf-b46d-ed96cfc6f43b",
 			CreationTimestamp: metav1.Time{Time: tn},
 			Annotations: map[string]string{
 				VSHNAccountingContactNameKey: "Accounting",

@@ -28,7 +28,7 @@ const companyCategory = 2
 const invoiceType = "invoice"
 
 // Used to generate the UUID for the .metadata.uid field.
-var metaUIDNamespace = uuid.MustParse("51887759-C769-4829-9910-BB9D5F92767D")
+var metaUIDNamespace = uuid.MustParse("7550b1ae-7a2a-485e-a75d-6f931b2cd73f")
 
 var roleAccountFilter = odooclient.NewCriterion("category_id", "in", []int{roleAccountCategory})
 var activeFilter = odooclient.NewCriterion("active", "=", true)
@@ -134,6 +134,9 @@ func (s *Odoo16Storage) get(ctx context.Context, name string) (company odooclien
 	if err != nil {
 		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("fetching accounting contact by ID: %w", err)
 	}
+	if len(u) <= 0 {
+		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("no results when fetching accounting contact by ID")
+	}
 	accountingContact = u[0]
 
 	if accountingContact.ParentId == nil {
@@ -143,6 +146,9 @@ func (s *Odoo16Storage) get(ctx context.Context, name string) (company odooclien
 	err = session.Read(odooclient.ResPartnerModel, []int64{accountingContact.ParentId.ID}, fetchPartnerFieldOpts, &u)
 	if err != nil {
 		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("fetching parent %d of accounting contact %d failed: %w", accountingContact.ParentId.ID, id, err)
+	}
+	if len(u) <= 0 {
+		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("no results when fetching parent %d of accounting contact %d failed", accountingContact.ParentId.ID, id)
 	}
 	company = u[0]
 
