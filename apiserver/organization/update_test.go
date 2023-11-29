@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	orgv1 "github.com/appuio/control-api/apis/organization/v1"
 

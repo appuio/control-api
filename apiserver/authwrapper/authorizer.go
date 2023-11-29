@@ -12,7 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/filters"
 )
 
-//go:generate go run github.com/golang/mock/mockgen -destination=./mock/$GOFILE -package mock k8s.io/apiserver/pkg/authorization/authorizer Authorizer
+//go:generate go run go.uber.org/mock/mockgen -destination=./mock/$GOFILE -package mock k8s.io/apiserver/pkg/authorization/authorizer Authorizer
 
 // Authorizer processes authorization requests for `{rbacID.Resource}` and checks them based on rbac rules for `{rbacID}`
 type Authorizer struct {

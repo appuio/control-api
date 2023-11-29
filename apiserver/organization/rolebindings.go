@@ -16,7 +16,7 @@ import (
 // +kubebuilder:rbac:groups="organization.appuio.io",resources=organizations,verbs=get;list;watch;create;delete;patch;update;edit
 // +kubebuilder:rbac:groups="appuio.io",resources=teams,verbs=get;list;watch;create;delete;patch;update
 
-//go:generate go run github.com/golang/mock/mockgen -source=$GOFILE -destination=./mock/$GOFILE
+//go:generate go run go.uber.org/mock/mockgen -source=$GOFILE -destination=./mock/$GOFILE
 type roleBindingCreator interface {
 	CreateRoleBindings(ctx context.Context, namespace, username string) error
 }

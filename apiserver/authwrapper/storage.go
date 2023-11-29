@@ -17,7 +17,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 )
 
-//go:generate go run github.com/golang/mock/mockgen -destination=./mock/$GOFILE -package mock k8s.io/apiserver/pkg/registry/rest StandardStorage,Storage,Responder
+//go:generate go run go.uber.org/mock/mockgen -destination=./mock/$GOFILE -package mock k8s.io/apiserver/pkg/registry/rest StandardStorage,Storage,Responder
 
 var _ StandardStorage = &authorizedStorageWithLister{}
 

@@ -13,7 +13,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
-//go:generate go run github.com/golang/mock/mockgen -destination=./clientmock/$GOFILE -package clientmock . QueryExecutor
+//go:generate go run go.uber.org/mock/mockgen -destination=./clientmock/$GOFILE -package clientmock . QueryExecutor
 
 // QueryExecutor runs queries against Odoo API.
 type QueryExecutor interface {
