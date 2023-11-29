@@ -58,16 +58,14 @@ var fetchPartnerFieldOpts = odooclient.NewOptions().FetchFields(
 	"parent_id",
 	"vshn_control_api_meta_status",
 	"vshn_control_api_inflight",
-	"x_invoice_contact",
 )
 
 type OdooCredentials = odooclient.ClientConfig
 
 type Config struct {
-	CountryIDs                   map[string]int
-	AccountingContactDisplayName string
-	LanguagePreference           string
-	PaymentTermID                int
+	CountryIDs         map[string]int
+	LanguagePreference string
+	PaymentTermID      int
 }
 
 var _ odoo.OdooStorage = &Odoo16Storage{}
@@ -368,9 +366,6 @@ func mapPartnersToBillingEntity(ctx context.Context, company odooclient.ResPartn
 			CreationTimestamp: metav1.Time{
 				Time: accounting.CreateDate.Get(),
 			},
-			Annotations: map[string]string{
-				VSHNAccountingContactNameKey: accounting.Name.Get(),
-			},
 			// Since Odoo does not reuse IDs AFAIK, we can use the id from Odoo as UID.
 			// Without UID patch operations will fail.
 			UID: types.UID(uuid.NewSHA1(metaUIDNamespace, []byte(name)).String()),
@@ -387,7 +382,7 @@ func mapPartnersToBillingEntity(ctx context.Context, company odooclient.ResPartn
 				Country:    country,
 			},
 			AccountingContact: billingv1.BillingEntityContact{
-				Name:   accounting.XInvoiceContact.Get(),
+				Name:   accounting.Name.Get(),
 				Emails: splitCommaSeparated(accounting.Email.Get()),
 			},
 			LanguagePreference: "",
@@ -421,7 +416,7 @@ func mapBillingEntityToPartners(be billingv1.BillingEntity, countryIDs map[strin
 	}
 
 	accounting = odooclient.ResPartner{
-		XInvoiceContact:          odooclient.NewString(be.Spec.AccountingContact.Name),
+		Name:                     odooclient.NewString(be.Spec.AccountingContact.Name),
 		VshnControlApiMetaStatus: odooclient.NewString(statusString),
 		Email:                    odooclient.NewString(strings.Join(be.Spec.AccountingContact.Emails, ", ")),
 	}
@@ -432,7 +427,6 @@ func mapBillingEntityToPartners(be billingv1.BillingEntity, countryIDs map[strin
 func setStaticAccountingContactFields(conf Config, a *odooclient.ResPartner) {
 	a.CategoryId = odooclient.NewRelation()
 	a.CategoryId.AddRecord(int64(roleAccountCategory))
-	a.Name = odooclient.NewString(conf.AccountingContactDisplayName)
 	a.Lang = odooclient.NewSelection(conf.LanguagePreference)
 	a.Type = odooclient.NewSelection(invoiceType)
 	a.PropertyPaymentTermId = odooclient.NewMany2One(int64(conf.PaymentTermID), "")

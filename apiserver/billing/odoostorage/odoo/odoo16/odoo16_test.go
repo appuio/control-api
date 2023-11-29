@@ -27,7 +27,6 @@ func TestGet(t *testing.T) {
 	gomock.InOrder(
 		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
 			Id:                       odooclient.NewInt(456),
-			Name:                     odooclient.NewString("Accounting"),
 			CreateDate:               odooclient.NewTime(tn),
 			ParentId:                 odooclient.NewMany2One(123, ""),
 			Email:                    odooclient.NewString("accounting@test.com, notifications@test.com"),
@@ -46,9 +45,6 @@ func TestGet(t *testing.T) {
 			Name:              "be-456",
 			UID:               "8804e682-706b-5f22-83bc-3564dadd08e1",
 			CreationTimestamp: metav1.Time{Time: tn},
-			Annotations: map[string]string{
-				VSHNAccountingContactNameKey: "Accounting",
-			},
 		},
 		Spec: billingv1.BillingEntitySpec{
 			Name:   "Test Company",
@@ -125,24 +121,20 @@ func TestList(t *testing.T) {
 		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{
 			{
 				Id:       odooclient.NewInt(456),
-				Name:     odooclient.NewString("Accounting"),
 				ParentId: odooclient.NewMany2One(123, ""),
 			},
 			{
 				Id:       odooclient.NewInt(457),
-				Name:     odooclient.NewString("Accounting"),
 				ParentId: odooclient.NewMany2One(124, ""),
 			},
 			{
 				// Can't load parent
 				Id:       odooclient.NewInt(458),
-				Name:     odooclient.NewString("Accounting"),
 				ParentId: odooclient.NewMany2One(99999, ""),
 			},
 			{
 				// No parent
 				Id:       odooclient.NewInt(459),
-				Name:     odooclient.NewString("Accounting"),
 				ParentId: nil,
 			},
 		}, nil),
@@ -158,10 +150,7 @@ func TestList(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "be-456",
-				Annotations: map[string]string{
-					VSHNAccountingContactNameKey: "Accounting",
-				},
-				UID: "8804e682-706b-5f22-83bc-3564dadd08e1",
+				UID:  "8804e682-706b-5f22-83bc-3564dadd08e1",
 			},
 			Spec: billingv1.BillingEntitySpec{
 				Name:   "Test Company",
@@ -173,10 +162,7 @@ func TestList(t *testing.T) {
 		}, {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "be-457",
-				Annotations: map[string]string{
-					VSHNAccountingContactNameKey: "Accounting",
-				},
-				UID: "cdb1442c-2444-5cde-8f07-7ebfa7e8825f",
+				UID:  "cdb1442c-2444-5cde-8f07-7ebfa7e8825f",
 			},
 			Spec: billingv1.BillingEntitySpec{
 				Name:   "Foo Company",
@@ -205,7 +191,7 @@ func TestCreate(t *testing.T) {
 		// Fetch created company
 		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
 			Id:         odooclient.NewInt(702),
-			Name:       odooclient.NewString("Accounting"),
+			Name:       odooclient.NewString("Max Foobar"),
 			CreateDate: odooclient.NewTime(tn),
 			ParentId:   odooclient.NewMany2One(700, ""),
 			Email:      odooclient.NewString("accounting@test.com, notifications@test.com"),
@@ -228,14 +214,12 @@ func TestCreate(t *testing.T) {
 			Name:              "be-702",
 			UID:               "5ff3b076-7648-51bf-b46d-ed96cfc6f43b",
 			CreationTimestamp: metav1.Time{Time: tn},
-			Annotations: map[string]string{
-				VSHNAccountingContactNameKey: "Accounting",
-			},
 		},
 		Spec: billingv1.BillingEntitySpec{
 			Name:   "Test Company",
 			Emails: []string{},
 			AccountingContact: billingv1.BillingEntityContact{
+				Name: "Max Foobar",
 				Emails: []string{
 					"accounting@test.com",
 					"notifications@test.com",
@@ -270,7 +254,6 @@ func TestUpdate(t *testing.T) {
 		// Fetch created company
 		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
 			Id:                       odooclient.NewInt(702),
-			Name:                     odooclient.NewString("Accounting"),
 			CreateDate:               odooclient.NewTime(tn),
 			ParentId:                 odooclient.NewMany2One(700, ""),
 			Email:                    odooclient.NewString("accounting@test.com, notifications@test.com"),
@@ -308,9 +291,6 @@ func TestUpdate(t *testing.T) {
 			Name:              "be-702",
 			UID:               "5ff3b076-7648-51bf-b46d-ed96cfc6f43b",
 			CreationTimestamp: metav1.Time{Time: tn},
-			Annotations: map[string]string{
-				VSHNAccountingContactNameKey: "Accounting",
-			},
 		},
 		Spec: billingv1.BillingEntitySpec{
 			Name:   "Test Company",
@@ -365,9 +345,8 @@ func createStorage(t *testing.T) (*gomock.Controller, *odoo16mock.MockOdoo16Clie
 				"Switzerland": 1,
 				"Germany":     2,
 			},
-			AccountingContactDisplayName: "Accounting",
-			LanguagePreference:           "en_US",
-			PaymentTermID:                2,
+			LanguagePreference: "en_US",
+			PaymentTermID:      2,
 		},
 		sessionCreator: func(ctx context.Context) (Odoo16Client, error) {
 			return mock, nil

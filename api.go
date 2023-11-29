@@ -72,7 +72,6 @@ func APICommand() *cobra.Command {
 	cmd.Flags().StringVar(&ob.odoo16Account, "billing-entity-odoo16-account", "Admin", "Odoo Account name to use for billing entities")
 	cmd.Flags().StringVar(&ob.odoo16Password, "billing-entity-odoo16-password", "superSecret1238", "Odoo Account password to use for billing entities")
 	cmd.Flags().StringVar(&ob.odoo16CountryListPath, "billing-entity-odoo16-country-list", "countries.yaml", "Path to the country list file in the format of [{name: \"Germany\", code: \"DE\", id: 81},...]")
-	cmd.Flags().StringVar(&ob.odoo16AccountingContactDisplayName, "billing-entity-odoo16-accounting-contact-display-name", "Accounting", "Display name of the accounting contact")
 	cmd.Flags().StringVar(&ob.odoo16LanguagePreference, "billing-entity-odoo16-language-preference", "en_US", "Language preference of the Odoo record")
 	cmd.Flags().IntVar(&ob.odoo16PaymentTermID, "billing-entity-odoo16-payment-term-id", 2, "Payment term ID of the Odoo record")
 
@@ -97,14 +96,14 @@ func APICommand() *cobra.Command {
 }
 
 type odooStorageBuilder struct {
-	billingEntityStorage, odoo8URL, odoo8CountryListPath         string
-	odoo8AccountingContactDisplayName, odoo8LanguagePreference   string
-	odoo8PaymentTermID                                           int
-	billingEntityFakeMetadataSupport, odoo8DebugTransport        bool
-	odoo16AccountingContactDisplayName, odoo16LanguagePreference string
-	odoo16URL, odoo16CountryListPath                             string
-	odoo16Db, odoo16Account, odoo16Password                      string
-	odoo16PaymentTermID                                          int
+	billingEntityStorage, odoo8URL, odoo8CountryListPath       string
+	odoo8AccountingContactDisplayName, odoo8LanguagePreference string
+	odoo8PaymentTermID                                         int
+	billingEntityFakeMetadataSupport, odoo8DebugTransport      bool
+	odoo16LanguagePreference                                   string
+	odoo16URL, odoo16CountryListPath                           string
+	odoo16Db, odoo16Account, odoo16Password                    string
+	odoo16PaymentTermID                                        int
 }
 
 func (o *odooStorageBuilder) Build(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
@@ -134,10 +133,9 @@ func (o *odooStorageBuilder) Build(s *runtime.Scheme, g genericregistry.RESTOpti
 				Password: o.odoo16Password,
 				Database: o.odoo16Db,
 			}, odoo16.Config{
-				AccountingContactDisplayName: o.odoo16AccountingContactDisplayName,
-				LanguagePreference:           o.odoo16LanguagePreference,
-				PaymentTermID:                o.odoo16PaymentTermID,
-				CountryIDs:                   countryIDs,
+				LanguagePreference: o.odoo16LanguagePreference,
+				PaymentTermID:      o.odoo16PaymentTermID,
+				CountryIDs:         countryIDs,
 			}).(authwrapper.StorageScoper))(s, g)
 	default:
 		return nil, fmt.Errorf("unknown billing entity storage: %s", o.billingEntityStorage)
