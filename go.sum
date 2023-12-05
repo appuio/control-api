@@ -58,8 +58,8 @@ github.com/alessio/shellescape v1.4.1/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPp
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/antlr/antlr4/runtime/Go/antlr v1.4.10 h1:yL7+Jz0jTC6yykIK/Wh74gnTJnrGr5AyrNMXuA0gves=
 github.com/antlr/antlr4/runtime/Go/antlr v1.4.10/go.mod h1:F7bn7fEU90QkQ3tnmaTx3LTKLEDqnwWODIYppRQ5hnY=
-github.com/appuio/go-odoo v0.3.0 h1:SR53UYq7wiTR1LHDZy63LV4L6uFIKPZYOIzUd+CvGzU=
-github.com/appuio/go-odoo v0.3.0/go.mod h1:pN7SdgIUWAS6hMW0L99FaofBG+5pSUA77vRcUT0mxjY=
+github.com/appuio/go-odoo v0.4.0 h1:P1INin+2VnuzCjl5Q65p8DI4YdIw3PYLL9+vvS22iZE=
+github.com/appuio/go-odoo v0.4.0/go.mod h1:pN7SdgIUWAS6hMW0L99FaofBG+5pSUA77vRcUT0mxjY=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=

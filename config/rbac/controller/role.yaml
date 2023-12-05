@@ -226,3 +226,19 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - user.appuio.io
+  resources:
+  - organizations
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - user.appuio.io
+  resources:
+  - organizations/status
+  verbs:
+  - get
+  - patch
+  - update
