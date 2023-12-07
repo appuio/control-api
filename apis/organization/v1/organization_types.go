@@ -1,11 +1,25 @@
 package v1
 
 import (
+	"encoding/json"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/apiserver-runtime/pkg/builder/resource"
+)
+
+const (
+	// SaleOrderCreated is set when the Sale Order has been created
+	ConditionSaleOrderCreated = "SaleOrderCreated"
+
+	// SaleOrderNameUpdated is set when the Sale Order's name has been added to the Status
+	ConditionSaleOrderNameUpdated = "SaleOrderNameUpdated"
+
+	ConditionReasonCreateFailed = "CreateFailed"
+
+	ConditionReasonGetNameFailed = "GetNameFailed"
 )
 
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;delete;update
@@ -21,6 +35,12 @@ var (
 	BillingEntityRefKey = "organization.appuio.io/billing-entity-ref"
 	// BillingEntityNameKey is the annotation key that stores the billing entity name
 	BillingEntityNameKey = "status.organization.appuio.io/billing-entity-name"
+	// SaleOrderIdKey is the annotation key that stores the sale order ID
+	SaleOrderIdKey = "status.organization.appuio.io/sale-order-id"
+	// SaleOrderNameKey is the annotation key that stores the sale order name
+	SaleOrderNameKey = "status.organization.appuio.io/sale-order-name"
+	// StatusConditionsKey is the annotation key that stores the serialized status conditions
+	StatusConditionsKey = "status.organization.appuio.io/conditions"
 )
 
 // NewOrganizationFromNS returns an Organization based on the given namespace
@@ -29,11 +49,19 @@ func NewOrganizationFromNS(ns *corev1.Namespace) *Organization {
 	if ns == nil || ns.Labels == nil || ns.Labels[TypeKey] != OrgType {
 		return nil
 	}
-	var displayName, billingEntityRef, billingEntityName string
+	var displayName, billingEntityRef, billingEntityName, saleOrderId, saleOrderName, statusConditionsString string
 	if ns.Annotations != nil {
 		displayName = ns.Annotations[DisplayNameKey]
 		billingEntityRef = ns.Annotations[BillingEntityRefKey]
 		billingEntityName = ns.Annotations[BillingEntityNameKey]
+		statusConditionsString = ns.Annotations[StatusConditionsKey]
+		saleOrderId = ns.Annotations[SaleOrderIdKey]
+		saleOrderName = ns.Annotations[SaleOrderNameKey]
+	}
+	var conditions []metav1.Condition
+	err := json.Unmarshal([]byte(statusConditionsString), &conditions)
+	if err != nil {
+		conditions = nil
 	}
 	org := &Organization{
 		ObjectMeta: *ns.ObjectMeta.DeepCopy(),
@@ -43,6 +71,9 @@ func NewOrganizationFromNS(ns *corev1.Namespace) *Organization {
 		},
 		Status: OrganizationStatus{
 			BillingEntityName: billingEntityName,
+			SaleOrderID:       saleOrderId,
+			SaleOrderName:     saleOrderName,
+			Conditions:        conditions,
 		},
 	}
 	if org.Annotations != nil {
@@ -79,6 +110,15 @@ type OrganizationSpec struct {
 type OrganizationStatus struct {
 	// BillingEntityName is the name of the billing entity
 	BillingEntityName string `json:"billingEntityName,omitempty"`
+
+	// SaleOrderID is the ID of the sale order
+	SaleOrderID string `json:"saleOrderId,omitempty"`
+
+	// SaleOrderName is the name of the sale order
+	SaleOrderName string `json:"saleOrderName,omitempty"`
+
+	// Conditions is a list of conditions for the invitation
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // Organization needs to implement the builder resource interface
@@ -149,10 +189,27 @@ func (o *Organization) ToNamespace() *corev1.Namespace {
 	if ns.Annotations == nil {
 		ns.Annotations = map[string]string{}
 	}
+	var statusString string
+	if o.Status.Conditions != nil {
+		statusBytes, err := json.Marshal(o.Status.Conditions)
+		if err == nil {
+			statusString = string(statusBytes)
+		}
+	}
+
 	ns.Labels[TypeKey] = OrgType
 	ns.Annotations[DisplayNameKey] = o.Spec.DisplayName
 	ns.Annotations[BillingEntityRefKey] = o.Spec.BillingEntityRef
 	ns.Annotations[BillingEntityNameKey] = o.Status.BillingEntityName
+	if o.Status.SaleOrderID != "" {
+		ns.Annotations[SaleOrderIdKey] = o.Status.SaleOrderID
+	}
+	if o.Status.SaleOrderName != "" {
+		ns.Annotations[SaleOrderNameKey] = o.Status.SaleOrderName
+	}
+	if statusString != "" {
+		ns.Annotations[StatusConditionsKey] = statusString
+	}
 	return ns
 }
 

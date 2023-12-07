@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/appuio/go-odoo v0.3.0
+	github.com/appuio/go-odoo v0.4.0
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/uuid v1.4.0
 	github.com/prometheus/client_golang v1.17.0
