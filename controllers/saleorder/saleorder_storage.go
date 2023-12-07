@@ -104,7 +104,7 @@ func (s *Odoo16SaleOrderStorage) GetSaleOrderName(org organizationv1.Organizatio
 	)
 	id, err := strconv.Atoi(org.Status.SaleOrderID)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error parsing saleOrderID %q from organization status: %w", org.Status.SaleOrderID, err)
 	}
 	soRecords := []odooclient.SaleOrder{}
 	err = s.client.Read(odooclient.SaleOrderModel, []int64{int64(id)}, fetchOrderFieldOpts, &soRecords)
@@ -113,7 +113,7 @@ func (s *Odoo16SaleOrderStorage) GetSaleOrderName(org organizationv1.Organizatio
 	}
 
 	if len(soRecords) <= 0 {
-		return "", fmt.Errorf("no results when fetching sale order by ID")
+		return "", fmt.Errorf("no results when fetching sale orders with ID %q", id)
 	}
 
 	return soRecords[0].Name.Get(), nil
