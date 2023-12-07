@@ -258,6 +258,10 @@ func setupManager(
 			Client: mgr.GetClient(),
 		})
 	metrics.Registry.MustRegister(
+		&controllers.OrgInfoMetric{
+			Client: mgr.GetClient(),
+		})
+	metrics.Registry.MustRegister(
 		&controllers.EmailPendingMetric{
 			Client: mgr.GetClient(),
 		})
