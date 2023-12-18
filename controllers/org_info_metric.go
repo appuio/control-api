@@ -15,7 +15,7 @@ import (
 var orgInfoMetricDesc = prometheus.NewDesc(
 	"appuio_control_organization_info",
 	"Information about APPUiO Cloud organizations",
-	[]string{"organization", "billing_entity", "sales_order"},
+	[]string{"organization", "sales_order"},
 	nil,
 )
 
@@ -47,7 +47,6 @@ func (o *OrgInfoMetric) Collect(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			1,
 			org.Name,
-			org.Spec.BillingEntityRef,
 			org.Status.SaleOrderName,
 		)
 	}
