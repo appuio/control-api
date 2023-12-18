@@ -201,6 +201,77 @@ func Test_SaleOrderReconciler_Create_Error(t *testing.T) {
 	require.Equal(t, "An unanticipated fault has come to pass.", cond.Message)
 }
 
+func Test_SaleOrderReconciler_Create_StatusConditionCleared(t *testing.T) {
+	ctx := context.Background()
+	mctrl := gomock.NewController(t)
+	mock := mock_saleorder.NewMockSaleOrderStorage(mctrl)
+
+	subject := organizationv1.Organization{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "subject",
+		},
+		Spec: organizationv1.OrganizationSpec{
+			BillingEntityRef: "be-0000",
+		},
+	}
+	c := prepareTest(t, &subject)
+
+	gomock.InOrder(
+		mock.EXPECT().CreateSaleOrder(gomock.Any()).Return("123", errors.New("An unanticipated fault has come to pass.")),
+		mock.EXPECT().CreateSaleOrder(gomock.Any()).Return("456", nil),
+		mock.EXPECT().GetSaleOrderName(gomock.Any()).Return("", errors.New("An unanticipated fault has come to pass.")),
+		mock.EXPECT().GetSaleOrderName(gomock.Any()).Return("ST456", nil),
+	)
+
+	r := (&SaleOrderReconciler{
+		Client:           c,
+		Scheme:           c.Scheme(),
+		Recorder:         record.NewFakeRecorder(3),
+		SaleOrderStorage: mock,
+	})
+
+	_, err := r.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name: subject.Name,
+		},
+	})
+
+	require.Error(t, err)
+
+	_, err = r.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name: subject.Name,
+		},
+	})
+
+	require.NoError(t, err)
+
+	_, err = r.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name: subject.Name,
+		},
+	})
+
+	require.Error(t, err)
+
+	_, err = r.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name: subject.Name,
+		},
+	})
+
+	require.NoError(t, err)
+	require.NoError(t, c.Get(ctx, types.NamespacedName{Name: subject.Name}, &subject))
+	cond := apimeta.FindStatusCondition(subject.Status.Conditions, organizationv1.ConditionSaleOrderCreated)
+	require.Equal(t, metav1.ConditionTrue, cond.Status)
+	require.Equal(t, "", cond.Reason)
+	cond = apimeta.FindStatusCondition(subject.Status.Conditions, organizationv1.ConditionSaleOrderNameUpdated)
+	require.Equal(t, metav1.ConditionTrue, cond.Status)
+	require.Equal(t, "", cond.Reason)
+	require.Equal(t, "456", subject.Status.SaleOrderID)
+	require.Equal(t, "ST456", subject.Status.SaleOrderName)
+}
+
 func Test_SaleOrderReconciler_UpdateName_Error(t *testing.T) {
 	ctx := context.Background()
 	mctrl := gomock.NewController(t)
