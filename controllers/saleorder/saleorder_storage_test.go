@@ -97,7 +97,7 @@ func TestGet(t *testing.T) {
 			BillingEntityRef: "be-123",
 		},
 		Status: organizationv1.OrganizationStatus{
-			SaleOrderID: "149",
+			SalesOrderID: "149",
 		},
 	})
 	require.NoError(t, err)

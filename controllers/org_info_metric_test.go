@@ -35,7 +35,7 @@ func TestOrgInfoMetric(t *testing.T) {
 			BillingEntityRef: "be-234",
 		},
 		Status: orgv1.OrganizationStatus{
-			SaleOrderName: "SO9999",
+			SalesOrderName: "SO9999",
 		},
 	})
 
