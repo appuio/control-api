@@ -43,9 +43,9 @@ func TestOrgInfoMetric(t *testing.T) {
 		testutil.CollectAndCompare(&controllers.OrgInfoMetric{c}, strings.NewReader(`
 # HELP appuio_control_organization_info Information about APPUiO Cloud organizations
 # TYPE appuio_control_organization_info gauge
-appuio_control_organization_info{billing_entity="be-1734",organization="blub-org",sales_order=""} 1
-appuio_control_organization_info{billing_entity="be-234",organization="foo-org",sales_order="SO9999"} 1
-appuio_control_organization_info{billing_entity="test-billing-entity",organization="test-org",sales_order=""} 1
+appuio_control_organization_info{organization="blub-org",sales_order=""} 1
+appuio_control_organization_info{organization="foo-org",sales_order="SO9999"} 1
+appuio_control_organization_info{organization="test-org",sales_order=""} 1
 `),
 			"appuio_control_organization_info"),
 	)
