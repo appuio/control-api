@@ -47,7 +47,7 @@ func (o *OrgInfoMetric) Collect(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			1,
 			org.Name,
-			org.Status.SaleOrderName,
+			org.Status.SalesOrderName,
 		)
 	}
 }

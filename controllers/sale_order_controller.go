@@ -46,11 +46,11 @@ func (r *SaleOrderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	if org.Status.SaleOrderName != "" {
+	if org.Status.SalesOrderName != "" {
 		return ctrl.Result{}, nil
 	}
 
-	if org.Status.SaleOrderID != "" {
+	if org.Status.SalesOrderID != "" {
 		// ID is present, but Name is not. Update name.
 		soName, err := r.SaleOrderStorage.GetSaleOrderName(org)
 		if err != nil {
@@ -67,7 +67,7 @@ func (r *SaleOrderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			Type:   organizationv1.ConditionSaleOrderNameUpdated,
 			Status: metav1.ConditionTrue,
 		})
-		org.Status.SaleOrderName = soName
+		org.Status.SalesOrderName = soName
 		return ctrl.Result{}, r.Client.Status().Update(ctx, &org)
 	}
 
@@ -90,7 +90,7 @@ func (r *SaleOrderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		Status: metav1.ConditionTrue,
 	})
 
-	org.Status.SaleOrderID = fmt.Sprint(soId)
+	org.Status.SalesOrderID = fmt.Sprint(soId)
 	return ctrl.Result{}, r.Client.Status().Update(ctx, &org)
 }
 

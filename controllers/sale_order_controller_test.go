@@ -50,7 +50,7 @@ func Test_SaleOrderReconciler_Reconcile_Create_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NoError(t, c.Get(ctx, types.NamespacedName{Name: subject.Name}, &subject))
-	require.Equal(t, "123", subject.Status.SaleOrderID)
+	require.Equal(t, "123", subject.Status.SalesOrderID)
 	cond := apimeta.FindStatusCondition(subject.Status.Conditions, organizationv1.ConditionSaleOrderCreated)
 	require.Equal(t, metav1.ConditionTrue, cond.Status)
 }
@@ -68,7 +68,7 @@ func Test_SaleOrderReconciler_Reconcile_UpdateName_Success(t *testing.T) {
 			BillingEntityRef: "be-0000",
 		},
 		Status: organizationv1.OrganizationStatus{
-			SaleOrderID: "123",
+			SalesOrderID: "123",
 		},
 	}
 	c := prepareTest(t, &subject)
@@ -90,8 +90,8 @@ func Test_SaleOrderReconciler_Reconcile_UpdateName_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NoError(t, c.Get(ctx, types.NamespacedName{Name: subject.Name}, &subject))
-	require.Equal(t, "123", subject.Status.SaleOrderID)
-	require.Equal(t, "SO123", subject.Status.SaleOrderName)
+	require.Equal(t, "123", subject.Status.SalesOrderID)
+	require.Equal(t, "SO123", subject.Status.SalesOrderName)
 	cond := apimeta.FindStatusCondition(subject.Status.Conditions, organizationv1.ConditionSaleOrderNameUpdated)
 	require.Equal(t, metav1.ConditionTrue, cond.Status)
 }
@@ -109,8 +109,8 @@ func Test_SaleOrderReconciler_Reconcile_NoAction_Success(t *testing.T) {
 			BillingEntityRef: "be-0000",
 		},
 		Status: organizationv1.OrganizationStatus{
-			SaleOrderID:   "123",
-			SaleOrderName: "SO123",
+			SalesOrderID:   "123",
+			SalesOrderName: "SO123",
 		},
 	}
 	c := prepareTest(t, &subject)
@@ -268,8 +268,8 @@ func Test_SaleOrderReconciler_Create_StatusConditionCleared(t *testing.T) {
 	cond = apimeta.FindStatusCondition(subject.Status.Conditions, organizationv1.ConditionSaleOrderNameUpdated)
 	require.Equal(t, metav1.ConditionTrue, cond.Status)
 	require.Equal(t, "", cond.Reason)
-	require.Equal(t, "456", subject.Status.SaleOrderID)
-	require.Equal(t, "ST456", subject.Status.SaleOrderName)
+	require.Equal(t, "456", subject.Status.SalesOrderID)
+	require.Equal(t, "ST456", subject.Status.SalesOrderName)
 }
 
 func Test_SaleOrderReconciler_UpdateName_Error(t *testing.T) {
@@ -285,7 +285,7 @@ func Test_SaleOrderReconciler_UpdateName_Error(t *testing.T) {
 			BillingEntityRef: "be-0000",
 		},
 		Status: organizationv1.OrganizationStatus{
-			SaleOrderID: "123",
+			SalesOrderID: "123",
 		},
 	}
 	c := prepareTest(t, &subject)

@@ -35,10 +35,10 @@ var (
 	BillingEntityRefKey = "organization.appuio.io/billing-entity-ref"
 	// BillingEntityNameKey is the annotation key that stores the billing entity name
 	BillingEntityNameKey = "status.organization.appuio.io/billing-entity-name"
-	// SaleOrderIdKey is the annotation key that stores the sale order ID
-	SaleOrderIdKey = "status.organization.appuio.io/sale-order-id"
-	// SaleOrderNameKey is the annotation key that stores the sale order name
-	SaleOrderNameKey = "status.organization.appuio.io/sale-order-name"
+	// SalesOrderIdKey is the annotation key that stores the sale order ID
+	SalesOrderIdKey = "status.organization.appuio.io/sales-order-id"
+	// SalesOrderNameKey is the annotation key that stores the sale order name
+	SalesOrderNameKey = "status.organization.appuio.io/sales-order-name"
 	// StatusConditionsKey is the annotation key that stores the serialized status conditions
 	StatusConditionsKey = "status.organization.appuio.io/conditions"
 )
@@ -55,8 +55,8 @@ func NewOrganizationFromNS(ns *corev1.Namespace) *Organization {
 		billingEntityRef = ns.Annotations[BillingEntityRefKey]
 		billingEntityName = ns.Annotations[BillingEntityNameKey]
 		statusConditionsString = ns.Annotations[StatusConditionsKey]
-		saleOrderId = ns.Annotations[SaleOrderIdKey]
-		saleOrderName = ns.Annotations[SaleOrderNameKey]
+		saleOrderId = ns.Annotations[SalesOrderIdKey]
+		saleOrderName = ns.Annotations[SalesOrderNameKey]
 	}
 	var conditions []metav1.Condition
 	err := json.Unmarshal([]byte(statusConditionsString), &conditions)
@@ -71,8 +71,8 @@ func NewOrganizationFromNS(ns *corev1.Namespace) *Organization {
 		},
 		Status: OrganizationStatus{
 			BillingEntityName: billingEntityName,
-			SaleOrderID:       saleOrderId,
-			SaleOrderName:     saleOrderName,
+			SalesOrderID:      saleOrderId,
+			SalesOrderName:    saleOrderName,
 			Conditions:        conditions,
 		},
 	}
@@ -111,11 +111,11 @@ type OrganizationStatus struct {
 	// BillingEntityName is the name of the billing entity
 	BillingEntityName string `json:"billingEntityName,omitempty"`
 
-	// SaleOrderID is the ID of the sale order
-	SaleOrderID string `json:"saleOrderId,omitempty"`
+	// SalesOrderID is the ID of the sale order
+	SalesOrderID string `json:"salesOrderId,omitempty"`
 
-	// SaleOrderName is the name of the sale order
-	SaleOrderName string `json:"saleOrderName,omitempty"`
+	// SalesOrderName is the name of the sale order
+	SalesOrderName string `json:"salesOrderName,omitempty"`
 
 	// Conditions is a list of conditions for the invitation
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -201,11 +201,11 @@ func (o *Organization) ToNamespace() *corev1.Namespace {
 	ns.Annotations[DisplayNameKey] = o.Spec.DisplayName
 	ns.Annotations[BillingEntityRefKey] = o.Spec.BillingEntityRef
 	ns.Annotations[BillingEntityNameKey] = o.Status.BillingEntityName
-	if o.Status.SaleOrderID != "" {
-		ns.Annotations[SaleOrderIdKey] = o.Status.SaleOrderID
+	if o.Status.SalesOrderID != "" {
+		ns.Annotations[SalesOrderIdKey] = o.Status.SalesOrderID
 	}
-	if o.Status.SaleOrderName != "" {
-		ns.Annotations[SaleOrderNameKey] = o.Status.SaleOrderName
+	if o.Status.SalesOrderName != "" {
+		ns.Annotations[SalesOrderNameKey] = o.Status.SalesOrderName
 	}
 	if statusString != "" {
 		ns.Annotations[StatusConditionsKey] = statusString
