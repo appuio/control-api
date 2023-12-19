@@ -107,6 +107,21 @@ func (mr *MockOdoo16ClientMockRecorder) CreateSaleOrder(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSaleOrder", reflect.TypeOf((*MockOdoo16Client)(nil).CreateSaleOrder), arg0)
 }
 
+// FindResPartners mocks base method.
+func (m *MockOdoo16Client) FindResPartners(arg0 *odoo.Criteria, arg1 *odoo.Options) (*odoo.ResPartners, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindResPartners", arg0, arg1)
+	ret0, _ := ret[0].(*odoo.ResPartners)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindResPartners indicates an expected call of FindResPartners.
+func (mr *MockOdoo16ClientMockRecorder) FindResPartners(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindResPartners", reflect.TypeOf((*MockOdoo16Client)(nil).FindResPartners), arg0, arg1)
+}
+
 // Read mocks base method.
 func (m *MockOdoo16Client) Read(arg0 string, arg1 []int64, arg2 *odoo.Options, arg3 any) error {
 	m.ctrl.T.Helper()

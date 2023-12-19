@@ -14,6 +14,7 @@ type Odoo16Credentials = odooclient.ClientConfig
 type Odoo16Options struct {
 	SaleOrderClientReferencePrefix string
 	SaleOrderInternalNote          string
+	Odoo8CompatibilityMode         bool
 }
 
 const defaultSaleOrderState = "sale"
@@ -26,6 +27,7 @@ type SaleOrderStorage interface {
 type Odoo16Client interface {
 	Read(string, []int64, *odooclient.Options, interface{}) error
 	CreateSaleOrder(*odooclient.SaleOrder) (int64, error)
+	FindResPartners(*odooclient.Criteria, *odooclient.Options) (*odooclient.ResPartners, error)
 }
 
 type Odoo16SaleOrderStorage struct {
@@ -54,21 +56,42 @@ func (s *Odoo16SaleOrderStorage) CreateSaleOrder(org organizationv1.Organization
 		return "", err
 	}
 
+	var beRecord odooclient.ResPartner
+
 	fetchPartnerFieldOpts := odooclient.NewOptions().FetchFields(
 		"id",
 		"parent_id",
 	)
 
-	beRecords := []odooclient.ResPartner{}
-	err = s.client.Read(odooclient.ResPartnerModel, []int64{int64(beID)}, fetchPartnerFieldOpts, &beRecords)
-	if err != nil {
-		return "", fmt.Errorf("fetching accounting contact by ID: %w", err)
-	}
+	if s.options.Odoo8CompatibilityMode {
+		odoo8ID := fmt.Sprintf("__export__.res_partner_%d", beID)
 
-	if len(beRecords) <= 0 {
-		return "", fmt.Errorf("no results when fetching accounting contact by ID")
+		idMatchCriteria := odooclient.NewCriteria().Add("x_odoo_8_ID", "=", odoo8ID)
+
+		r, err := s.client.FindResPartners(idMatchCriteria, fetchPartnerFieldOpts)
+		if err != nil {
+			return "", fmt.Errorf("fetching accounting contact by ID: %w", err)
+		}
+
+		if len(*r) <= 0 {
+			return "", fmt.Errorf("no results when fetching accounting contact by ID")
+		}
+		resPartners := *r
+
+		beRecord = resPartners[0]
+	} else {
+		beRecords := []odooclient.ResPartner{}
+		err = s.client.Read(odooclient.ResPartnerModel, []int64{int64(beID)}, fetchPartnerFieldOpts, &beRecords)
+		if err != nil {
+			return "", fmt.Errorf("fetching accounting contact by ID: %w", err)
+		}
+
+		if len(beRecords) <= 0 {
+			return "", fmt.Errorf("no results when fetching accounting contact by ID")
+		}
+
+		beRecord = beRecords[0]
 	}
-	beRecord := beRecords[0]
 
 	if beRecord.ParentId == nil {
 		return "", fmt.Errorf("accounting contact %d has no parent", beRecord.Id.Get())
