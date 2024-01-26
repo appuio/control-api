@@ -43,7 +43,7 @@ A user of APPUiO Cloud has invited you to join them. Follow https://portal.dev/i
 
 APPUiO Cloud is a shared Kubernetes offering based on OpenShift provided by https://vshn.ch.
 
-Unsure what to do next? Accept this invitation using the link above, login to one of the zones listed at https://portal.appuio.cloud/zones, deploy your application. A getting started guide on how to do so, is available at https://docs.appuio.cloud/user/tutorials/getting-started.html. To learn more about APPUiO Cloud in general, please visit https://appuio.cloud. 
+Unsure what to do next? Accept this invitation using the link above, login to one of the zones listed at https://portal.appuio.cloud/zones, deploy your application. A getting started guide on how to do so, is available at https://docs.appuio.cloud/user/tutorials/getting-started.html. To learn more about APPUiO Cloud in general, please visit https://appuio.cloud.
 
 If you have any problems or questions, please email us at support@appuio.ch.
 
@@ -102,7 +102,8 @@ func ControllerCommand() *cobra.Command {
 	billingEntityEmailBodyTemplate := cmd.Flags().String("billingentity-email-body-template", defaultBillingEntityEmailTemplate, "Body for billing entity modification update mails")
 	billingEntityEmailRecipient := cmd.Flags().String("billingentity-email-recipient", "", "Recipient e-mail address for billing entity modification update mails")
 	billingEntityEmailSubject := cmd.Flags().String("billingentity-email-subject", "An APPUiO Billing Entity has been updated", "Subject for billing entity modification update mails")
-	billingEntityCronInterval := cmd.Flags().String("billingentity-email-cron-interval", "@every 1h", "Cron interval for how frequently billing entity update e-mails are sent")
+	billingEntityEmailCronInterval := cmd.Flags().String("billingentity-email-cron-interval", "@every 1h", "Cron interval for how frequently billing entity update e-mails are sent")
+	billingEntityRBACCronInterval := cmd.Flags().String("billingentity-rbac-cron-interval", "@every 3m", "Cron interval for how frequently billing entity rbac is reconciled")
 
 	saleOrderCompatMode := cmd.Flags().Bool("sale-order-compatibility-mode", false, "Whether to enable compatibility mode for Sales Orders. If enabled, odoo8 billing entity IDs are used to create sales orders in odoo16.")
 	saleOrderStorage := cmd.Flags().String("sale-order-storage", "none", "Type of sale order storage to use. Valid values are `none` and `odoo16`")
@@ -212,9 +213,10 @@ func ControllerCommand() *cobra.Command {
 			os.Exit(1)
 		}
 
-		cron, err := setupCron(
+		setupLog.Info("setting up email cron")
+		emailCron, err := setupEmailCron(
 			ctx,
-			*billingEntityCronInterval,
+			*billingEntityEmailCronInterval,
 			mgr,
 			beMailSender,
 			*billingEntityEmailRecipient,
@@ -223,7 +225,19 @@ func ControllerCommand() *cobra.Command {
 			setupLog.Error(err, "unable to setup email cron")
 			os.Exit(1)
 		}
-		cron.Start()
+		emailCron.Start()
+
+		setupLog.Info("setting up billing entity rbac cron")
+		beRBACCron, err := setupBillingEntityRBACCron(
+			ctx,
+			*billingEntityRBACCronInterval,
+			mgr,
+		)
+		if err != nil {
+			setupLog.Error(err, "unable to setup rbac cron")
+			os.Exit(1)
+		}
+		beRBACCron.Start()
 
 		setupLog.Info("starting manager")
 		if err := mgr.Start(ctx); err != nil {
@@ -231,7 +245,10 @@ func ControllerCommand() *cobra.Command {
 			os.Exit(1)
 		}
 		setupLog.Info("Stopping...")
-		<-cron.Stop().Done()
+		ecs := emailCron.Stop()
+		becs := beRBACCron.Stop()
+		<-ecs.Done()
+		<-becs.Done()
 	}
 
 	return cmd
@@ -390,7 +407,7 @@ func setupManager(
 	return mgr, err
 }
 
-func setupCron(
+func setupEmailCron(
 	ctx context.Context,
 	crontab string,
 	mgr ctrl.Manager,
@@ -406,7 +423,7 @@ func setupCron(
 	)
 
 	metrics.Registry.MustRegister(bemail.GetMetrics())
-	syncLog := ctrl.Log.WithName("cron")
+	syncLog := ctrl.Log.WithName("email_cron")
 
 	c := cron.New()
 	_, err := c.AddFunc(crontab, func() {
@@ -422,4 +439,22 @@ func setupCron(
 		return nil, err
 	}
 	return c, nil
+}
+
+func setupBillingEntityRBACCron(
+	ctx context.Context,
+	crontab string,
+	mgr ctrl.Manager,
+) (*cron.Cron, error) {
+
+	rbac := &controllers.BillingEntityRBACCronJob{Client: mgr.GetClient()}
+	syncLog := ctrl.Log.WithName("be_rbac_cron")
+	c := cron.New()
+	_, err := c.AddFunc(crontab, func() {
+		err := rbac.Run(ctx)
+		if err != nil {
+			syncLog.Error(err, "Error during periodic job")
+		}
+	})
+	return c, err
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"go.uber.org/multierr"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/appuio/control-api/apiserver/billing/odoostorage"
+	"github.com/appuio/control-api/pkg/billingrbac"
 )
 
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=get;list;watch;create;delete;patch;update;edit
@@ -44,68 +44,12 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 		return createdObj, fmt.Errorf("could not get name of created object: %w", err)
 	}
 
-	viewRoleName := fmt.Sprintf("billingentities-%s-viewer", objName)
-	viewRole := &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: viewRoleName,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups:     []string{"rbac.appuio.io"},
-				Resources:     []string{"billingentities"},
-				Verbs:         []string{"get"},
-				ResourceNames: []string{objName},
-			},
-		},
-	}
-	viewRoleBinding := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: viewRoleName,
-		},
-		Subjects: []rbacv1.Subject{},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			APIGroup: "rbac.authorization.k8s.io",
-			Name:     viewRoleName,
-		},
-	}
-	adminRoleName := fmt.Sprintf("billingentities-%s-admin", objName)
-	adminRole := &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: adminRoleName,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups:     []string{"rbac.appuio.io", "billing.appuio.io"},
-				Resources:     []string{"billingentities"},
-				Verbs:         []string{"get", "patch", "update", "edit"},
-				ResourceNames: []string{objName},
-			},
-			{
-				APIGroups:     []string{"rbac.authorization.k8s.io"},
-				Resources:     []string{"clusterrolebindings"},
-				Verbs:         []string{"get", "edit", "update", "patch"},
-				ResourceNames: []string{viewRoleName, adminRoleName},
-			},
-		},
-	}
-	adminRoleBinding := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: adminRoleName,
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:     "User",
-				APIGroup: "rbac.authorization.k8s.io",
-				Name:     user.GetName(),
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			APIGroup: "rbac.authorization.k8s.io",
-			Name:     adminRoleName,
-		},
-	}
+	ar, arb, vr, vrb := billingrbac.ClusterRoles(objName, billingrbac.ClusterRolesParams{
+		AllowSubjectsToViewRole: true,
+
+		AdminUsers: []string{user.GetName()},
+	})
+	toCreate := []client.Object{ar, arb, vr, vrb}
 
 	rollback := func() error {
 		if deleter, canDelete := c.Storage.(rest.GracefulDeleter); canDelete {
@@ -116,7 +60,6 @@ func (c *createRBACWrapper) Create(ctx context.Context, obj runtime.Object, crea
 		return nil
 	}
 
-	toCreate := []client.Object{viewRole, viewRoleBinding, adminRole, adminRoleBinding}
 	created := make([]client.Object, 0, len(toCreate))
 	var createErr error
 	for _, obj := range toCreate {
