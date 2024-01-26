@@ -89,7 +89,7 @@ func ClusterRoles(beName string, p ClusterRolesParams) (ar *rbacv1.ClusterRole, 
 			APIGroups:     []string{"rbac.authorization.k8s.io"},
 			Resources:     []string{"clusterroles"},
 			Verbs:         []string{"get"},
-			ResourceNames: []string{adminRoleName},
+			ResourceNames: []string{viewRoleName, adminRoleName},
 		})
 	}
 	adminRoleBinding := &rbacv1.ClusterRoleBinding{
