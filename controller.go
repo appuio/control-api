@@ -219,7 +219,10 @@ func ControllerCommand() *cobra.Command {
 			beMailSender,
 			*billingEntityEmailRecipient,
 		)
-
+		if err != nil {
+			setupLog.Error(err, "unable to setup email cron")
+			os.Exit(1)
+		}
 		cron.Start()
 
 		setupLog.Info("starting manager")
