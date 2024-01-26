@@ -398,7 +398,6 @@ func setupCron(
 	bemail := controllers.NewBillingEntityEmailCronJob(
 		mgr.GetClient(),
 		mgr.GetEventRecorderFor("invitation-email-controller"),
-		mgr.GetScheme(),
 		beMailSender,
 		beMailRecipient,
 	)

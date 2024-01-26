@@ -71,7 +71,6 @@ func billingEntityCronJob(c client.WithWatch) *BillingEntityEmailCronJob {
 	r := NewBillingEntityEmailCronJob(
 		c,
 		record.NewFakeRecorder(3),
-		c.Scheme(),
 		&SenderWithConstantId{},
 		"foo@example.com",
 	)
@@ -131,7 +130,6 @@ func billingEntityCronJobWithFailingSender(c client.WithWatch) *BillingEntityEma
 	r := NewBillingEntityEmailCronJob(
 		c,
 		record.NewFakeRecorder(3),
-		c.Scheme(),
 		&FailingSender{},
 		"foo@example.com",
 	)
