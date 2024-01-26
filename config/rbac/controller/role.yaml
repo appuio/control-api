@@ -98,6 +98,13 @@ rules:
   - patch
   - update
 - apiGroups:
+  - billing.appuio.io
+  - rbac.appuio.io
+  resources:
+  - billingentities
+  verbs:
+  - '*'
+- apiGroups:
   - organization.appuio.io
   resources:
   - organizations
@@ -179,6 +186,8 @@ rules:
   - clusterroles
   verbs:
   - create
+  - delete
+  - edit
   - get
   - list
   - patch

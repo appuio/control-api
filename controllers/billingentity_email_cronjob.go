@@ -7,7 +7,6 @@ import (
 	"go.uber.org/multierr"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -23,7 +22,6 @@ type BillingEntityEmailCronJob struct {
 	client.Client
 
 	Recorder record.EventRecorder
-	Scheme   *runtime.Scheme
 
 	MailSender mailsenders.MailSender
 
@@ -33,7 +31,7 @@ type BillingEntityEmailCronJob struct {
 	successCounter prometheus.Counter
 }
 
-func NewBillingEntityEmailCronJob(client client.Client, eventRecorder record.EventRecorder, scheme *runtime.Scheme, mailSender mailsenders.MailSender, MailRecipientAddress string) BillingEntityEmailCronJob {
+func NewBillingEntityEmailCronJob(client client.Client, eventRecorder record.EventRecorder, mailSender mailsenders.MailSender, MailRecipientAddress string) BillingEntityEmailCronJob {
 	return BillingEntityEmailCronJob{
 		Client:               client,
 		Recorder:             eventRecorder,
