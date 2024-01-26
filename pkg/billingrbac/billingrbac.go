@@ -21,6 +21,10 @@ type ClusterRolesParams struct {
 func ClusterRoles(beName string, p ClusterRolesParams) (ar *rbacv1.ClusterRole, arBinding *rbacv1.ClusterRoleBinding, vr *rbacv1.ClusterRole, vrBinding *rbacv1.ClusterRoleBinding) {
 	viewRoleName := fmt.Sprintf("billingentities-%s-viewer", beName)
 	viewRole := &rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "rbac.authorization.k8s.io/v1",
+			Kind:       "ClusterRole",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: viewRoleName,
 		},
@@ -42,6 +46,10 @@ func ClusterRoles(beName string, p ClusterRolesParams) (ar *rbacv1.ClusterRole, 
 		})
 	}
 	viewRoleBinding := &rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "rbac.authorization.k8s.io/v1",
+			Kind:       "ClusterRoleBinding",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: viewRoleName,
 		},
@@ -54,6 +62,10 @@ func ClusterRoles(beName string, p ClusterRolesParams) (ar *rbacv1.ClusterRole, 
 	}
 	adminRoleName := fmt.Sprintf("billingentities-%s-admin", beName)
 	adminRole := &rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "rbac.authorization.k8s.io/v1",
+			Kind:       "ClusterRole",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: adminRoleName,
 		},
@@ -81,6 +93,10 @@ func ClusterRoles(beName string, p ClusterRolesParams) (ar *rbacv1.ClusterRole, 
 		})
 	}
 	adminRoleBinding := &rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "rbac.authorization.k8s.io/v1",
+			Kind:       "ClusterRoleBinding",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: adminRoleName,
 		},
