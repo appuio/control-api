@@ -31,10 +31,10 @@ import (
 func APICommand() *cobra.Command {
 	roles := []string{}
 	usernamePrefix := ""
-	var allowEmptyBillingEntity bool
+	var allowEmptyBillingEntity, skipBillingEntityValidation bool
 
 	ob := &odooStorageBuilder{}
-	ost := orgStore.New(&roles, &usernamePrefix, &allowEmptyBillingEntity)
+	ost := orgStore.New(&roles, &usernamePrefix, &allowEmptyBillingEntity, &skipBillingEntityValidation)
 	ib := &invitationStorageBuilder{usernamePrefix: &usernamePrefix}
 
 	cmd, err := builder.APIServer.
@@ -55,6 +55,7 @@ func APICommand() *cobra.Command {
 	cmd.Flags().StringSliceVar(&roles, "cluster-roles", []string{}, "Cluster Roles to bind when creating an organization")
 	cmd.Flags().StringVar(&usernamePrefix, "username-prefix", "", "Prefix prepended to username claims. Usually the same as \"--oidc-username-prefix\" of the Kubernetes API server")
 	cmd.Flags().BoolVar(&allowEmptyBillingEntity, "allow-empty-billing-entity", true, "Allow empty billing entity references")
+	cmd.Flags().BoolVar(&skipBillingEntityValidation, "organization-skip-billing-entity-validation", false, "Skip validation of billing entity references")
 
 	cmd.Flags().StringVar(&ob.billingEntityStorage, "billing-entity-storage", "fake", "Storage backend for billing entities. Supported values: fake, odoo8, odoo16")
 
