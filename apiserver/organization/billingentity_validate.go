@@ -3,6 +3,7 @@ package organization
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
@@ -45,29 +46,38 @@ func (c impersonatorFromRestconf) Impersonate(u user.Info) (client.Client, error
 // billingEntityValidator validates that the billing entity exists and the requesting user has access to it.
 // it does so by impersonating the user and trying to get the billing entity.
 func (s *organizationStorage) billingEntityValidator(ctx context.Context, org, oldOrg *orgv1.Organization) error {
-	// check if changed
-	if oldOrg != nil && oldOrg.Spec.BillingEntityRef == org.Spec.BillingEntityRef {
+	validate := func() error {
+		// check if changed
+		if oldOrg != nil && oldOrg.Spec.BillingEntityRef == org.Spec.BillingEntityRef {
+			return nil
+		}
+		// check if we allow empty billing entities
+		if org.Spec.BillingEntityRef == "" && s.allowEmptyBillingEntity {
+			return nil
+		}
+
+		user, ok := request.UserFrom(ctx)
+		if !ok {
+			return fmt.Errorf("no user in context")
+		}
+
+		var be billingv1.BillingEntity
+		c, err := s.impersonator.Impersonate(user)
+		if err != nil {
+			return fmt.Errorf("failed to impersonate user: %w", err)
+		}
+
+		if err := c.Get(ctx, client.ObjectKey{Name: org.Spec.BillingEntityRef}, &be); err != nil {
+			return err
+		}
+
 		return nil
 	}
-	// check if we allow empty billing entities
-	if org.Spec.BillingEntityRef == "" && s.allowEmptyBillingEntity {
+
+	err := validate()
+	if err != nil && s.skipBillingEntityValidation {
+		fmt.Fprintf(os.Stderr, "Warning: billing entity validation for %q (ref: %q) would have failed: %v\n", org.Name, org.Spec.BillingEntityRef, err)
 		return nil
 	}
-
-	user, ok := request.UserFrom(ctx)
-	if !ok {
-		return fmt.Errorf("no user in context")
-	}
-
-	var be billingv1.BillingEntity
-	c, err := s.impersonator.Impersonate(user)
-	if err != nil {
-		return fmt.Errorf("failed to impersonate user: %w", err)
-	}
-
-	if err := c.Get(ctx, client.ObjectKey{Name: org.Spec.BillingEntityRef}, &be); err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

@@ -28,7 +28,7 @@ import (
 // +kubebuilder:rbac:groups="flowcontrol.apiserver.k8s.io",resources=prioritylevelconfigurations;flowschemas,verbs=get;list;watch
 
 // New returns a new storage provider for Organizations
-func New(clusterRoles *[]string, usernamePrefix *string, allowEmptyBillingEntity *bool) restbuilder.ResourceHandlerProvider {
+func New(clusterRoles *[]string, usernamePrefix *string, allowEmptyBillingEntity, skipBillingEntityValidation *bool) restbuilder.ResourceHandlerProvider {
 	return func(s *runtime.Scheme, g genericregistry.RESTOptionsGetter) (rest.Storage, error) {
 		masterConfig := loopback.GetLoopbackMasterClientConfig()
 
@@ -54,9 +54,10 @@ func New(clusterRoles *[]string, usernamePrefix *string, allowEmptyBillingEntity
 			members: kubeMemberProvider{
 				Client: c,
 			},
-			usernamePrefix:          *usernamePrefix,
-			impersonator:            impersonatorFromRestconf{masterConfig, client.Options{Scheme: c.Scheme()}},
-			allowEmptyBillingEntity: *allowEmptyBillingEntity,
+			usernamePrefix:              *usernamePrefix,
+			impersonator:                impersonatorFromRestconf{masterConfig, client.Options{Scheme: c.Scheme()}},
+			allowEmptyBillingEntity:     *allowEmptyBillingEntity,
+			skipBillingEntityValidation: *skipBillingEntityValidation,
 		}
 
 		return authwrapper.NewAuthorizedStorage(stor, metav1.GroupVersionResource{
@@ -78,7 +79,8 @@ type organizationStorage struct {
 
 	impersonator impersonator
 
-	allowEmptyBillingEntity bool
+	skipBillingEntityValidation bool
+	allowEmptyBillingEntity     bool
 }
 
 func (s organizationStorage) New() runtime.Object {
