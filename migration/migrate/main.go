@@ -25,14 +25,17 @@ import (
 	controlv1 "github.com/appuio/control-api/apis/v1"
 )
 
+var manualMapping = map[string]string{}
+
 func main() {
 	ctx := context.Background()
 
-	var dryRun, iCheckedInvitations, force bool
+	var dryRun, iCheckedInvitations, force, migrate bool
 
 	flag.BoolVar(&dryRun, "dry-run", true, "dry run")
 	flag.BoolVar(&iCheckedInvitations, "i-checked-invitations", false, "i checked that there are no pending invitations for the billing entities")
 	flag.BoolVar(&force, "force", false, "override checks")
+	flag.BoolVar(&migrate, "migrate", false, "do migration")
 
 	flag.Parse()
 
@@ -50,11 +53,14 @@ func main() {
 		panic(err)
 	}
 
-	old2new, new2old, err := loadMapping()
+	old2new, _, err := loadMapping()
 	if err != nil {
 		panic(err)
 	}
-	_ = new2old
+
+	for id, newID := range manualMapping {
+		old2new[id] = newID
+	}
 
 	var es billingv1.BillingEntityList
 	if err := c.List(ctx, &es); err != nil {
@@ -64,6 +70,10 @@ func main() {
 	manifests, err := collectManifestsRequiringMigration(ctx, c)
 	if err != nil {
 		panic(err)
+	}
+	if _, ok := manifests[""]; ok {
+		fmt.Fprintln(os.Stderr, "Found manifests without billing entity")
+		os.Exit(1)
 	}
 
 	var missing []string
@@ -88,7 +98,59 @@ func main() {
 	}
 
 	fmt.Fprintln(os.Stderr, "All checks passed")
+
+	if !migrate {
+		return
+	}
+
 	fmt.Fprintln(os.Stderr, "Deleting old RBAC")
+	deleteRBAC(ctx, c)
+
+	fmt.Fprintln(os.Stderr, "Migrating manifests")
+
+	for id, ms := range manifests {
+		if old2new[id] == "" && force {
+			fmt.Fprintln(os.Stderr, "Skipping", id)
+			continue
+		}
+		fmt.Fprintln(os.Stderr, "Migrating", id, "->", old2new[id])
+		for _, m := range ms {
+			switch m := m.(type) {
+			case *rbacv1.ClusterRole:
+				fmt.Fprintln(os.Stderr, "Skipping role", m.Name, "will be recreated by the controller")
+			case *rbacv1.ClusterRoleBinding:
+				opts := []client.CreateOption{}
+				if dryRun {
+					opts = append(opts, client.DryRunAll)
+				}
+				pf := roleBeRegexp.FindStringSubmatch(m.Name)
+				crb := m.DeepCopy()
+				crb.ObjectMeta = metav1.ObjectMeta{
+					Name: "billingentities-be-" + old2new[id] + "-" + pf[2],
+					Labels: map[string]string{
+						"appuio.io/odoo-migrated": "true",
+					},
+				}
+				fmt.Fprintln(os.Stderr, "Migrating role binding", m.Name, "->", crb.Name)
+				if err := c.Create(ctx, crb, opts...); err != nil {
+					panic(err)
+				}
+			case *orgv1.Organization:
+				m.Labels["appuio.io/odoo-migrated"] = "true"
+				fmt.Fprintln(os.Stderr, "Migrating org", m.Name, m.Spec.BillingEntityRef, "->", "be-"+old2new[id])
+				m.Spec.BillingEntityRef = "be-" + old2new[id]
+				// we don't implement dry run correctly
+				if !dryRun {
+					if err := c.Update(ctx, m); err != nil {
+						panic(err)
+					}
+				}
+			}
+		}
+	}
+}
+
+func deleteRBAC(ctx context.Context, c client.Client) {
 	var crbs rbacv1.ClusterRoleBindingList
 	if err := c.List(ctx, &crbs); err != nil {
 		panic(err)
@@ -113,49 +175,6 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Deleting role", cr.Name)
 		if err := c.Delete(ctx, &cr, client.DryRunAll); err != nil {
 			panic(err)
-		}
-	}
-
-	fmt.Fprintln(os.Stderr, "Migrating manifests")
-
-	for id, ms := range manifests {
-		if old2new[id] == "" && force {
-			fmt.Fprintln(os.Stderr, "Skipping", id)
-			continue
-		}
-		for _, m := range ms {
-			switch m := m.(type) {
-			case *rbacv1.ClusterRole:
-				fmt.Fprintln(os.Stderr, "Skipping role", m.Name, "will be recreated by the controller")
-			case *rbacv1.ClusterRoleBinding:
-				opts := []client.CreateOption{}
-				if dryRun {
-					opts = append(opts, client.DryRunAll)
-				}
-				pf := roleBeRegexp.FindStringSubmatch(m.Name)
-				crb := m.DeepCopy()
-				crb.ObjectMeta = metav1.ObjectMeta{
-					Name: "billingentities-be-" + old2new[id] + "-" + pf[2],
-					Labels: map[string]string{
-						"appuio.io/odoo-migrated": "true",
-					},
-				}
-				fmt.Fprintln(os.Stderr, "Migrating role binding", m.Name, "->", crb.Name)
-				if err := c.Create(ctx, crb, opts...); err != nil {
-					panic(err)
-				}
-			case *orgv1.Organization:
-				opts := []client.UpdateOption{}
-				if dryRun {
-					opts = append(opts, client.DryRunAll)
-				}
-				m.Labels["appuio.io/odoo-migrated"] = "true"
-				fmt.Fprintln(os.Stderr, "Migrating org", m.Name, m.Spec.BillingEntityRef, "->", "be-"+old2new[id])
-				m.Spec.BillingEntityRef = "be-" + old2new[id]
-				if err := c.Update(ctx, m, opts...); err != nil {
-					panic(err)
-				}
-			}
 		}
 	}
 }
@@ -207,22 +226,24 @@ func collectManifestsRequiringMigration(ctx context.Context, c client.Client) (m
 		return nil, fmt.Errorf("failed to list cluster roles: %w", err)
 	}
 	for _, crb := range crbs.Items {
-		if strings.HasPrefix(crb.Name, "billingentities-be-") {
-			if len(crb.Subjects) == 0 {
-				continue
-			}
-			m := roleBeRegexp.FindStringSubmatch(crb.Name)
-			if m == nil {
-				fmt.Fprintln(os.Stderr, "can't parse", crb.Name)
-				continue
-			}
-			id := m[1]
+		crb := crb
+		if !strings.HasPrefix(crb.Name, "billingentities-be-") {
+			continue
+		}
+		if len(crb.Subjects) == 0 {
+			continue
+		}
+		m := roleBeRegexp.FindStringSubmatch(crb.Name)
+		if m == nil {
+			fmt.Fprintln(os.Stderr, "can't parse", crb.Name)
+			continue
+		}
+		id := m[1]
 
-			manifests[id] = append(manifests[id], &crb)
-			cr, ok := findCr(crs, crb.Name)
-			if ok {
-				manifests[id] = append(manifests[id], &cr)
-			}
+		manifests[id] = append(manifests[id], &crb)
+		cr, ok := findCr(crs, crb.Name)
+		if ok {
+			manifests[id] = append(manifests[id], &cr)
 		}
 	}
 
@@ -231,6 +252,11 @@ func collectManifestsRequiringMigration(ctx context.Context, c client.Client) (m
 		return nil, fmt.Errorf("failed to list organizations: %w", err)
 	}
 	for _, org := range orgs.Items {
+		org := org
+		if org.Spec.BillingEntityRef == "" {
+			fmt.Fprintln(os.Stderr, "skipping", org.Name, "no billing entity ref")
+			continue
+		}
 		id := strings.TrimPrefix(org.Spec.BillingEntityRef, "be-")
 		manifests[id] = append(manifests[id], &org)
 	}
