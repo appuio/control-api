@@ -9,21 +9,8 @@ import (
 	odooclient "github.com/appuio/go-odoo"
 )
 
-// old code
-// const roleAccountCategory = 70
-
-// my F12ing
-// const roleAccountCategory = 109
-
-// from tobru
-// const roleAccountCategory = 248
-
-// something seems to be broken here. I only get a single record back
-// var roleAccountFilter = odooclient.NewCriterion("category_id", "in", []int{roleAccountCategory})
-
-var invoiceContactFilter = odooclient.NewCriterion("type", "=", "invoice")
-var activeFilter = odooclient.NewCriterion("active", "=", true)
 var notInflightFilter = odooclient.NewCriterion("vshn_control_api_inflight", "=", false)
+var includeArchivedFilter = odooclient.NewCriterion("active", "in", []bool{true, false})
 
 var fetchPartnerFieldOpts = odooclient.NewOptions().FetchFields(
 	"id",
@@ -63,7 +50,7 @@ func main() {
 		panic(err)
 	}
 
-	criteria := odooclient.NewCriteria().AddCriterion(activeFilter).AddCriterion(notInflightFilter).AddCriterion(invoiceContactFilter)
+	criteria := odooclient.NewCriteria().AddCriterion(includeArchivedFilter).AddCriterion(notInflightFilter)
 	accPartners, err := session.FindResPartners(criteria, fetchPartnerFieldOpts)
 	if err != nil {
 		panic(err)
