@@ -53,7 +53,7 @@ func main() {
 		panic(err)
 	}
 
-	old2new, _, err := loadMapping()
+	old2new, _, meta, err := loadMapping()
 	if err != nil {
 		panic(err)
 	}
@@ -77,16 +77,27 @@ func main() {
 	}
 
 	var missing []string
+	type wrongType struct{ id, newId, t string }
+	var wrongTypes []wrongType
 	for id := range manifests {
-		_, ok := old2new[id]
-		if ok {
+		newId, ok := old2new[id]
+		if !ok {
+			missing = append(missing, id)
 			continue
 		}
-		missing = append(missing, id)
+		if t := meta[newId].Type; t != "invoice" {
+			wrongTypes = append(wrongTypes, wrongType{id, newId, t})
+		}
 	}
 	slices.Sort(missing)
 	if len(missing) > 0 {
 		fmt.Fprintln(os.Stderr, "Missing mappings for", missing)
+		if !force {
+			os.Exit(1)
+		}
+	}
+	if len(wrongTypes) > 0 {
+		fmt.Fprintf(os.Stderr, "Wrong types for %+v", wrongTypes)
 		if !force {
 			os.Exit(1)
 		}
@@ -179,10 +190,15 @@ func deleteRBAC(ctx context.Context, c client.Client) {
 	}
 }
 
+type recordMeta struct {
+	Type string
+}
+
 // loadMapping loads the mapping.csv file and compares the data with the data
-func loadMapping() (old2new map[string]string, new2old map[string]string, err error) {
+func loadMapping() (old2new map[string]string, new2old map[string]string, meta map[string]recordMeta, err error) {
 	old2new = make(map[string]string)
 	new2old = make(map[string]string)
+	meta = make(map[string]recordMeta)
 
 	cr := csv.NewReader(os.Stdin)
 	for {
@@ -191,7 +207,7 @@ func loadMapping() (old2new map[string]string, new2old map[string]string, err er
 			break
 		}
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to read record: %w", err)
+			return nil, nil, nil, fmt.Errorf("failed to read record: %w", err)
 		}
 		if record[1] == "" {
 			fmt.Fprintln(os.Stderr, "no old id for", record[0], record[2], record[3], "found")
@@ -199,8 +215,12 @@ func loadMapping() (old2new map[string]string, new2old map[string]string, err er
 		}
 		old2new[record[1]] = record[0]
 		new2old[record[0]] = record[1]
+
+		meta[record[0]] = recordMeta{
+			Type: record[4],
+		}
 	}
-	return old2new, new2old, nil
+	return old2new, new2old, meta, nil
 }
 
 var roleBeRegexp = regexp.MustCompile(`^billingentities-be-(\d+)-(.+)$`)

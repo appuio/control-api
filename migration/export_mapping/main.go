@@ -14,7 +14,7 @@ var includeArchivedFilter = odooclient.NewCriterion("active", "in", []bool{true,
 
 var fetchPartnerFieldOpts = odooclient.NewOptions().FetchFields(
 	"id",
-	// "type",
+	"type",
 	"name",
 	"display_name",
 	// "country_id",
@@ -64,10 +64,19 @@ func main() {
 			strings.TrimPrefix(p.XOdoo8ID.Get(), "__export__.res_partner_"),
 			p.Name.Get(),
 			p.DisplayName.Get(),
+			formatType(p.Type),
 		})
 	}
 	csvw.Flush()
 	if err := csvw.Error(); err != nil {
 		panic(err)
 	}
+}
+
+func formatType(s *odooclient.Selection) string {
+	v := s.Get()
+	if v == nil {
+		return "unknown"
+	}
+	return v.(string)
 }
