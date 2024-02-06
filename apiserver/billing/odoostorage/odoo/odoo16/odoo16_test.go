@@ -25,17 +25,17 @@ func TestGet(t *testing.T) {
 	statusTime := st.Local()
 
 	gomock.InOrder(
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{{
 			Id:                       odooclient.NewInt(456),
 			CreateDate:               odooclient.NewTime(tn),
 			ParentId:                 odooclient.NewMany2One(123, ""),
 			Email:                    odooclient.NewString("accounting@test.com, notifications@test.com"),
 			VshnControlApiMetaStatus: odooclient.NewString("{\"conditions\":[{\"type\":\"ConditionFoo\",\"status\":\"False\",\"lastTransitionTime\":\"" + statusTime.Format(time.RFC3339) + "\",\"reason\":\"Whatever\",\"message\":\"Hello World\"}]}"),
-		}}).Return(nil),
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
+		}}, nil),
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{{
 			Id:   odooclient.NewInt(123),
 			Name: odooclient.NewString("Test Company"),
-		}}).Return(nil),
+		}}, nil),
 	)
 
 	s, err := subject.Get(context.Background(), "be-456")
@@ -85,11 +85,10 @@ func TestGetNoParent(t *testing.T) {
 	defer ctrl.Finish()
 
 	gomock.InOrder(
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{{
 			Id:   odooclient.NewInt(456),
 			Name: odooclient.NewString("Accounting"),
-		}},
-		).Return(nil),
+		}}, nil),
 	)
 
 	_, err := subject.Get(context.Background(), "be-456")
@@ -101,12 +100,12 @@ func TestGet_ParentCantBeRetrieved(t *testing.T) {
 	defer ctrl.Finish()
 
 	gomock.InOrder(
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{{
 			Id:       odooclient.NewInt(456),
 			Name:     odooclient.NewString("Accounting"),
 			ParentId: odooclient.NewMany2One(123, ""),
-		}}).Return(nil),
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("No such record")),
+		}}, nil),
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(nil, errors.New("No such record")),
 	)
 
 	_, err := subject.Get(context.Background(), "be-456")
@@ -189,17 +188,17 @@ func TestCreate(t *testing.T) {
 		// Reset inflight flag
 		mock.EXPECT().Update(odooclient.ResPartnerModel, gomock.InAnyOrder([]int64{700, 702}), gomock.Any()),
 		// Fetch created company
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{{
 			Id:         odooclient.NewInt(702),
 			Name:       odooclient.NewString("Max Foobar"),
 			CreateDate: odooclient.NewTime(tn),
 			ParentId:   odooclient.NewMany2One(700, ""),
 			Email:      odooclient.NewString("accounting@test.com, notifications@test.com"),
-		}}),
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
+		}}, nil),
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{{
 			Id:   odooclient.NewInt(700),
 			Name: odooclient.NewString("Test Company"),
-		}}),
+		}}, nil),
 	)
 
 	s := &billingv1.BillingEntity{
@@ -239,30 +238,30 @@ func TestUpdate(t *testing.T) {
 
 	gomock.InOrder(
 		// Fetch existing company
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{{
 			Id:       odooclient.NewInt(702),
 			ParentId: odooclient.NewMany2One(700, ""),
-		}}),
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
+		}}, nil),
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{{
 			Id:   odooclient.NewInt(700),
 			Name: odooclient.NewString("Test Company"),
-		}}),
+		}}, nil),
 		// Update company
 		mock.EXPECT().UpdateResPartner(gomock.Any()),
 		// Update accounting contact
 		mock.EXPECT().UpdateResPartner(gomock.Any()),
 		// Fetch created company
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{{
 			Id:                       odooclient.NewInt(702),
 			CreateDate:               odooclient.NewTime(tn),
 			ParentId:                 odooclient.NewMany2One(700, ""),
 			Email:                    odooclient.NewString("accounting@test.com, notifications@test.com"),
 			VshnControlApiMetaStatus: odooclient.NewString("{\"conditions\":[{\"type\":\"ConditionFoo\",\"status\":\"False\",\"lastTransitionTime\":\"" + statusTime.Format(time.RFC3339) + "\",\"reason\":\"Whatever\",\"message\":\"Hello World\"}]}"),
-		}}),
-		mock.EXPECT().Read(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).SetArg(3, []odooclient.ResPartner{{
+		}}, nil),
+		mock.EXPECT().FindResPartners(gomock.Any(), gomock.Any()).Return(&odooclient.ResPartners{{
 			Id:   odooclient.NewInt(700),
 			Name: odooclient.NewString("Test Company"),
-		}}),
+		}}, nil),
 	)
 
 	s := &billingv1.BillingEntity{
