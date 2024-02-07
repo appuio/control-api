@@ -23,15 +23,16 @@ import (
 const VSHNAccountingContactNameKey = "billing.appuio.io/vshn-accounting-contact-name"
 
 // Used to identify the accounting contact of a company.
-const roleAccountCategory = 70
-const companyCategory = 2
 const invoiceType = "invoice"
+
+// TODO(bastjan) test if still needed in odoo16
+const companyCategory = 2
 
 // Used to generate the UUID for the .metadata.uid field.
 var metaUIDNamespace = uuid.MustParse("7550b1ae-7a2a-485e-a75d-6f931b2cd73f")
 
-var roleAccountFilter = odooclient.NewCriterion("category_id", "in", []int{roleAccountCategory})
 var activeFilter = odooclient.NewCriterion("active", "=", true)
+var invoiceTypeFilter = odooclient.NewCriterion("type", "=", invoiceType)
 var notInflightFilter = odooclient.NewCriterion("vshn_control_api_inflight", "=", false)
 var mustInflightFilter = odooclient.NewCriterion("vshn_control_api_inflight", "!=", false)
 
@@ -97,8 +98,8 @@ type FailedRecordScrubber struct {
 	sessionCreator func(ctx context.Context) (Odoo16Client, error)
 }
 
+//go:generate go run go.uber.org/mock/mockgen -destination=./odoo16mock/$GOFILE -package odoo16mock . Odoo16Client
 type Odoo16Client interface {
-	Read(string, []int64, *odooclient.Options, interface{}) error
 	Update(string, []int64, interface{}) error
 	FindResPartners(*odooclient.Criteria, *odooclient.Options) (*odooclient.ResPartners, error)
 	CreateResPartner(*odooclient.ResPartner) (int64, error)
@@ -127,28 +128,45 @@ func (s *Odoo16Storage) get(ctx context.Context, name string) (company odooclien
 		return odooclient.ResPartner{}, odooclient.ResPartner{}, err
 	}
 
-	u := []odooclient.ResPartner{}
-	err = session.Read(odooclient.ResPartnerModel, []int64{int64(id)}, fetchPartnerFieldOpts, &u)
+	accp, err := session.FindResPartners(
+		newValidInvoiceRecordCriteria().AddCriterion(odooclient.NewCriterion("id", "=", id)),
+		fetchPartnerFieldOpts)
 	if err != nil {
-		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("fetching accounting contact by ID: %w", err)
+		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("error fetching accounting contact %d: %w", id, err)
 	}
-	if len(u) <= 0 {
-		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("no results when fetching accounting contact by ID")
+	if accp == nil {
+		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("fetching accounting contact %d returned nil", id)
 	}
-	accountingContact = u[0]
+	acc := *accp
+	if len(acc) <= 0 {
+		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("no results when fetching accounting contact %d", id)
+	}
+	if len(acc) > 1 {
+		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("multiple results when fetching accounting contact %d", id)
+	}
+	accountingContact = acc[0]
 
 	if accountingContact.ParentId == nil {
 		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("accounting contact %d has no parent", id)
 	}
 
-	err = session.Read(odooclient.ResPartnerModel, []int64{accountingContact.ParentId.ID}, fetchPartnerFieldOpts, &u)
+	cpp, err := session.FindResPartners(
+		odooclient.NewCriteria().AddCriterion(activeFilter).AddCriterion(odooclient.NewCriterion("id", "=", id)),
+		fetchPartnerFieldOpts)
 	if err != nil {
 		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("fetching parent %d of accounting contact %d failed: %w", accountingContact.ParentId.ID, id, err)
 	}
-	if len(u) <= 0 {
-		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("no results when fetching parent %d of accounting contact %d failed", accountingContact.ParentId.ID, id)
+	if cpp == nil {
+		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("fetching parent %d of accounting contact %d returned nil", accountingContact.ParentId.ID, id)
 	}
-	company = u[0]
+	cp := *cpp
+	if len(cp) <= 0 {
+		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("no results when fetching parent %d of accounting contact %d", accountingContact.ParentId.ID, id)
+	}
+	if len(cp) > 1 {
+		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("multiple results when fetching parent %d of accounting contact %d", accountingContact.ParentId.ID, id)
+	}
+	company = cp[0]
 
 	return company, accountingContact, nil
 }
@@ -161,8 +179,7 @@ func (s *Odoo16Storage) List(ctx context.Context) ([]billingv1.BillingEntity, er
 		return nil, err
 	}
 
-	criteria := odooclient.NewCriteria().AddCriterion(roleAccountFilter).AddCriterion(activeFilter).AddCriterion(notInflightFilter)
-	accPartners, err := session.FindResPartners(criteria, fetchPartnerFieldOpts)
+	accPartners, err := session.FindResPartners(newValidInvoiceRecordCriteria(), fetchPartnerFieldOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +193,7 @@ func (s *Odoo16Storage) List(ctx context.Context) ([]billingv1.BillingEntity, er
 		companyIDs = append(companyIDs, int(p.ParentId.ID))
 	}
 
-	criteria = odooclient.NewCriteria().AddCriterion(activeFilter).AddCriterion(odooclient.NewCriterion("id", "in", companyIDs))
+	criteria := odooclient.NewCriteria().AddCriterion(activeFilter).AddCriterion(odooclient.NewCriterion("id", "in", companyIDs))
 	companies, err := session.FindResPartners(criteria, fetchPartnerFieldOpts)
 	if err != nil {
 		return nil, err
@@ -426,7 +443,6 @@ func mapBillingEntityToPartners(be billingv1.BillingEntity, countryIDs map[strin
 
 func setStaticAccountingContactFields(conf Config, a *odooclient.ResPartner) {
 	a.CategoryId = odooclient.NewRelation()
-	a.CategoryId.AddRecord(int64(roleAccountCategory))
 	a.Lang = odooclient.NewSelection(conf.LanguagePreference)
 	a.Type = odooclient.NewSelection(invoiceType)
 	a.PropertyPaymentTermId = odooclient.NewMany2One(int64(conf.PaymentTermID), "")
@@ -448,4 +464,11 @@ func splitCommaSeparated(s string) []string {
 		p[i] = strings.TrimSpace(v)
 	}
 	return p
+}
+
+func newValidInvoiceRecordCriteria() *odooclient.Criteria {
+	return odooclient.NewCriteria().
+		AddCriterion(invoiceTypeFilter).
+		AddCriterion(activeFilter).
+		AddCriterion(notInflightFilter)
 }
