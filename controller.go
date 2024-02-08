@@ -313,6 +313,14 @@ func setupManager(
 			return nil, err
 		}
 	}
+	dor := &controllers.DefaultOrganizationReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("organization-members-controller"),
+	}
+	if err = dor.SetupWithManager(mgr); err != nil {
+		return nil, err
+	}
 	obenc := &controllers.OrgBillingEntityNameCacheController{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
