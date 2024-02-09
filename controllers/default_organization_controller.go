@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"go.uber.org/multierr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -68,7 +70,19 @@ func (r *DefaultOrganizationReconciler) Reconcile(ctx context.Context, req ctrl.
 func setUserDefaultOrganization(ctx context.Context, c client.Client, userName string, orgName string) error {
 	user := controlv1.User{}
 	if err := c.Get(ctx, types.NamespacedName{Name: userName}, &user); err != nil {
-		return err
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		return c.Create(ctx, &controlv1.User{
+			ObjectMeta: v1.ObjectMeta{
+				Name: userName,
+			},
+			Spec: controlv1.UserSpec{
+				Preferences: controlv1.UserPreferences{
+					DefaultOrganizationRef: orgName,
+				},
+			},
+		})
 	}
 
 	if user.Spec.Preferences.DefaultOrganizationRef != "" {

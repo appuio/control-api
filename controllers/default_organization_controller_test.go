@@ -74,7 +74,7 @@ var u3 = controlv1.User{
 	},
 }
 
-func Test_DefaultOrganizationReconciler_Reconcile_Sucess(t *testing.T) {
+func Test_DefaultOrganizationReconciler_Reconcile_Success(t *testing.T) {
 	ctx := context.Background()
 	c := prepareTest(t, &testMemberships1, &testMemberships2, &u1, &u2, &u3)
 	fakeRecorder := record.NewFakeRecorder(3)
@@ -103,7 +103,7 @@ func Test_DefaultOrganizationReconciler_Reconcile_Sucess(t *testing.T) {
 
 }
 
-func Test_DefaultOrganizationReconciler_Reconcile_NoMembership_Sucess(t *testing.T) {
+func Test_DefaultOrganizationReconciler_Reconcile_NoMembership_Success(t *testing.T) {
 	ctx := context.Background()
 	c := prepareTest(t, &testMemberships2, &u1, &u2, &u3)
 	fakeRecorder := record.NewFakeRecorder(3)
@@ -129,6 +129,35 @@ func Test_DefaultOrganizationReconciler_Reconcile_NoMembership_Sucess(t *testing
 
 	require.NoError(t, c.Get(context.TODO(), types.NamespacedName{Name: u3.ObjectMeta.Name}, &user))
 	assert.Empty(t, user.Spec.Preferences.DefaultOrganizationRef)
+
+}
+
+func Test_DefaultOrganizationReconciler_Reconcile_UserNotExist_Success(t *testing.T) {
+	ctx := context.Background()
+	c := prepareTest(t, &testMemberships1, &u1)
+	fakeRecorder := record.NewFakeRecorder(3)
+
+	_, err := (&DefaultOrganizationReconciler{
+		Client:   c,
+		Scheme:   c.Scheme(),
+		Recorder: fakeRecorder,
+	}).Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      testMemberships1.Name,
+			Namespace: testMemberships1.Namespace,
+		},
+	})
+	require.NoError(t, err)
+
+	user := controlv1.User{}
+	require.NoError(t, c.Get(context.TODO(), types.NamespacedName{Name: u1.ObjectMeta.Name}, &user))
+	assert.Equal(t, testMemberships1.ObjectMeta.Namespace, user.Spec.Preferences.DefaultOrganizationRef)
+
+	require.NoError(t, c.Get(context.TODO(), types.NamespacedName{Name: u2.ObjectMeta.Name}, &user))
+	assert.Equal(t, testMemberships1.ObjectMeta.Namespace, user.Spec.Preferences.DefaultOrganizationRef)
+
+	require.NoError(t, c.Get(context.TODO(), types.NamespacedName{Name: u3.ObjectMeta.Name}, &user))
+	assert.Equal(t, testMemberships1.ObjectMeta.Namespace, user.Spec.Preferences.DefaultOrganizationRef)
 
 }
 
