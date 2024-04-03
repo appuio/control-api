@@ -1,0 +1,21 @@
+# migration playbook
+
+- [ ] Run migration check until no failures are reported `ODOO_PASSWORD="..." go run ./migration/export_mapping | go run ./migration/migrate`
+  - Fill manual mappings
+- [ ] Dump mapping state `go run ./migration/export_mapping > mapping.csv`
+- [ ] Maintenance announcement https://statuspal.eu/admin/status_pages/appuio-cloud (https://vs.hn/statuspal)
+- [ ] Switch off portal.appuio.cloud
+  - Disable lpg2 ArgoCD sync for root and appuio-portal, delete the ingress
+- [ ] Disable control-api controller `k -n appuio-control-api scale deployment control-api-controller --replicas=0`
+- [ ] Disable control-api controller `--sale-order-compatibility-mode` in tenant repo
+- [ ] Switch control-api apiserver to fake billing storage
+- [ ] Check for pending invitations, delete if necessary (if they contain billing entities)
+- [ ] Rerun migration checks `go run ./migration/migrate -i-checked-invitations < mapping.csv`
+- [ ] Execute migration dry run `go run ./migration/migrate -i-checked-invitations -migrate < mapping.csv`
+- [ ] Execute migration `go run ./migration/migrate -i-checked-invitations -migrate -dry-run=false < mapping.csv`
+- [ ] Check if any manifest left without migration label
+  - `k get organization -l appuio.io/odoo-migrated!=true`
+  - `k get clusterroles -l appuio.io/odoo-migrated!=true | grep billingentities-`
+  - `k get clusterrolebindings -l appuio.io/odoo-migrated!=true | grep billingentities-`
+- [ ] Resync app
+- [ ] Resync lpg2 root
