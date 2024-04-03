@@ -25,7 +25,15 @@ import (
 	controlv1 "github.com/appuio/control-api/apis/v1"
 )
 
-var manualMapping = map[string]string{}
+var manualMapping = map[string]string{
+	"2326": "9466",
+	"2746": "8019",
+	"2962": "16194",
+	"2667": "9143",
+	"1606": "8688",
+	"2778": "9366",
+	"2929": "16400",
+}
 
 func main() {
 	ctx := context.Background()
