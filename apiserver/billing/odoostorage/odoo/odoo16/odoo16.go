@@ -151,7 +151,7 @@ func (s *Odoo16Storage) get(ctx context.Context, name string) (company odooclien
 	}
 
 	cpp, err := session.FindResPartners(
-		odooclient.NewCriteria().AddCriterion(activeFilter).AddCriterion(odooclient.NewCriterion("id", "=", id)),
+		odooclient.NewCriteria().AddCriterion(activeFilter).AddCriterion(odooclient.NewCriterion("id", "=", accountingContact.ParentId.Get())),
 		fetchPartnerFieldOpts)
 	if err != nil {
 		return odooclient.ResPartner{}, odooclient.ResPartner{}, fmt.Errorf("fetching parent %d of accounting contact %d failed: %w", accountingContact.ParentId.ID, id, err)
@@ -211,7 +211,7 @@ func (s *Odoo16Storage) List(ctx context.Context) ([]billingv1.BillingEntity, er
 		}
 		mp, ok := companySet[int(p.ParentId.ID)]
 		if !ok {
-			l.Info("could not load parent partner (maybe no longer active?)", "parent_id", p.ParentId.ID, "id", p.Id)
+			l.Info("could not load parent partner (maybe no longer active?)", "parent_id", p.ParentId.ID, "id", p.Id.Get())
 			continue
 		}
 		bes = append(bes, mapPartnersToBillingEntity(ctx, mp, p))
