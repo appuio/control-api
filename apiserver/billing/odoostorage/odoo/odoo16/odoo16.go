@@ -25,9 +25,6 @@ const VSHNAccountingContactNameKey = "billing.appuio.io/vshn-accounting-contact-
 // Used to identify the accounting contact of a company.
 const invoiceType = "invoice"
 
-// TODO(bastjan) test if still needed in odoo16
-const companyCategory = 2
-
 // Used to generate the UUID for the .metadata.uid field.
 var metaUIDNamespace = uuid.MustParse("7550b1ae-7a2a-485e-a75d-6f931b2cd73f")
 
@@ -442,15 +439,12 @@ func mapBillingEntityToPartners(be billingv1.BillingEntity, countryIDs map[strin
 }
 
 func setStaticAccountingContactFields(conf Config, a *odooclient.ResPartner) {
-	a.CategoryId = odooclient.NewRelation()
 	a.Lang = odooclient.NewSelection(conf.LanguagePreference)
 	a.Type = odooclient.NewSelection(invoiceType)
 	a.PropertyPaymentTermId = odooclient.NewMany2One(int64(conf.PaymentTermID), "")
 }
 
 func setStaticCompanyFields(conf Config, a *odooclient.ResPartner) {
-	a.CategoryId = odooclient.NewRelation()
-	a.CategoryId.AddRecord(int64(companyCategory))
 	a.Lang = odooclient.NewSelection(conf.LanguagePreference)
 	a.PropertyPaymentTermId = odooclient.NewMany2One(int64(conf.PaymentTermID), "")
 }
