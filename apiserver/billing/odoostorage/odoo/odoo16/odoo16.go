@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,20 +69,82 @@ type Config struct {
 
 var _ odoo.OdooStorage = &Odoo16Storage{}
 
+// NewOdoo16Storage returns a new storage provider for BillingEntities
+// The storage provider uses Odoo 16 as the backend.
 func NewOdoo16Storage(credentials OdooCredentials, conf Config) *Odoo16Storage {
 	return &Odoo16Storage{
 		config: conf,
-		sessionCreator: func(ctx context.Context) (Odoo16Client, error) {
-			return odooclient.NewClient(&credentials)
-		},
+		sessionCreator: CachingClientCreator(func(ctx context.Context) (Odoo16Client, error) {
+			c, err := odooclient.NewClient(&credentials)
+			return &OdooClientWithFullInitialization{c}, err
+		}),
 	}
 }
 
 func NewFailedRecordScrubber(credentials OdooCredentials) *FailedRecordScrubber {
 	return &FailedRecordScrubber{
-		sessionCreator: func(ctx context.Context) (Odoo16Client, error) {
-			return odooclient.NewClient(&credentials)
-		},
+		sessionCreator: CachingClientCreator(func(ctx context.Context) (Odoo16Client, error) {
+			c, err := odooclient.NewClient(&credentials)
+			return &OdooClientWithFullInitialization{c}, err
+		}),
+	}
+}
+
+// OdooClientWithFullInitialization is a wrapper around the Odoo client that provides a FullInitialization method.
+type OdooClientWithFullInitialization struct {
+	*odooclient.Client
+}
+
+// FullInitialization is a workaround for the odooclient initialization which is not thread-safe.
+// This function performs a full initialization of the client by calling execute_kw which initializes the "object" client.
+// https://github.com/appuio/go-odoo/blob/a2a337fdf12becaeaa920ee8093402d6d01144f3/odoo.go#L337
+// After this call the client should be thread-safe and ready to use.
+// The "common" client is already initialized in the NewClient function through the call of "authenticate".
+// https://github.com/appuio/go-odoo/blob/a2a337fdf12becaeaa920ee8093402d6d01144f3/odoo.go#L53
+// https://github.com/appuio/go-odoo/blob/a2a337fdf12becaeaa920ee8093402d6d01144f3/odoo.go#L346
+func (c *OdooClientWithFullInitialization) FullInitialization() error {
+	_, err := c.Client.ExecuteKw("search_count", odooclient.ResPartnerModel, []any{*odooclient.NewCriteria()}, nil)
+	return err
+}
+
+// CachingClientCreator accepts and returns a function that creates a new Odoo16Client instance.
+// The function caches the client instance returned from the upstream client creation function and returns it on subsequent calls.
+// If an error occurs during the creation of the client, the error is returned and the client creation is retried on the next call.
+// No client is cached if an error occurs during the creation.
+//
+// This function is useful to avoid creating a new client instance for every request.
+// Odoo clients track connections and session state internally, so reusing a client instance is beneficial.
+// The upstream Odoo client is not thread-safe until a full initialization is performed.
+// See the FullInitialization method on OdooClientWithFullInitialization for a workaround.
+func CachingClientCreator(sc func(context.Context) (Odoo16Client, error)) func(context.Context) (Odoo16Client, error) {
+	clientMux := sync.RWMutex{}
+	var client Odoo16Client
+
+	return func(ctx context.Context) (Odoo16Client, error) {
+		clientMux.RLock()
+		if client != nil {
+			clientMux.RUnlock()
+			return client, nil
+		}
+		clientMux.RUnlock()
+
+		clientMux.Lock()
+		defer clientMux.Unlock()
+
+		// recheck if client was created between RUnlock and Lock
+		if client != nil {
+			return client, nil
+		}
+
+		c, err := sc(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if err := c.FullInitialization(); err != nil {
+			return nil, fmt.Errorf("error during full initialization: %w", err)
+		}
+		client = c
+		return client, nil
 	}
 }
 
@@ -97,6 +160,10 @@ type FailedRecordScrubber struct {
 
 //go:generate go run go.uber.org/mock/mockgen -destination=./odoo16mock/$GOFILE -package odoo16mock . Odoo16Client
 type Odoo16Client interface {
+	// FullInitialization performs a full initialization of the client.
+	// After this call the client must be thread-safe and ready to use.
+	FullInitialization() error
+
 	Update(string, []int64, interface{}) error
 	FindResPartners(*odooclient.Criteria, *odooclient.Options) (*odooclient.ResPartners, error)
 	CreateResPartner(*odooclient.ResPartner) (int64, error)
