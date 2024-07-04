@@ -82,6 +82,20 @@ func (mr *MockOdoo16ClientMockRecorder) FindResPartners(arg0, arg1 any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindResPartners", reflect.TypeOf((*MockOdoo16Client)(nil).FindResPartners), arg0, arg1)
 }
 
+// FullInitialization mocks base method.
+func (m *MockOdoo16Client) FullInitialization() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FullInitialization")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FullInitialization indicates an expected call of FullInitialization.
+func (mr *MockOdoo16ClientMockRecorder) FullInitialization() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FullInitialization", reflect.TypeOf((*MockOdoo16Client)(nil).FullInitialization))
+}
+
 // Update mocks base method.
 func (m *MockOdoo16Client) Update(arg0 string, arg1 []int64, arg2 any) error {
 	m.ctrl.T.Helper()

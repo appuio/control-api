@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	odooclient "github.com/appuio/go-odoo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -13,7 +14,6 @@ import (
 
 	billingv1 "github.com/appuio/control-api/apis/billing/v1"
 	"github.com/appuio/control-api/apiserver/billing/odoostorage/odoo/odoo16/odoo16mock"
-	odooclient "github.com/appuio/go-odoo"
 )
 
 func TestGet(t *testing.T) {
@@ -397,4 +397,44 @@ func TestCleanup(t *testing.T) {
 	err := subject.CleanupIncompleteRecords(context.Background(), time.Minute)
 	require.NoError(t, err)
 
+}
+
+func Test_CachingClientCreator(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	calls := 0
+	shouldFail := true
+
+	subject := CachingClientCreator(func(ctx context.Context) (Odoo16Client, error) {
+		calls++
+		if shouldFail {
+			return nil, errors.New("failed to create client")
+		}
+		mock := odoo16mock.NewMockOdoo16Client(ctrl)
+		mock.EXPECT().FullInitialization().Times(1).Return(nil)
+		return mock, nil
+	})
+
+	// Failing call should return an error
+	_, err := subject(context.Background())
+	require.Error(t, err)
+	assert.Equal(t, 1, calls)
+	_, err = subject(context.Background())
+	require.Error(t, err)
+	assert.Equal(t, 2, calls)
+
+	shouldFail = false
+
+	// First successful call should create a new client
+	client, err := subject(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 3, calls)
+	prevClient := client
+
+	// Second successful call should return the same client
+	client, err = subject(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, prevClient, client)
+	assert.Equal(t, 3, calls)
 }
