@@ -24,7 +24,8 @@ type DefaultOrganizationReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=appuio.io,resources=organizationmembers,verbs=get;list;watch
-//+kubebuilder:rbac:groups=appuio.io,resources=users,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=appuio.io,resources=users,verbs=get;list;watch
+//+kubebuilder:rbac:groups=rbac.appuio.io,resources=users,verbs=create;update;patch
 //+kubebuilder:rbac:groups=appuio.io,resources=users/status,verbs=get
 
 // Reconcile reacts on changes of memberships and sets members' default organization if appropriate
