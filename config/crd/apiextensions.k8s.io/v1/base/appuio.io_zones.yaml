@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: zones.appuio.io
 spec:
   group: appuio.io
@@ -21,9 +20,11 @@ spec:
         description: Zone is the Schema for the Zone API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           data:
             description: Data holds the cluster specific metadata.
@@ -39,9 +40,9 @@ spec:
                     description: Region is the geographic location of the Zone.
                     type: string
                   zones:
-                    description: Zones is cloud-provider-specific zone aliases within
-                      a Region. If multiple entries are present, the cluster may be
-                      spanning multiple zones.
+                    description: |-
+                      Zones is cloud-provider-specific zone aliases within a Region.
+                      If multiple entries are present, the cluster may be spanning multiple zones.
                     items:
                       type: string
                     type: array
@@ -60,9 +61,9 @@ spec:
               features:
                 additionalProperties:
                   type: string
-                description: Features holds a key-value dict with keys being a feature
-                  name and values being a property of that feature. Some features
-                  may hold a version string as property.
+                description: |-
+                  Features holds a key-value dict with keys being a feature name and values being a property of that feature.
+                  Some features may hold a version string as property.
                 type: object
               gatewayIPs:
                 description: GatewayIPs holds the outgoing IP addresses of the cluster.
@@ -77,9 +78,12 @@ spec:
                 type: object
             type: object
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
