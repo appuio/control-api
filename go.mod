@@ -1,6 +1,8 @@
 module github.com/appuio/control-api
 
-go 1.20
+go 1.22
+
+toolchain go1.22.5
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
