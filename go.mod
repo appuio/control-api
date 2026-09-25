@@ -14,7 +14,7 @@ require (
 	go.uber.org/mock v0.3.0
 	go.uber.org/multierr v1.11.0
 	go.uber.org/zap v1.26.0
-	golang.org/x/exp v0.0.0-20230307190834-24139beb5833
+	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba
 	k8s.io/api v0.26.2
 	k8s.io/apimachinery v0.26.2
 	k8s.io/apiserver v0.26.2
